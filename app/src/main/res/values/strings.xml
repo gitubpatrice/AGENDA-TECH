@@ -2,7 +2,11 @@
 <resources>
     <string name="app_name">Agenda Tech</string>
 
-    <!-- Home (placeholder — replaced by the month view in phase 2) -->
-    <string name="home_empty_title">Your local agenda</string>
-    <string name="home_empty_subtitle">No calendar yet (%1$d). Events, reminders and the month view are coming.</string>
+    <!-- Month view -->
+    <string name="month_today">Today</string>
+    <string name="month_previous">Previous month</string>
+    <string name="month_next">Next month</string>
+    <string name="month_add_event">Add event</string>
+    <string name="month_no_events">No events on this day</string>
+    <string name="month_all_day">All day</string>
 </resources>

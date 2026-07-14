@@ -5,12 +5,12 @@ package com.filestech.agenda_tech.ui.navigation
  * scaffold); each future screen adds a `const` here and a `composable(...)` in
  * [com.filestech.agenda_tech.ui.AppRoot].
  *
- * Phase-2 destinations the NavHost is structured to receive without a rewrite:
- *   - MONTH / WEEK / DAY / AGENDA  (the calendar views)
- *   - EVENT_EDITOR                 (create / edit, arg: eventId)
- *   - CALENDARS                    (manage local calendars)
+ * Phase-2 destinations still to add:
+ *   - WEEK / DAY / AGENDA  (the other calendar views)
+ *   - EVENT_EDITOR         (create / edit, arg: eventId — next step)
+ *   - CALENDARS            (manage local calendars)
  *   - SETTINGS
  */
 object Routes {
-    const val HOME = "home"
+    const val MONTH = "month"
 }
