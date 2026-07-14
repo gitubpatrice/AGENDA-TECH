@@ -8,14 +8,19 @@ import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.settings.AppSettings
 import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.domain.settings.WeekStart
+import com.filestech.agenda_tech.security.AppLockManager
 import com.filestech.agenda_tech.system.notifications.ReminderNotifier
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.ceil
 
 data class LockUiState(
     val lockEnabled: Boolean = false,
@@ -26,6 +31,7 @@ data class LockUiState(
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val lockRepository: LockRepository,
+    private val appLock: AppLockManager,
     private val reminderNotifier: ReminderNotifier,
 ) : ViewModel() {
 
@@ -50,8 +56,42 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { lockRepository.disableLock() }
     }
 
-    /** LOCK-6 — re-auth gate: disabling the lock or changing the PIN must confirm the current PIN. */
-    suspend fun verifyPin(pin: String): Boolean = lockRepository.verifyPin(pin)
+    /** Seconds the user must wait before the next re-auth attempt (0 when not throttled). */
+    private val _throttleSeconds = MutableStateFlow(0)
+    val throttleSeconds: StateFlow<Int> = _throttleSeconds.asStateFlow()
+
+    /**
+     * LOCK-6 — re-auth gate: disabling the lock or changing the PIN must confirm the current PIN.
+     * SEC-1 — routed through the shared [AppLockManager] so this path is under the SAME brute-force
+     * back-off as the lock screen (an attacker past biometrics must not be able to guess the PIN
+     * here without limit).
+     */
+    suspend fun verifyPin(pin: String): Boolean {
+        if (appLock.throttleRemainingMs() > 0) {
+            startThrottleTicker()
+            return false
+        }
+        val ok = lockRepository.verifyPin(pin)
+        if (ok) {
+            appLock.resetAttempts()
+        } else {
+            appLock.registerFailedAttempt()
+            startThrottleTicker()
+        }
+        return ok
+    }
+
+    private fun startThrottleTicker() {
+        viewModelScope.launch {
+            var remaining = appLock.throttleRemainingMs()
+            while (remaining > 0) {
+                _throttleSeconds.value = ceil(remaining / 1000.0).toInt()
+                delay(THROTTLE_TICK_MS)
+                remaining = appLock.throttleRemainingMs()
+            }
+            _throttleSeconds.value = 0
+        }
+    }
 
     fun setBiometricEnabled(enabled: Boolean) {
         viewModelScope.launch { lockRepository.setBiometricEnabled(enabled) }
@@ -83,5 +123,6 @@ class SettingsViewModel @Inject constructor(
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
+        const val THROTTLE_TICK_MS = 500L
     }
 }

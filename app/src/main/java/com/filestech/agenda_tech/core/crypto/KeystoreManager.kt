@@ -15,6 +15,7 @@ import javax.inject.Singleton
  *
  * One key per logical purpose:
  *  - [ALIAS_DB_MASTER] : wraps the SQLCipher master key.
+ *  - [ALIAS_PIN_WRAP] : wraps the salted app-lock PIN hash blob.
  *
  * `allowUserIv` (= `setRandomizedEncryptionRequired(false)`) defaults to **false**, i.e. the OS
  * enforces IV randomisation. [ALIAS_DB_MASTER] opts in to `true` because

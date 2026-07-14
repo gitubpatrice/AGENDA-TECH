@@ -36,6 +36,10 @@ object PinHasher {
     /** Constant-time comparison to avoid leaking match progress via timing. */
     fun matches(pin: CharArray, salt: ByteArray, expectedHash: ByteArray): Boolean {
         val actual = hash(pin, salt)
-        return MessageDigest.isEqual(actual, expectedHash)
+        return try {
+            MessageDigest.isEqual(actual, expectedHash)
+        } finally {
+            actual.wipe()
+        }
     }
 }

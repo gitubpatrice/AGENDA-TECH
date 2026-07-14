@@ -215,8 +215,10 @@ fun SettingsScreen(
     }
 
     verifyPurpose?.let { purpose ->
+        val throttleSeconds by viewModel.throttleSeconds.collectAsStateWithLifecycle()
         VerifyPinDialog(
             verify = { viewModel.verifyPin(it) },
+            throttleSeconds = throttleSeconds,
             onSuccess = {
                 verifyPurpose = null
                 when (purpose) {
@@ -270,6 +272,7 @@ private fun SetPinDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
 @Composable
 private fun VerifyPinDialog(
     verify: suspend (String) -> Boolean,
+    throttleSeconds: Int,
     onSuccess: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -277,25 +280,36 @@ private fun VerifyPinDialog(
     var pin by remember { mutableStateOf("") }
     var wrong by remember { mutableStateOf(false) }
     var checking by remember { mutableStateOf(false) }
+    val throttled = throttleSeconds > 0
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.settings_lock_confirm_current)) },
         text = {
-            PinField(
-                value = pin,
-                onValueChange = {
-                    pin = it
-                    wrong = false
-                },
-                label = stringResource(R.string.lock_pin),
-                isError = wrong,
-                supportingText = if (wrong) stringResource(R.string.lock_wrong_pin) else null,
-            )
+            Column {
+                PinField(
+                    value = pin,
+                    onValueChange = {
+                        pin = it
+                        wrong = false
+                    },
+                    label = stringResource(R.string.lock_pin),
+                    isError = wrong,
+                    supportingText = if (wrong) stringResource(R.string.lock_wrong_pin) else null,
+                )
+                if (throttled) {
+                    Text(
+                        text = stringResource(R.string.lock_throttled, throttleSeconds),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            }
         },
         confirmButton = {
             TextButton(
-                enabled = pin.length >= MIN_PIN_LENGTH && !checking,
+                enabled = pin.length >= MIN_PIN_LENGTH && !checking && !throttled,
                 onClick = {
                     checking = true
                     scope.launch {

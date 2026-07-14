@@ -77,13 +77,16 @@ class LockRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun disableLock() {
+    override suspend fun disableLock() = withContext(io) {
+        // keystore.deleteKey() is an IPC to keystore2 (potentially slow on StrongBox) — keep it off
+        // the Main thread, consistent with setPin/verifyPin.
         keystore.deleteKey(KeystoreManager.ALIAS_PIN_WRAP)
         dataStore.edit { prefs ->
             prefs.remove(Keys.PIN_WRAP)
             prefs[Keys.LOCK_ENABLED] = false
             prefs[Keys.BIOMETRIC_ENABLED] = false
         }
+        Unit
     }
 
     override suspend fun setBiometricEnabled(enabled: Boolean) {
