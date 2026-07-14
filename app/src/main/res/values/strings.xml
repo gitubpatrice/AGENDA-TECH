@@ -89,6 +89,7 @@
 
     <!-- Home-screen widget -->
     <string name="widget_description">Today\'s date and upcoming events</string>
+    <string name="widget_icon_description">Compact date icon: weekday, day and month</string>
     <string name="widget_no_events">No upcoming events</string>
 
     <!-- Settings -->

@@ -89,6 +89,7 @@
 
     <!-- Widget écran d'accueil -->
     <string name="widget_description">Date du jour et prochains événements</string>
+    <string name="widget_icon_description">Icône date compacte : jour, quantième et mois</string>
     <string name="widget_no_events">Aucun événement à venir</string>
 
     <!-- Réglages -->
