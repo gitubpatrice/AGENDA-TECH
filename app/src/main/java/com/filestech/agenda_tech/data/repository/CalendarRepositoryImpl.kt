@@ -28,6 +28,10 @@ class CalendarRepositoryImpl @Inject constructor(
         dao.getById(id)?.toDomain()
     }
 
+    override suspend fun findBySourceId(sourceId: String): Calendar? = withContext(io) {
+        dao.findBySourceId(sourceId)?.toDomain()
+    }
+
     override suspend fun count(): Int = withContext(io) { dao.count() }
 
     override suspend fun upsert(calendar: Calendar): Long = withContext(io) {

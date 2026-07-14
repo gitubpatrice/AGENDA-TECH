@@ -42,8 +42,11 @@ interface EventRepository {
     /** Inserts or updates; returns the event's id (freshly generated on insert). */
     suspend fun upsert(event: Event): Long
 
-    /** Atomically inserts a batch of new events (import). All or nothing — no half-populated import. */
+    /** Atomically inserts/updates a batch of events (import). All or nothing — no half-populated import. */
     suspend fun upsertAll(events: List<Event>)
+
+    /** (source_uid → existing event id) for a calendar's imported events — to update them in place. */
+    suspend fun sourceUidMap(calendarId: Long): Map<String, Long>
 
     suspend fun delete(id: Long)
 }

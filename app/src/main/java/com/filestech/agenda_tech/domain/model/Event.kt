@@ -37,6 +37,12 @@ data class Event(
     val colorOverride: CalendarColor? = null,
     val recurrenceParentId: Long? = null,
     val originalStartUtcMillis: Long? = null,
+    /**
+     * Stable identifier of the external source event this was imported from (the iCalendar UID of a
+     * device Calendar Provider event). Null for user-created events. Lets a re-import update the same
+     * row in place instead of creating a duplicate (idempotent import).
+     */
+    val sourceUid: String? = null,
 ) {
     init {
         require(endUtcMillis >= startUtcMillis) {

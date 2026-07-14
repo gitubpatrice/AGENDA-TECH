@@ -26,5 +26,21 @@ object Migrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2)
+    /**
+     * v3 (2026-07): idempotent device-calendar import. Adds `calendars.source_id` +
+     * `events.source_uid` (both nullable, null for user-created rows) and the lookup index Room
+     * expects on `(calendar_id, source_uid)`. Purely additive.
+     */
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE calendars ADD COLUMN source_id TEXT")
+            db.execSQL("ALTER TABLE events ADD COLUMN source_uid TEXT")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_events_calendar_id_source_uid " +
+                    "ON events (calendar_id, source_uid)",
+            )
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 }

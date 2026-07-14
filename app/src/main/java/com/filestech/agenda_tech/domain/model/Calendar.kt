@@ -13,4 +13,10 @@ data class Calendar(
     val isVisible: Boolean = true,
     /** The default calendar new events land in when the user doesn't pick one. Exactly one should be true. */
     val isDefault: Boolean = false,
+    /**
+     * Stable link to the external source this calendar was imported from (e.g. `"device:6"` for the
+     * device Calendar Provider). Null for user-created calendars. Lets a re-import reuse the same
+     * calendar instead of creating a duplicate.
+     */
+    val sourceId: String? = null,
 )

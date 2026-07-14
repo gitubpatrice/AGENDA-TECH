@@ -21,7 +21,9 @@ private fun deviceEvent(
     exDate: String? = null,
     description: String? = null,
     location: String? = null,
+    uid: String = "uid-1",
 ) = DeviceEvent(
+    uid = uid,
     title = title,
     description = description,
     location = location,
@@ -119,6 +121,12 @@ class DeviceEventMapperTest {
     fun `unknown FREQ makes the event single`() {
         val e = DeviceEventMapper.toEvent(deviceEvent(rrule = "FREQ=HOURLY"), CAL_ID)!!
         assertThat(e.recurrence).isNull()
+    }
+
+    @Test
+    fun `carries the source uid for idempotent re-import`() {
+        val e = DeviceEventMapper.toEvent(deviceEvent(uid = "abc-123"), CAL_ID)!!
+        assertThat(e.sourceUid).isEqualTo("abc-123")
     }
 
     @Test

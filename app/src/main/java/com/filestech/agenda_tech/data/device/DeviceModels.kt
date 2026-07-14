@@ -19,8 +19,12 @@ data class DeviceCalendar(
  * Time fields follow the Calendar Provider contract: [dtStartUtcMillis] is an absolute instant;
  * [dtEndUtcMillis] is null for recurring events (which carry [durationRfc] instead); [allDay] events
  * are anchored to UTC midnight by the provider.
+ *
+ * [uid] is a stable identifier of the source event (iCalendar UID / sync id / row id) used to update
+ * the same Agenda Tech row on re-import instead of duplicating it.
  */
 data class DeviceEvent(
+    val uid: String,
     val title: String?,
     val description: String?,
     val location: String?,

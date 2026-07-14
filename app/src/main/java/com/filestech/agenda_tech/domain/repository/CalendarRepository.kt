@@ -17,6 +17,9 @@ interface CalendarRepository {
 
     suspend fun getById(id: Long): Calendar?
 
+    /** The calendar previously imported from [sourceId] (e.g. `"device:6"`), or null (idempotent import). */
+    suspend fun findBySourceId(sourceId: String): Calendar?
+
     /** Number of calendars — used to decide whether the first-run default calendar is needed. */
     suspend fun count(): Int
 

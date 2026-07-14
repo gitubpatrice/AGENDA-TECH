@@ -28,8 +28,9 @@ data class AgendaUiState(
 )
 
 /**
- * Drives the agenda (list) view: streams the occurrences of a rolling window starting today and
- * groups them by day. Only days that actually have events appear.
+ * Drives the agenda (list) view: streams the occurrences of a wide window around today (roughly a
+ * year back to a year ahead, so imported past appointments are not hidden) and groups them by day.
+ * Only days that actually have events appear; the screen scrolls to today on open.
  */
 @HiltViewModel
 class AgendaViewModel @Inject constructor(
@@ -40,8 +41,8 @@ class AgendaViewModel @Inject constructor(
     private val zone: ZoneId = ZoneId.systemDefault()
     val startDate: LocalDate = LocalDate.now(zone)
 
-    private val windowStart = startDate.atStartOfDay(zone).toInstant().toEpochMilli()
-    private val windowEnd = startDate.plusDays(WINDOW_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
+    private val windowStart = startDate.minusDays(PAST_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
+    private val windowEnd = startDate.plusDays(FUTURE_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
 
     val uiState: StateFlow<AgendaUiState> = combine(
         observeOccurrences(windowStart, windowEnd),
@@ -66,6 +67,7 @@ class AgendaViewModel @Inject constructor(
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
-        const val WINDOW_DAYS = 90L
+        const val PAST_DAYS = 366L
+        const val FUTURE_DAYS = 366L
     }
 }

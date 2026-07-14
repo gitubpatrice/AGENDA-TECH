@@ -34,6 +34,6 @@ abstract class AppDatabase : RoomDatabase() {
         const val DATABASE_NAME = "agendatech.db"
         // v1 (initial schema): calendars, events (with structured rrule_* columns), reminders.
         // v2 (per-occurrence overrides): events.recurrence_parent_id + events.original_start.
-        const val SCHEMA_VERSION = 2
+        const val SCHEMA_VERSION = 3
     }
 }

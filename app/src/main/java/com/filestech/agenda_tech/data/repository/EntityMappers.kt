@@ -23,6 +23,7 @@ internal fun CalendarEntity.toDomain(): Calendar = Calendar(
     color = color,
     isVisible = visible,
     isDefault = isDefault,
+    sourceId = sourceId,
 )
 
 internal fun Calendar.toEntity(createdAt: Long): CalendarEntity = CalendarEntity(
@@ -32,6 +33,7 @@ internal fun Calendar.toEntity(createdAt: Long): CalendarEntity = CalendarEntity
     visible = isVisible,
     isDefault = isDefault,
     createdAt = createdAt,
+    sourceId = sourceId,
 )
 
 // --- Event ------------------------------------------------------------------
@@ -59,6 +61,7 @@ internal fun EventEntity.toDomain(): Event = Event(
     colorOverride = colorOverride,
     recurrenceParentId = recurrenceParentId,
     originalStartUtcMillis = originalStartUtcMillis,
+    sourceUid = sourceUid,
 )
 
 internal fun Event.toEntity(createdAt: Long, updatedAt: Long): EventEntity = EventEntity(
@@ -80,6 +83,7 @@ internal fun Event.toEntity(createdAt: Long, updatedAt: Long): EventEntity = Eve
     colorOverride = colorOverride,
     recurrenceParentId = recurrenceParentId,
     originalStartUtcMillis = originalStartUtcMillis,
+    sourceUid = sourceUid,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

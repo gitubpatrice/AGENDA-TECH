@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -21,7 +22,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,6 +59,16 @@ fun AgendaScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
     val zone = ZoneId.systemDefault()
+    val listState = rememberLazyListState()
+
+    // The window spans a year of past events; open the list at today rather than a year ago.
+    var scrolledToToday by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(state.days) {
+        if (!scrolledToToday && state.days.isNotEmpty()) {
+            listState.scrollToItem(state.days.todayFlatIndex(viewModel.startDate))
+            scrolledToToday = true
+        }
+    }
 
     CalendarScaffold(
         currentView = CalendarView.AGENDA,
@@ -84,6 +99,7 @@ fun AgendaScreen(
         }
 
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
@@ -98,6 +114,19 @@ fun AgendaScreen(
             }
         }
     }
+}
+
+/**
+ * Flat LazyColumn index of the first day on/after [today] (each day = 1 header + N rows). Falls back
+ * to the end of the list when every event is in the past.
+ */
+private fun List<AgendaDay>.todayFlatIndex(today: LocalDate): Int {
+    var index = 0
+    for (day in this) {
+        if (!day.date.isBefore(today)) return index
+        index += 1 + day.items.size
+    }
+    return (index - 1).coerceAtLeast(0)
 }
 
 @Composable

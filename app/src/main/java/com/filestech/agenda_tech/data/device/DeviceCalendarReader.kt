@@ -13,9 +13,10 @@ import javax.inject.Singleton
  * (`CalendarContract`) — Google, Exchange, local accounts alike. **Read-only and 100 % local**: no
  * network, no account access; Agenda Tech only sees what the OS has already synced onto the phone.
  *
- * Requires the `READ_CALENDAR` runtime permission (the caller gates on it). Only master / standalone
- * events are returned (rows with a non-null `ORIGINAL_ID`, i.e. moved single occurrences, are skipped
- * in V1); the pure [DeviceEventMapper] turns each row into a domain event.
+ * Requires the `READ_CALENDAR` runtime permission (the caller gates on it). Recurring masters,
+ * standalone events **and moved single occurrences** (`ORIGINAL_ID` set) are returned — only the
+ * provider's deleted tombstones are skipped, so nothing the user can see in their calendar is lost.
+ * The pure [DeviceEventMapper] turns each row into a domain event.
  */
 @Singleton
 class DeviceCalendarReader @Inject constructor(
@@ -73,11 +74,15 @@ class DeviceCalendarReader @Inject constructor(
             CalendarContract.Events.EVENT_TIMEZONE,
             CalendarContract.Events.RRULE,
             CalendarContract.Events.EXDATE,
+            // _SYNC_ID is unique per row (unlike UID_2445, which a series shares with its exceptions)
+            // and stable across syncs for account calendars; _ID is the local fallback for unsynced ones.
+            CalendarContract.Events._SYNC_ID,
+            CalendarContract.Events._ID,
         )
-        // Masters + standalone only (ORIGINAL_ID null), skip tombstones (DELETED = 1).
+        // Everything the user can see: masters, standalone AND moved occurrences (ORIGINAL_ID set).
+        // Skip only deleted tombstones — `DELETED` may be NULL on some providers, so guard for it.
         val selection = "${CalendarContract.Events.CALENDAR_ID} = ? " +
-            "AND ${CalendarContract.Events.ORIGINAL_ID} IS NULL " +
-            "AND ${CalendarContract.Events.DELETED} != 1 " +
+            "AND (${CalendarContract.Events.DELETED} IS NULL OR ${CalendarContract.Events.DELETED} != 1) " +
             "AND ${CalendarContract.Events.DTSTART} IS NOT NULL"
         return runCatching {
             context.contentResolver.query(
@@ -90,8 +95,11 @@ class DeviceCalendarReader @Inject constructor(
                 buildList {
                     while (c.moveToNext() && size < MAX_EVENTS) {
                         val dtStart = if (c.isNull(3)) continue else c.getLong(3)
+                        // Stable per-row identity for idempotent re-import: sync id, else local row id.
+                        val uid = c.getStringOrNull(10) ?: "rowid:${c.getLong(11)}"
                         add(
                             DeviceEvent(
+                                uid = uid,
                                 title = c.getStringOrNull(0),
                                 description = c.getStringOrNull(1),
                                 location = c.getStringOrNull(2),

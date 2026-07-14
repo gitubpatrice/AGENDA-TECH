@@ -13,12 +13,14 @@ import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * One-shot import of events from the device's own calendars (Google, Exchange, local…) read via the
- * Calendar Provider — **no network**. Each selected device calendar becomes a *new* Agenda Tech
- * calendar (name + nearest palette colour), and its master/standalone events are copied in.
+ * Import of events from the device's own calendars (Google, Exchange, local…) read via the Calendar
+ * Provider — **no network**. Each selected device calendar maps to an Agenda Tech calendar (reused
+ * on re-import via its `source_id`, name + nearest palette colour), and its events are copied in.
  *
- * V1 is a copy, not a sync: re-running it duplicates events (there is no dedup/two-way sync). Moved
- * single occurrences and VALARM reminders are out of scope, mirroring the `.ics` import.
+ * **Idempotent**: each event carries the source's stable uid, so re-running the import updates the
+ * same rows in place and adds newly-created events instead of duplicating everything — re-importing
+ * is a safe refresh. It does not delete events removed at the source (no destructive two-way sync),
+ * and VALARM reminders are out of scope (mirrors the `.ics` import).
  */
 class ImportDeviceEventsUseCase @Inject constructor(
     private val reader: DeviceCalendarReader,
@@ -40,16 +42,26 @@ class ImportDeviceEventsUseCase @Inject constructor(
             // Isolate each calendar: a failure on one (bad row, write error) is logged and skipped,
             // never crashes the whole import — mirrors the resilient .ics import path.
             runCatching {
-                val targetCalendarId = calendarRepository.upsert(
-                    Calendar(
-                        name = deviceCal.displayName.ifBlank { deviceCal.accountName.ifBlank { "Import" } },
-                        color = DeviceEventMapper.nearestColor(deviceCal.colorArgb),
-                        isVisible = true,
-                        isDefault = false,
-                    ),
-                )
+                val sourceId = "$SOURCE_PREFIX$deviceId"
+                // Reuse the calendar from a previous import (idempotent) or create it on first run.
+                val targetCalendarId = calendarRepository.findBySourceId(sourceId)?.id
+                    ?: calendarRepository.upsert(
+                        Calendar(
+                            name = deviceCal.displayName.ifBlank { deviceCal.accountName.ifBlank { "Import" } },
+                            color = DeviceEventMapper.nearestColor(deviceCal.colorArgb),
+                            isVisible = true,
+                            isDefault = false,
+                            sourceId = sourceId,
+                        ),
+                    )
+                // Map source uid → existing row id so a re-import updates in place instead of duplicating.
+                val existing = eventRepository.sourceUidMap(targetCalendarId)
                 val mapped = reader.readEvents(deviceId)
                     .mapNotNull { DeviceEventMapper.toEvent(it, targetCalendarId) }
+                    .map { ev ->
+                        val existingId = ev.sourceUid?.let { existing[it] }
+                        if (existingId != null) ev.copy(id = existingId) else ev
+                    }
                 eventRepository.upsertAll(mapped) // atomic batch — all rows or none
                 mapped.size
             }.onSuccess { imported ->
@@ -60,5 +72,9 @@ class ImportDeviceEventsUseCase @Inject constructor(
             }
         }
         Result(calendars = calendars, events = events)
+    }
+
+    private companion object {
+        const val SOURCE_PREFIX = "device:"
     }
 }

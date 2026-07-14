@@ -14,4 +14,6 @@ data class CalendarEntity(
     @ColumnInfo(name = "visible") val visible: Boolean,
     @ColumnInfo(name = "is_default") val isDefault: Boolean,
     @ColumnInfo(name = "created_at") val createdAt: Long,
+    // Stable link to an imported source (e.g. "device:6"); null for user-created calendars.
+    @ColumnInfo(name = "source_id") val sourceId: String? = null,
 )

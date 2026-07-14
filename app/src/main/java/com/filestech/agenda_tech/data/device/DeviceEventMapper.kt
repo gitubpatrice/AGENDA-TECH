@@ -63,6 +63,7 @@ object DeviceEventMapper {
             timeZoneId = zoneId.id,
             allDay = device.allDay,
             recurrence = device.rrule?.let { parseRRule(it, device.exDate, zoneId) },
+            sourceUid = device.uid,
         )
     }
 

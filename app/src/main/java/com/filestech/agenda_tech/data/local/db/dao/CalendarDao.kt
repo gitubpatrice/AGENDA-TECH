@@ -18,6 +18,10 @@ interface CalendarDao {
     @Query("SELECT * FROM calendars WHERE id = :id")
     suspend fun getById(id: Long): CalendarEntity?
 
+    /** The calendar previously imported from a given external source, if any (idempotent import). */
+    @Query("SELECT * FROM calendars WHERE source_id = :sourceId LIMIT 1")
+    suspend fun findBySourceId(sourceId: String): CalendarEntity?
+
     /**
      * `@Upsert` (not `@Insert(onConflict = REPLACE)`): REPLACE would DELETE+INSERT the row and
      * cascade-delete this calendar's events on every edit. `@Upsert` does a true INSERT-or-UPDATE,

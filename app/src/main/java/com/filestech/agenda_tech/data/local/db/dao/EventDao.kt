@@ -84,9 +84,19 @@ interface EventDao {
         entities.forEach { upsert(it) }
     }
 
+    /** (source_uid → id) of the imported events of a calendar, to update them in place on re-import. */
+    @Query("SELECT id, source_uid FROM events WHERE calendar_id = :calendarId AND source_uid IS NOT NULL")
+    suspend fun sourceUidRows(calendarId: Long): List<SourceUidRow>
+
     @Query("DELETE FROM events WHERE id = :id")
     suspend fun delete(id: Long)
 
     @Query("SELECT COUNT(*) FROM events")
     suspend fun count(): Int
 }
+
+/** Projection for [EventDao.sourceUidRows]: the id of an imported event and its external source uid. */
+data class SourceUidRow(
+    val id: Long,
+    @androidx.room.ColumnInfo(name = "source_uid") val sourceUid: String,
+)
