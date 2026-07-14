@@ -7,16 +7,24 @@
       Aucune permission INTERNET / ACCESS_NETWORK_STATE n'est déclarée — et ne doit
       jamais l'être. L'interopérabilité se fait par import/export de fichiers .ics
       (RFC 5545) via le sélecteur de fichiers système, pas par synchronisation réseau.
-
-      PERMISSIONS À AJOUTER EN PHASE 2 (rappels/alarmes exactes) — NON déclarées ici
-      pour ne pas créer de permissions orphelines (warning Play/lint + risque de
-      révocation Android 14+). À poser AU MOMENT où la feature rappels atterrit :
-        - android.permission.POST_NOTIFICATIONS        (Android 13+, rappels)
-        - android.permission.SCHEDULE_EXACT_ALARM      (rappel « X min avant »)
-        - android.permission.USE_EXACT_ALARM           (fallback exact alarm)
-        - android.permission.RECEIVE_BOOT_COMPLETED    (re-planifier après reboot)
-        - android.permission.VIBRATE                   (vibration du rappel)
     -->
+
+    <!-- Rappels (notifications) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Alarmes exactes des rappels.
+         USE_EXACT_ALARM (Android 13+) : auto-accordée pour une app dont la fonction
+         centrale est agenda/alarme (pas de dialogue utilisateur). SCHEDULE_EXACT_ALARM
+         couvre Android 12 (maxSdk 32) ; au-delà c'est USE_EXACT_ALARM qui prend le relais.
+         Le planificateur dégrade proprement en alarme inexacte si l'exact est refusé. -->
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+    <!-- Re-planifier les alarmes après un redémarrage (elles ne survivent pas au reboot). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".MainApplication"
@@ -48,5 +56,21 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- Reminder alarm delivery. Reached only via an explicit PendingIntent from
+             ReminderScheduler (no intent-filter needed), so exported=false. -->
+        <receiver
+            android:name=".system.alarm.ReminderReceiver"
+            android:exported="false" />
+
+        <!-- Reschedule reminder alarms after a reboot. BOOT_COMPLETED is a protected broadcast. -->
+        <receiver
+            android:name=".system.alarm.BootReceiver"
+            android:exported="true"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

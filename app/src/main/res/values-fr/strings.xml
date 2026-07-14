@@ -39,4 +39,15 @@
     <string name="recurrence_weekly">Toutes les semaines</string>
     <string name="recurrence_monthly">Tous les mois</string>
     <string name="recurrence_yearly">Tous les ans</string>
+
+    <!-- Rappels -->
+    <string name="editor_reminders">Rappels</string>
+    <string name="editor_add_reminder">Ajouter un rappel</string>
+    <string name="editor_remove_reminder">Retirer le rappel</string>
+    <string name="reminder_at_time">À l\'heure de l\'événement</string>
+    <string name="reminder_minutes">%1$d min avant</string>
+    <string name="reminder_hours">%1$d h avant</string>
+    <string name="reminder_days">%1$d jour avant</string>
+    <string name="reminder_channel_name">Rappels d\'événements</string>
+    <string name="reminder_channel_desc">Notifications des rappels d\'agenda</string>
 </resources>

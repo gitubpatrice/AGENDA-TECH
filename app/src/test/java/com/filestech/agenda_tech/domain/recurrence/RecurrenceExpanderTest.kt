@@ -216,6 +216,38 @@ class RecurrenceExpanderTest {
         ).inOrder()
     }
 
+    // --- nextOccurrenceStart -------------------------------------------------
+
+    @Test
+    fun `nextOccurrenceStart returns a non-recurring event's start only when at or after the instant`() {
+        val event = singleEvent(UTC, at(2025, 6, 10, 9, 0), 60)
+        assertThat(nextStart(event, at(2025, 6, 1, 0, 0))).isEqualTo(ms(UTC, at(2025, 6, 10, 9, 0)))
+        assertThat(nextStart(event, at(2025, 6, 20, 0, 0))).isNull()
+    }
+
+    @Test
+    fun `nextOccurrenceStart finds the next daily occurrence at or after the instant`() {
+        val event = recurringEvent(UTC, at(2025, 6, 1, 9, 0), 60, RecurrenceRule(RecurrenceFreq.DAILY))
+        // After 2025-06-03 12:00, the next 09:00 occurrence is 2025-06-04.
+        assertThat(nextStart(event, at(2025, 6, 3, 12, 0))).isEqualTo(ms(UTC, at(2025, 6, 4, 9, 0)))
+    }
+
+    @Test
+    fun `nextOccurrenceStart returns null once a bounded series has ended`() {
+        val event = recurringEvent(UTC, at(2025, 6, 1, 9, 0), 60, RecurrenceRule(RecurrenceFreq.DAILY, count = 3))
+        // Series is 06-01, 06-02, 06-03; nothing at or after 06-04.
+        assertThat(nextStart(event, at(2025, 6, 4, 0, 0))).isNull()
+    }
+
+    @Test
+    fun `nextOccurrenceStart skips an excluded occurrence`() {
+        val exdate = ms(UTC, at(2025, 6, 4, 9, 0))
+        val rule = RecurrenceRule(RecurrenceFreq.DAILY, exDatesUtcMillis = listOf(exdate))
+        val event = recurringEvent(UTC, at(2025, 6, 1, 9, 0), 60, rule)
+        // 06-04 is excluded, so after 06-03 12:00 the next is 06-05.
+        assertThat(nextStart(event, at(2025, 6, 3, 12, 0))).isEqualTo(ms(UTC, at(2025, 6, 5, 9, 0)))
+    }
+
     // --- helpers -------------------------------------------------------------
 
     private companion object {
@@ -260,4 +292,7 @@ class RecurrenceExpanderTest {
 
     private fun startsLocal(zone: String, occurrences: List<EventOccurrence>): List<LocalDateTime> =
         occurrences.map { Instant.ofEpochMilli(it.startUtcMillis).atZone(ZoneId.of(zone)).toLocalDateTime() }
+
+    private fun nextStart(event: Event, after: LocalDateTime): Long? =
+        expander.nextOccurrenceStart(event, ms(UTC, after))
 }

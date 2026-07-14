@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.ui.screens.editor
 
 import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,15 +11,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -81,6 +86,8 @@ fun EventEditorScreen(
         onEndTimeChange = viewModel::onEndTimeChange,
         onCalendarSelect = viewModel::onCalendarSelect,
         onRecurrenceSelect = viewModel::onRecurrenceSelect,
+        onAddReminder = viewModel::onAddReminder,
+        onRemoveReminder = viewModel::onRemoveReminder,
         onDescriptionChange = viewModel::onDescriptionChange,
         onLocationChange = viewModel::onLocationChange,
     )
@@ -100,6 +107,8 @@ private fun EventEditorContent(
     onEndTimeChange: (Int, Int) -> Unit,
     onCalendarSelect: (Long) -> Unit,
     onRecurrenceSelect: (RecurrenceFreq?) -> Unit,
+    onAddReminder: (Int) -> Unit,
+    onRemoveReminder: (Int) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onLocationChange: (String) -> Unit,
 ) {
@@ -194,6 +203,12 @@ private fun EventEditorContent(
             }
 
             RecurrenceDropdown(selected = state.recurrenceFreq, onSelect = onRecurrenceSelect)
+
+            RemindersSection(
+                reminderMinutes = state.reminderMinutes,
+                onAdd = onAddReminder,
+                onRemove = onRemoveReminder,
+            )
 
             OutlinedTextField(
                 value = state.description,
@@ -390,7 +405,65 @@ private fun TimePickerModal(
     )
 }
 
+@Composable
+private fun RemindersSection(
+    reminderMinutes: List<Int>,
+    onAdd: (Int) -> Unit,
+    onRemove: (Int) -> Unit,
+) {
+    val context = LocalContext.current
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.editor_reminders),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        reminderMinutes.forEach { minutes ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(reminderLabel(context, minutes), modifier = Modifier.weight(1f))
+                IconButton(onClick = { onRemove(minutes) }) {
+                    Icon(Icons.Filled.Close, stringResource(R.string.editor_remove_reminder))
+                }
+            }
+        }
+        var expanded by remember { mutableStateOf(false) }
+        Box {
+            TextButton(onClick = { expanded = true }) {
+                Icon(Icons.Filled.Add, contentDescription = null)
+                Text(
+                    text = stringResource(R.string.editor_add_reminder),
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                REMINDER_PRESETS.filter { it !in reminderMinutes }.forEach { minutes ->
+                    DropdownMenuItem(
+                        text = { Text(reminderLabel(context, minutes)) },
+                        onClick = {
+                            onAdd(minutes)
+                            expanded = false
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
 // --- helpers ----------------------------------------------------------------
+
+/** Reminder presets, in minutes-before-start. */
+private val REMINDER_PRESETS = listOf(0, 5, 10, 15, 30, 60, 24 * 60)
+
+private fun reminderLabel(context: android.content.Context, minutes: Int): String = when {
+    minutes == 0 -> context.getString(R.string.reminder_at_time)
+    minutes % (24 * 60) == 0 -> context.getString(R.string.reminder_days, minutes / (24 * 60))
+    minutes % 60 == 0 -> context.getString(R.string.reminder_hours, minutes / 60)
+    else -> context.getString(R.string.reminder_minutes, minutes)
+}
 
 private fun recurrenceLabelRes(freq: RecurrenceFreq?): Int = when (freq) {
     null -> R.string.recurrence_none

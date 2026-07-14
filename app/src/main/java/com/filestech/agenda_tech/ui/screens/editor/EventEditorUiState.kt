@@ -24,6 +24,8 @@ data class EventEditorUiState(
     val calendars: List<Calendar> = emptyList(),
     val selectedCalendarId: Long = 0L,
     val recurrenceFreq: RecurrenceFreq? = null,
+    /** Reminders as minutes-before-start, ascending and de-duplicated. */
+    val reminderMinutes: List<Int> = emptyList(),
     val description: String = "",
     val location: String = "",
     val error: EditorError? = null,

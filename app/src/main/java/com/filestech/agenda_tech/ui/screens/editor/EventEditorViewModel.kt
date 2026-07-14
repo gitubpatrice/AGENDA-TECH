@@ -8,10 +8,13 @@ import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
+import com.filestech.agenda_tech.domain.model.Reminder
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
+import com.filestech.agenda_tech.domain.repository.ReminderRepository
 import com.filestech.agenda_tech.domain.usecase.DeleteEventUseCase
 import com.filestech.agenda_tech.domain.usecase.UpsertEventUseCase
+import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.filestech.agenda_tech.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +35,8 @@ class EventEditorViewModel @Inject constructor(
     private val deleteEvent: DeleteEventUseCase,
     private val eventRepository: EventRepository,
     private val calendarRepository: CalendarRepository,
+    private val reminderRepository: ReminderRepository,
+    private val reminderScheduler: ReminderScheduler,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -73,6 +78,7 @@ class EventEditorViewModel @Inject constructor(
         val storedEnd = Instant.ofEpochMilli(event.endUtcMillis).atZone(zone).toLocalDateTime()
         // All-day end is stored as the exclusive next-midnight boundary — show the inclusive last day.
         val displayEnd = if (event.allDay) storedEnd.minusDays(1) else storedEnd
+        val reminderMinutes = reminderRepository.getForEvent(id).map { it.minutesBefore }.sorted()
         _state.update {
             it.copy(
                 title = event.title,
@@ -81,10 +87,20 @@ class EventEditorViewModel @Inject constructor(
                 endDateTime = displayEnd,
                 selectedCalendarId = event.calendarId,
                 recurrenceFreq = event.recurrence?.freq,
+                reminderMinutes = reminderMinutes,
                 description = event.description.orEmpty(),
                 location = event.location.orEmpty(),
             )
         }
+    }
+
+    fun onAddReminder(minutesBefore: Int) = _state.update {
+        if (minutesBefore in it.reminderMinutes) it
+        else it.copy(reminderMinutes = (it.reminderMinutes + minutesBefore).sorted())
+    }
+
+    fun onRemoveReminder(minutesBefore: Int) = _state.update {
+        it.copy(reminderMinutes = it.reminderMinutes - minutesBefore)
     }
 
     fun onTitleChange(value: String) = _state.update {
@@ -140,9 +156,19 @@ class EventEditorViewModel @Inject constructor(
             allDay = current.allDay,
             recurrence = current.recurrenceFreq?.let { RecurrenceRule(freq = it) },
         )
+        val reminderMinutes = current.reminderMinutes
         viewModelScope.launch {
-            when (upsertEvent(event)) {
-                is Outcome.Success -> _state.update { it.copy(isSaved = true) }
+            when (val result = upsertEvent(event)) {
+                is Outcome.Success -> {
+                    val savedId = result.value
+                    // Replace the event's reminders with the current set, then (re)arm their alarms.
+                    reminderRepository.deleteForEvent(savedId)
+                    reminderMinutes.forEach { minutes ->
+                        reminderRepository.upsert(Reminder(eventId = savedId, minutesBefore = minutes))
+                    }
+                    reminderScheduler.rescheduleEvent(savedId)
+                    _state.update { it.copy(isSaved = true) }
+                }
                 is Outcome.Failure -> _state.update { it.copy(error = EditorError.SAVE_FAILED) }
             }
         }
@@ -151,6 +177,8 @@ class EventEditorViewModel @Inject constructor(
     fun onDelete() {
         if (eventId <= 0L) return
         viewModelScope.launch {
+            // Cancel the alarms before the reminder rows vanish via the FK cascade.
+            reminderScheduler.cancelEvent(eventId)
             deleteEvent(eventId)
             _state.update { it.copy(isDeleted = true) }
         }

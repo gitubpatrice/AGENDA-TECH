@@ -23,6 +23,18 @@ class ReminderRepositoryImpl @Inject constructor(
             .map { rows -> rows.map { it.toDomain() } }
             .flowOn(io)
 
+    override suspend fun getForEvent(eventId: Long): List<Reminder> = withContext(io) {
+        dao.getForEvent(eventId).map { it.toDomain() }
+    }
+
+    override suspend fun getById(id: Long): Reminder? = withContext(io) {
+        dao.getById(id)?.toDomain()
+    }
+
+    override suspend fun getAll(): List<Reminder> = withContext(io) {
+        dao.getAll().map { it.toDomain() }
+    }
+
     override suspend fun upsert(reminder: Reminder): Long = withContext(io) {
         dao.upsert(reminder.toEntity())
     }
