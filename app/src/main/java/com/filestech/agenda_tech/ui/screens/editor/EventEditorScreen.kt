@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -19,14 +20,17 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -45,21 +49,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
+import com.filestech.agenda_tech.domain.model.Weekday
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.time.format.TextStyle
 import java.util.Locale
 
-private enum class EditTarget { START, END }
+private enum class EditTarget { START, END, RECURRENCE_UNTIL }
 
 @Composable
 fun EventEditorScreen(
@@ -86,6 +94,11 @@ fun EventEditorScreen(
         onEndTimeChange = viewModel::onEndTimeChange,
         onCalendarSelect = viewModel::onCalendarSelect,
         onRecurrenceSelect = viewModel::onRecurrenceSelect,
+        onRecurrenceIntervalChange = viewModel::onRecurrenceIntervalChange,
+        onToggleRecurrenceWeekday = viewModel::onToggleRecurrenceWeekday,
+        onRecurrenceEndChange = viewModel::onRecurrenceEndChange,
+        onRecurrenceCountChange = viewModel::onRecurrenceCountChange,
+        onRecurrenceUntilDateChange = viewModel::onRecurrenceUntilDateChange,
         onAddReminder = viewModel::onAddReminder,
         onRemoveReminder = viewModel::onRemoveReminder,
         onDescriptionChange = viewModel::onDescriptionChange,
@@ -107,6 +120,11 @@ private fun EventEditorContent(
     onEndTimeChange: (Int, Int) -> Unit,
     onCalendarSelect: (Long) -> Unit,
     onRecurrenceSelect: (RecurrenceFreq?) -> Unit,
+    onRecurrenceIntervalChange: (Int) -> Unit,
+    onToggleRecurrenceWeekday: (Weekday) -> Unit,
+    onRecurrenceEndChange: (RecurrenceEnd) -> Unit,
+    onRecurrenceCountChange: (Int) -> Unit,
+    onRecurrenceUntilDateChange: (LocalDate) -> Unit,
     onAddReminder: (Int) -> Unit,
     onRemoveReminder: (Int) -> Unit,
     onDescriptionChange: (String) -> Unit,
@@ -204,6 +222,23 @@ private fun EventEditorContent(
 
             RecurrenceDropdown(selected = state.recurrenceFreq, onSelect = onRecurrenceSelect)
 
+            state.recurrenceFreq?.let { freq ->
+                AdvancedRecurrenceSection(
+                    freq = freq,
+                    interval = state.recurrenceInterval,
+                    byWeekdays = state.recurrenceByWeekdays,
+                    end = state.recurrenceEnd,
+                    count = state.recurrenceCount,
+                    untilDate = state.recurrenceUntilDate,
+                    locale = locale,
+                    onIntervalChange = onRecurrenceIntervalChange,
+                    onToggleWeekday = onToggleRecurrenceWeekday,
+                    onEndChange = onRecurrenceEndChange,
+                    onCountChange = onRecurrenceCountChange,
+                    onPickUntilDate = { datePickerTarget = EditTarget.RECURRENCE_UNTIL },
+                )
+            }
+
             RemindersSection(
                 reminderMinutes = state.reminderMinutes,
                 onAdd = onAddReminder,
@@ -236,12 +271,20 @@ private fun EventEditorContent(
         }
     }
 
-    if (datePickerTarget != null) {
-        val current = if (datePickerTarget == EditTarget.START) state.startDateTime else state.endDateTime
+    datePickerTarget?.let { target ->
+        val initialDate = when (target) {
+            EditTarget.START -> state.startDateTime.toLocalDate()
+            EditTarget.END -> state.endDateTime.toLocalDate()
+            EditTarget.RECURRENCE_UNTIL -> state.recurrenceUntilDate
+        }
         DatePickerModal(
-            initialDate = current.toLocalDate(),
+            initialDate = initialDate,
             onConfirm = { date ->
-                if (datePickerTarget == EditTarget.START) onStartDateChange(date) else onEndDateChange(date)
+                when (target) {
+                    EditTarget.START -> onStartDateChange(date)
+                    EditTarget.END -> onEndDateChange(date)
+                    EditTarget.RECURRENCE_UNTIL -> onRecurrenceUntilDateChange(date)
+                }
                 datePickerTarget = null
             },
             onDismiss = { datePickerTarget = null },
@@ -406,6 +449,85 @@ private fun TimePickerModal(
 }
 
 @Composable
+private fun AdvancedRecurrenceSection(
+    freq: RecurrenceFreq,
+    interval: Int,
+    byWeekdays: Set<Weekday>,
+    end: RecurrenceEnd,
+    count: Int,
+    untilDate: LocalDate,
+    locale: Locale,
+    onIntervalChange: (Int) -> Unit,
+    onToggleWeekday: (Weekday) -> Unit,
+    onEndChange: (RecurrenceEnd) -> Unit,
+    onCountChange: (Int) -> Unit,
+    onPickUntilDate: () -> Unit,
+) {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        // Interval — "every N days/weeks/months/years".
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.recurrence_every))
+            OutlinedTextField(
+                value = interval.toString(),
+                onValueChange = { it.trim().toIntOrNull()?.let(onIntervalChange) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.width(88.dp),
+            )
+            Text(intervalUnitLabel(context, freq))
+        }
+
+        // Weekly BYDAY chips.
+        if (freq == RecurrenceFreq.WEEKLY) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Weekday.entries.forEach { weekday ->
+                    FilterChip(
+                        selected = weekday in byWeekdays,
+                        onClick = { onToggleWeekday(weekday) },
+                        label = { Text(weekdayNarrow(weekday, locale)) },
+                    )
+                }
+            }
+        }
+
+        // End of recurrence.
+        Text(
+            text = stringResource(R.string.recurrence_ends_label),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            RadioButton(selected = end == RecurrenceEnd.NEVER, onClick = { onEndChange(RecurrenceEnd.NEVER) })
+            Text(stringResource(R.string.recurrence_end_never))
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RadioButton(selected = end == RecurrenceEnd.AFTER_COUNT, onClick = { onEndChange(RecurrenceEnd.AFTER_COUNT) })
+            Text(stringResource(R.string.recurrence_end_after))
+            OutlinedTextField(
+                value = count.toString(),
+                onValueChange = { it.trim().toIntOrNull()?.let(onCountChange) },
+                singleLine = true,
+                enabled = end == RecurrenceEnd.AFTER_COUNT,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.width(88.dp),
+            )
+            Text(stringResource(R.string.recurrence_occurrences))
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RadioButton(selected = end == RecurrenceEnd.ON_DATE, onClick = { onEndChange(RecurrenceEnd.ON_DATE) })
+            Text(stringResource(R.string.recurrence_end_on))
+            OutlinedButton(onClick = onPickUntilDate, enabled = end == RecurrenceEnd.ON_DATE) {
+                Text(formatDate(untilDate, locale))
+            }
+        }
+    }
+}
+
+@Composable
 private fun RemindersSection(
     reminderMinutes: List<Int>,
     onAdd: (Int) -> Unit,
@@ -464,6 +586,19 @@ private fun reminderLabel(context: android.content.Context, minutes: Int): Strin
     minutes % 60 == 0 -> context.getString(R.string.reminder_hours, minutes / 60)
     else -> context.getString(R.string.reminder_minutes, minutes)
 }
+
+private fun intervalUnitLabel(context: android.content.Context, freq: RecurrenceFreq): String =
+    context.getString(
+        when (freq) {
+            RecurrenceFreq.DAILY -> R.string.recurrence_unit_days
+            RecurrenceFreq.WEEKLY -> R.string.recurrence_unit_weeks
+            RecurrenceFreq.MONTHLY -> R.string.recurrence_unit_months
+            RecurrenceFreq.YEARLY -> R.string.recurrence_unit_years
+        },
+    )
+
+private fun weekdayNarrow(weekday: Weekday, locale: Locale): String =
+    DayOfWeek.of(weekday.isoValue).getDisplayName(TextStyle.NARROW, locale)
 
 private fun recurrenceLabelRes(freq: RecurrenceFreq?): Int = when (freq) {
     null -> R.string.recurrence_none

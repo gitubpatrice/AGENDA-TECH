@@ -49,6 +49,18 @@
     <string name="recurrence_monthly">Monthly</string>
     <string name="recurrence_yearly">Yearly</string>
 
+    <!-- Advanced recurrence -->
+    <string name="recurrence_every">Every</string>
+    <string name="recurrence_unit_days">day(s)</string>
+    <string name="recurrence_unit_weeks">week(s)</string>
+    <string name="recurrence_unit_months">month(s)</string>
+    <string name="recurrence_unit_years">year(s)</string>
+    <string name="recurrence_ends_label">Ends</string>
+    <string name="recurrence_end_never">Never</string>
+    <string name="recurrence_end_after">After</string>
+    <string name="recurrence_occurrences">occurrences</string>
+    <string name="recurrence_end_on">On</string>
+
     <!-- Reminders -->
     <string name="editor_reminders">Reminders</string>
     <string name="editor_add_reminder">Add reminder</string>

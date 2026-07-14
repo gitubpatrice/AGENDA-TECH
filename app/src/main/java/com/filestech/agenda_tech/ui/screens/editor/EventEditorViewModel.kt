@@ -9,6 +9,7 @@ import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Reminder
+import com.filestech.agenda_tech.domain.model.Weekday
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.repository.ReminderRepository
@@ -69,6 +70,7 @@ class EventEditorViewModel @Inject constructor(
             isEditing = eventId > 0L,
             startDateTime = start,
             endDateTime = start.plusHours(1),
+            recurrenceUntilDate = date.plusMonths(1),
         )
     }
 
@@ -79,6 +81,16 @@ class EventEditorViewModel @Inject constructor(
         // All-day end is stored as the exclusive next-midnight boundary — show the inclusive last day.
         val displayEnd = if (event.allDay) storedEnd.minusDays(1) else storedEnd
         val reminderMinutes = reminderRepository.getForEvent(id).map { it.minutesBefore }.sorted()
+        val rule = event.recurrence
+        val defaultUntil = start.toLocalDate().plusMonths(1)
+        val recurrenceEnd = when {
+            rule?.count != null -> RecurrenceEnd.AFTER_COUNT
+            rule?.untilUtcMillis != null -> RecurrenceEnd.ON_DATE
+            else -> RecurrenceEnd.NEVER
+        }
+        val untilDate = rule?.untilUtcMillis
+            ?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() }
+            ?: defaultUntil
         _state.update {
             it.copy(
                 title = event.title,
@@ -86,7 +98,12 @@ class EventEditorViewModel @Inject constructor(
                 startDateTime = start,
                 endDateTime = displayEnd,
                 selectedCalendarId = event.calendarId,
-                recurrenceFreq = event.recurrence?.freq,
+                recurrenceFreq = rule?.freq,
+                recurrenceInterval = rule?.interval ?: 1,
+                recurrenceByWeekdays = rule?.byWeekdays ?: emptySet(),
+                recurrenceEnd = recurrenceEnd,
+                recurrenceCount = rule?.count ?: it.recurrenceCount,
+                recurrenceUntilDate = untilDate,
                 reminderMinutes = reminderMinutes,
                 description = event.description.orEmpty(),
                 location = event.location.orEmpty(),
@@ -127,7 +144,36 @@ class EventEditorViewModel @Inject constructor(
 
     fun onCalendarSelect(calendarId: Long) = _state.update { it.copy(selectedCalendarId = calendarId) }
 
-    fun onRecurrenceSelect(freq: RecurrenceFreq?) = _state.update { it.copy(recurrenceFreq = freq) }
+    fun onRecurrenceSelect(freq: RecurrenceFreq?) = _state.update { current ->
+        // Seed weekly BYDAY with the start day's weekday so a fresh weekly rule has a sensible default.
+        val seededWeekdays = if (freq == RecurrenceFreq.WEEKLY && current.recurrenceByWeekdays.isEmpty()) {
+            setOf(Weekday.fromIso(current.startDateTime.dayOfWeek.value))
+        } else {
+            current.recurrenceByWeekdays
+        }
+        current.copy(recurrenceFreq = freq, recurrenceByWeekdays = seededWeekdays)
+    }
+
+    fun onRecurrenceIntervalChange(interval: Int) = _state.update {
+        it.copy(recurrenceInterval = interval.coerceIn(1, MAX_INTERVAL))
+    }
+
+    fun onToggleRecurrenceWeekday(weekday: Weekday) = _state.update {
+        val next = if (weekday in it.recurrenceByWeekdays) {
+            it.recurrenceByWeekdays - weekday
+        } else {
+            it.recurrenceByWeekdays + weekday
+        }
+        it.copy(recurrenceByWeekdays = next)
+    }
+
+    fun onRecurrenceEndChange(end: RecurrenceEnd) = _state.update { it.copy(recurrenceEnd = end) }
+
+    fun onRecurrenceCountChange(count: Int) = _state.update {
+        it.copy(recurrenceCount = count.coerceIn(1, MAX_COUNT))
+    }
+
+    fun onRecurrenceUntilDateChange(date: LocalDate) = _state.update { it.copy(recurrenceUntilDate = date) }
 
     fun onDescriptionChange(value: String) = _state.update { it.copy(description = value) }
 
@@ -154,7 +200,7 @@ class EventEditorViewModel @Inject constructor(
             endUtcMillis = endMillis,
             timeZoneId = zone.id,
             allDay = current.allDay,
-            recurrence = current.recurrenceFreq?.let { RecurrenceRule(freq = it) },
+            recurrence = current.toRecurrenceRule(),
         )
         val reminderMinutes = current.reminderMinutes
         viewModelScope.launch {
@@ -208,9 +254,29 @@ class EventEditorViewModel @Inject constructor(
     private fun defaultCalendarId(calendars: List<Calendar>): Long =
         (calendars.firstOrNull { it.isDefault } ?: calendars.firstOrNull())?.id ?: 0L
 
+    private fun EventEditorUiState.toRecurrenceRule(): RecurrenceRule? {
+        val freq = recurrenceFreq ?: return null
+        val count = if (recurrenceEnd == RecurrenceEnd.AFTER_COUNT) recurrenceCount.coerceAtLeast(1) else null
+        val until = if (recurrenceEnd == RecurrenceEnd.ON_DATE) {
+            // Inclusive end date → last instant of that day, so an occurrence on it is kept.
+            recurrenceUntilDate.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1
+        } else {
+            null
+        }
+        return RecurrenceRule(
+            freq = freq,
+            interval = recurrenceInterval.coerceAtLeast(1),
+            byWeekdays = if (freq == RecurrenceFreq.WEEKLY) recurrenceByWeekdays else emptySet(),
+            count = count,
+            untilUtcMillis = until,
+        )
+    }
+
     private companion object {
         const val NEW = -1L
         const val NO_DATE = -1L
         const val DEFAULT_HOUR = 9
+        const val MAX_INTERVAL = 999
+        const val MAX_COUNT = 999
     }
 }

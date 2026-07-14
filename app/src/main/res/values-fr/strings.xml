@@ -49,6 +49,18 @@
     <string name="recurrence_monthly">Tous les mois</string>
     <string name="recurrence_yearly">Tous les ans</string>
 
+    <!-- Récurrence avancée -->
+    <string name="recurrence_every">Tous les</string>
+    <string name="recurrence_unit_days">jour(s)</string>
+    <string name="recurrence_unit_weeks">semaine(s)</string>
+    <string name="recurrence_unit_months">mois</string>
+    <string name="recurrence_unit_years">an(s)</string>
+    <string name="recurrence_ends_label">Fin</string>
+    <string name="recurrence_end_never">Jamais</string>
+    <string name="recurrence_end_after">Après</string>
+    <string name="recurrence_occurrences">occurrences</string>
+    <string name="recurrence_end_on">Le</string>
+
     <!-- Rappels -->
     <string name="editor_reminders">Rappels</string>
     <string name="editor_add_reminder">Ajouter un rappel</string>
