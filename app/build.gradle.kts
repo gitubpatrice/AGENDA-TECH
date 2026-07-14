@@ -186,6 +186,9 @@ dependencies {
     // DataStore (settings)
     implementation(libs.androidx.datastore.preferences)
 
+    // Biometric (app lock)
+    implementation(libs.androidx.biometric)
+
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

@@ -27,6 +27,7 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.filestech.agenda_tech.MainActivity
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.domain.repository.LockRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import dagger.hilt.EntryPoint
@@ -62,7 +63,11 @@ class AgendaWidget : GlanceAppWidget() {
         val endMillis = today.plusDays(UPCOMING_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
 
         val occurrences = entryPoint.observeOccurrences().invoke(startMillis, endMillis).first()
-        val hideTitles = entryPoint.settingsRepository().current().widgetHideTitles
+        // LOCK-3 — the widget lives on the home screen, outside the app-lock gate. When a PIN/biometric
+        // lock is enabled we force-hide titles so enabling the lock never leaves event titles readable
+        // on the home screen; the user's explicit "hide titles" preference also still applies.
+        val hideTitles = entryPoint.settingsRepository().current().widgetHideTitles ||
+            entryPoint.lockRepository().isLockEnabled()
         val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale)
 
         val rows = occurrences
@@ -159,4 +164,5 @@ private fun WidgetContent(data: WidgetData) {
 interface WidgetEntryPoint {
     fun observeOccurrences(): ObserveOccurrencesInRangeUseCase
     fun settingsRepository(): SettingsRepository
+    fun lockRepository(): LockRepository
 }

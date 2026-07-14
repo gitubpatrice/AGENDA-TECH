@@ -69,5 +69,6 @@ class KeystoreManager @Inject constructor() {
         const val KEY_SIZE_BITS = 256
 
         const val ALIAS_DB_MASTER = "agendatech_db_master"
+        const val ALIAS_PIN_WRAP = "agendatech_pin_wrap"
     }
 }

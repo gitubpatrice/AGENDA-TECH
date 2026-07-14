@@ -142,4 +142,22 @@
     <string name="about_source">Code source (GitHub)</string>
     <string name="about_license">Sous licence Apache 2.0</string>
     <string name="about_privacy">Toutes vos données restent sur cet appareil, chiffrées. Aucune permission Internet.</string>
+
+    <string name="settings_section_security">Sécurité</string>
+    <string name="settings_lock_enabled">Verrouiller l\'application</string>
+    <string name="settings_lock_enabled_sub">Exiger un code PIN ou la biométrie à l\'ouverture</string>
+    <string name="settings_lock_change_pin">Modifier le code PIN</string>
+    <string name="settings_lock_biometric">Utiliser la biométrie</string>
+    <string name="settings_lock_set_pin">Définir un code PIN</string>
+    <string name="settings_lock_confirm_pin">Confirmer le code PIN</string>
+    <string name="settings_lock_confirm_current">Saisissez votre code PIN actuel</string>
+    <string name="action_continue">Continuer</string>
+    <string name="lock_throttled">Trop de tentatives. Réessayez dans %1$ds.</string>
+    <string name="lock_prompt">Saisissez votre code PIN pour déverrouiller</string>
+    <string name="lock_pin">Code PIN</string>
+    <string name="lock_unlock">Déverrouiller</string>
+    <string name="lock_wrong_pin">Code PIN incorrect</string>
+    <string name="lock_use_biometric">Utiliser la biométrie</string>
+    <string name="lock_biometric_title">Déverrouiller Agenda Tech</string>
+    <string name="lock_use_pin">Utiliser le code PIN</string>
 </resources>

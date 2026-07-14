@@ -142,4 +142,22 @@
     <string name="about_source">Source code (GitHub)</string>
     <string name="about_license">Licensed under Apache 2.0</string>
     <string name="about_privacy">All your data stays on this device, encrypted. No Internet permission.</string>
+
+    <string name="settings_section_security">Security</string>
+    <string name="settings_lock_enabled">Lock the app</string>
+    <string name="settings_lock_enabled_sub">Require a PIN or biometrics on open</string>
+    <string name="settings_lock_change_pin">Change PIN</string>
+    <string name="settings_lock_biometric">Use biometrics</string>
+    <string name="settings_lock_set_pin">Set a PIN</string>
+    <string name="settings_lock_confirm_pin">Confirm PIN</string>
+    <string name="settings_lock_confirm_current">Enter your current PIN</string>
+    <string name="action_continue">Continue</string>
+    <string name="lock_throttled">Too many attempts. Try again in %1$ds.</string>
+    <string name="lock_prompt">Enter your PIN to unlock</string>
+    <string name="lock_pin">PIN</string>
+    <string name="lock_unlock">Unlock</string>
+    <string name="lock_wrong_pin">Wrong PIN</string>
+    <string name="lock_use_biometric">Use biometrics</string>
+    <string name="lock_biometric_title">Unlock Agenda Tech</string>
+    <string name="lock_use_pin">Use PIN</string>
 </resources>

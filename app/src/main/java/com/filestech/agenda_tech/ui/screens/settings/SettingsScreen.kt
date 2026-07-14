@@ -3,6 +3,9 @@ package com.filestech.agenda_tech.ui.screens.settings
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -15,23 +18,28 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,11 +47,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.CalendarColor
+import com.filestech.agenda_tech.ui.lock.MIN_PIN_LENGTH
+import kotlinx.coroutines.launch
 import com.filestech.agenda_tech.domain.settings.AppSettings
 import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.domain.settings.WeekStart
@@ -59,7 +71,15 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val lockState by viewModel.lockState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val biometricAvailable = remember {
+        BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG or BIOMETRIC_WEAK) ==
+            BiometricManager.BIOMETRIC_SUCCESS
+    }
+    var showPinDialog by remember { mutableStateOf(false) }
+    // LOCK-6 — when a lock already exists, disabling it or changing the PIN first re-auths the user.
+    var verifyPurpose by remember { mutableStateOf<VerifyPurpose?>(null) }
 
     Scaffold(
         topBar = {
@@ -156,10 +176,164 @@ fun SettingsScreen(
             )
 
             HorizontalDivider()
+            SectionHeader(stringResource(R.string.settings_section_security))
+            SwitchRow(
+                title = stringResource(R.string.settings_lock_enabled),
+                subtitle = stringResource(R.string.settings_lock_enabled_sub),
+                checked = lockState.lockEnabled,
+                onCheckedChange = { enabled ->
+                    if (enabled) showPinDialog = true else verifyPurpose = VerifyPurpose.DISABLE
+                },
+            )
+            if (lockState.lockEnabled) {
+                ClickRow(
+                    title = stringResource(R.string.settings_lock_change_pin),
+                    onClick = { verifyPurpose = VerifyPurpose.CHANGE },
+                )
+                if (biometricAvailable) {
+                    SwitchRow(
+                        title = stringResource(R.string.settings_lock_biometric),
+                        checked = lockState.biometricEnabled,
+                        onCheckedChange = viewModel::setBiometricEnabled,
+                    )
+                }
+            }
+
+            HorizontalDivider()
             ClickRow(title = stringResource(R.string.settings_about), onClick = onOpenAbout)
         }
     }
+
+    if (showPinDialog) {
+        SetPinDialog(
+            onConfirm = { pin ->
+                viewModel.setPin(pin)
+                showPinDialog = false
+            },
+            onDismiss = { showPinDialog = false },
+        )
+    }
+
+    verifyPurpose?.let { purpose ->
+        VerifyPinDialog(
+            verify = { viewModel.verifyPin(it) },
+            onSuccess = {
+                verifyPurpose = null
+                when (purpose) {
+                    VerifyPurpose.DISABLE -> viewModel.disableLock()
+                    VerifyPurpose.CHANGE -> showPinDialog = true
+                }
+            },
+            onDismiss = { verifyPurpose = null },
+        )
+    }
 }
+
+private enum class VerifyPurpose { DISABLE, CHANGE }
+
+@Composable
+private fun SetPinDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    var pin by remember { mutableStateOf("") }
+    var confirm by remember { mutableStateOf("") }
+    val valid = pin.length >= MIN_PIN_LENGTH && pin == confirm
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_lock_set_pin)) },
+        text = {
+            Column {
+                PinField(
+                    value = pin,
+                    onValueChange = { pin = it },
+                    label = stringResource(R.string.lock_pin),
+                )
+                PinField(
+                    value = confirm,
+                    onValueChange = { confirm = it },
+                    label = stringResource(R.string.settings_lock_confirm_pin),
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(pin) }, enabled = valid) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+/** LOCK-6 — confirms the current PIN before a sensitive change (disable lock / change PIN). */
+@Composable
+private fun VerifyPinDialog(
+    verify: suspend (String) -> Boolean,
+    onSuccess: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    var pin by remember { mutableStateOf("") }
+    var wrong by remember { mutableStateOf(false) }
+    var checking by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_lock_confirm_current)) },
+        text = {
+            PinField(
+                value = pin,
+                onValueChange = {
+                    pin = it
+                    wrong = false
+                },
+                label = stringResource(R.string.lock_pin),
+                isError = wrong,
+                supportingText = if (wrong) stringResource(R.string.lock_wrong_pin) else null,
+            )
+        },
+        confirmButton = {
+            TextButton(
+                enabled = pin.length >= MIN_PIN_LENGTH && !checking,
+                onClick = {
+                    checking = true
+                    scope.launch {
+                        if (verify(pin)) onSuccess() else wrong = true
+                        checking = false
+                    }
+                },
+            ) { Text(stringResource(R.string.action_continue)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+@Composable
+private fun PinField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+    supportingText: String? = null,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { if (it.all { c -> c.isDigit() } && it.length <= MAX_PIN_LENGTH) onValueChange(it) },
+        label = { Text(label) },
+        visualTransformation = PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+        isError = isError,
+        supportingText = supportingText?.let { { Text(it) } },
+        singleLine = true,
+        modifier = modifier.fillMaxWidth(),
+    )
+}
+
+private const val MAX_PIN_LENGTH = 12
 
 @Composable
 private fun SectionHeader(title: String) {
