@@ -33,6 +33,7 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         const val DATABASE_NAME = "agendatech.db"
         // v1 (initial schema): calendars, events (with structured rrule_* columns), reminders.
-        const val SCHEMA_VERSION = 1
+        // v2 (per-occurrence overrides): events.recurrence_parent_id + events.original_start.
+        const val SCHEMA_VERSION = 2
     }
 }

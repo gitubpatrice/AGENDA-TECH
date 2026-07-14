@@ -216,6 +216,22 @@ class RecurrenceExpanderTest {
         ).inOrder()
     }
 
+    @Test
+    fun `extra excluded starts are skipped like exdate (per-occurrence override)`() {
+        val event = recurringEvent(UTC, at(2025, 6, 1, 9, 0), 60, RecurrenceRule(RecurrenceFreq.DAILY))
+        val excluded = setOf(ms(UTC, at(2025, 6, 2, 9, 0)))
+        val occ = expander.expand(
+            event,
+            ms(UTC, at(2025, 6, 1, 0, 0)),
+            ms(UTC, at(2025, 6, 4, 0, 0)),
+            excluded,
+        )
+        assertThat(startsLocal(UTC, occ)).containsExactly(
+            at(2025, 6, 1, 9, 0),
+            at(2025, 6, 3, 9, 0),
+        ).inOrder()
+    }
+
     // --- nextOccurrenceStart -------------------------------------------------
 
     @Test

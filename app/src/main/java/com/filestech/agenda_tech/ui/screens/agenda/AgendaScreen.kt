@@ -48,7 +48,7 @@ import java.util.Locale
 fun AgendaScreen(
     onSelectView: (CalendarView) -> Unit,
     onAddEvent: (LocalDate) -> Unit,
-    onOccurrenceClick: (Long) -> Unit,
+    onOccurrenceClick: (Long, Long) -> Unit,
     viewModel: AgendaViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -118,12 +118,12 @@ private fun AgendaRow(
     item: TimelineItem,
     zone: ZoneId,
     locale: Locale,
-    onOccurrenceClick: (Long) -> Unit,
+    onOccurrenceClick: (Long, Long) -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onOccurrenceClick(item.eventId) }
+            .clickable { onOccurrenceClick(item.eventId, item.startUtcMillis) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

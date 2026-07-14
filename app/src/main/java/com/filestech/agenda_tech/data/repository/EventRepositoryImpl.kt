@@ -41,6 +41,15 @@ class EventRepositoryImpl @Inject constructor(
         dao.getAll().map { it.toDomain() }
     }
 
+    override fun observeOverrides(): Flow<List<Event>> =
+        dao.observeOverrides()
+            .map { rows -> rows.map { it.toDomain() } }
+            .flowOn(io)
+
+    override suspend fun deleteOverridesForParent(parentId: Long) = withContext(io) {
+        dao.deleteOverridesForParent(parentId)
+    }
+
     override suspend fun upsert(event: Event): Long = withContext(io) {
         val now = System.currentTimeMillis()
         // Preserve the original createdAt on edit; stamp a fresh one on insert.

@@ -45,7 +45,7 @@ import java.util.Locale
 fun WeekScreen(
     onSelectView: (CalendarView) -> Unit,
     onAddEvent: (LocalDate) -> Unit,
-    onOccurrenceClick: (Long) -> Unit,
+    onOccurrenceClick: (Long, Long) -> Unit,
     viewModel: WeekViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()

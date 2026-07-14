@@ -33,6 +33,12 @@ interface EventRepository {
     /** All events — used to export the whole agenda to `.ics`. */
     suspend fun getAll(): List<Event>
 
+    /** Streams every per-occurrence override (used to expand recurring series correctly). */
+    fun observeOverrides(): Flow<List<Event>>
+
+    /** Deletes the overrides of a recurring master (when the whole series is deleted). */
+    suspend fun deleteOverridesForParent(parentId: Long)
+
     /** Inserts or updates; returns the event's id (freshly generated on insert). */
     suspend fun upsert(event: Event): Long
 

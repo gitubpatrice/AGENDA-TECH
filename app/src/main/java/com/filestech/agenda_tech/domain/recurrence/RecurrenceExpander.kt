@@ -46,6 +46,7 @@ class RecurrenceExpander @Inject constructor() {
         event: Event,
         windowStartUtcMillis: Long,
         windowEndUtcMillis: Long,
+        extraExcludedStartsUtcMillis: Set<Long> = emptySet(),
     ): List<EventOccurrence> {
         require(windowEndUtcMillis >= windowStartUtcMillis) {
             "window end ($windowEndUtcMillis) must be >= start ($windowStartUtcMillis)"
@@ -57,7 +58,7 @@ class RecurrenceExpander @Inject constructor() {
         val nominalDuration = nominalDuration(event, zone)
 
         val out = ArrayList<EventOccurrence>()
-        for (startMillis in occurrenceStarts(event, rule, zone)) {
+        for (startMillis in occurrenceStarts(event, rule, zone, extraExcludedStartsUtcMillis)) {
             // Occurrences are ascending: once a start reaches the window end, none can overlap.
             if (startMillis >= windowEndUtcMillis) break
             val endMillis = occurrenceEndMillis(startMillis, nominalDuration, zone)
@@ -96,11 +97,16 @@ class RecurrenceExpander @Inject constructor() {
      * honouring `COUNT` (which counts `EXDATE`d instances), `UNTIL` (inclusive), and the scan cap.
      * Unbounded for open-ended rules — the caller stops it (window / first-match).
      */
-    private fun occurrenceStarts(event: Event, rule: RecurrenceRule, zone: ZoneId): Sequence<Long> = sequence {
+    private fun occurrenceStarts(
+        event: Event,
+        rule: RecurrenceRule,
+        zone: ZoneId,
+        extraExcluded: Set<Long> = emptySet(),
+    ): Sequence<Long> = sequence {
         val baseStartLocal = Instant.ofEpochMilli(event.startUtcMillis).atZone(zone).toLocalDateTime()
         val startTime = baseStartLocal.toLocalTime()
         val startDate = baseStartLocal.toLocalDate()
-        val exDates = rule.exDatesUtcMillis.toHashSet()
+        val exDates = HashSet(rule.exDatesUtcMillis).apply { addAll(extraExcluded) }
 
         var generated = 0
         var scanned = 0

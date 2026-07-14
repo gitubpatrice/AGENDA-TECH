@@ -15,6 +15,12 @@ package com.filestech.agenda_tech.domain.model
  * [recurrence] null ⇒ single occurrence. [colorOverride] null ⇒ inherit the owning calendar's
  * colour. Reminders are modelled separately ([Reminder]) so an event can carry several.
  *
+ * **Per-occurrence overrides** (iCalendar `RECURRENCE-ID` model): an override is a single
+ * (non-recurring) event whose [recurrenceParentId] points at its master recurring event and whose
+ * [originalStartUtcMillis] is the start of the occurrence it replaces. The expander skips the
+ * master's occurrence at that instant and shows the override instead. Both are null for masters and
+ * standalone events.
+ *
  * `id == 0L` denotes an unsaved event.
  */
 data class Event(
@@ -29,6 +35,8 @@ data class Event(
     val allDay: Boolean = false,
     val recurrence: RecurrenceRule? = null,
     val colorOverride: CalendarColor? = null,
+    val recurrenceParentId: Long? = null,
+    val originalStartUtcMillis: Long? = null,
 ) {
     init {
         require(endUtcMillis >= startUtcMillis) {
@@ -37,4 +45,7 @@ data class Event(
     }
 
     val isRecurring: Boolean get() = recurrence != null
+
+    /** True when this event replaces a single occurrence of a recurring master. */
+    val isOverride: Boolean get() = recurrenceParentId != null
 }

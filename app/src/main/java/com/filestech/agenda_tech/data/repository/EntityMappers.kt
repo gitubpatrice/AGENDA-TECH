@@ -57,6 +57,8 @@ internal fun EventEntity.toDomain(): Event = Event(
         )
     },
     colorOverride = colorOverride,
+    recurrenceParentId = recurrenceParentId,
+    originalStartUtcMillis = originalStartUtcMillis,
 )
 
 internal fun Event.toEntity(createdAt: Long, updatedAt: Long): EventEntity = EventEntity(
@@ -76,6 +78,8 @@ internal fun Event.toEntity(createdAt: Long, updatedAt: Long): EventEntity = Eve
     rruleUntilUtcMillis = recurrence?.untilUtcMillis,
     rruleExDates = recurrence?.exDatesUtcMillis?.let(::formatEpochList).orEmpty(),
     colorOverride = colorOverride,
+    recurrenceParentId = recurrenceParentId,
+    originalStartUtcMillis = originalStartUtcMillis,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

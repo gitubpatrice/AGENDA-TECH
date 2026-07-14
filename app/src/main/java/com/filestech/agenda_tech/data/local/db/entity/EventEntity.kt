@@ -36,6 +36,7 @@ import com.filestech.agenda_tech.domain.model.RecurrenceFreq
         Index(value = ["calendar_id"]),
         Index(value = ["start_utc_millis"]),
         Index(value = ["end_utc_millis"]),
+        Index(value = ["recurrence_parent_id"]),
     ],
 )
 data class EventEntity(
@@ -55,6 +56,9 @@ data class EventEntity(
     @ColumnInfo(name = "rrule_count") val rruleCount: Int?,
     @ColumnInfo(name = "rrule_until") val rruleUntilUtcMillis: Long?,
     @ColumnInfo(name = "rrule_exdates") val rruleExDates: String,
+    // --- Per-occurrence override (iCalendar RECURRENCE-ID); both null for masters/standalone ---
+    @ColumnInfo(name = "recurrence_parent_id") val recurrenceParentId: Long?,
+    @ColumnInfo(name = "original_start") val originalStartUtcMillis: Long?,
     // --- Appearance / audit ---
     @ColumnInfo(name = "color_override") val colorOverride: CalendarColor?,
     @ColumnInfo(name = "created_at") val createdAt: Long,

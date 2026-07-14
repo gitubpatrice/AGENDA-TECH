@@ -30,8 +30,8 @@ fun AppRoot() {
     val onAddEvent: (java.time.LocalDate) -> Unit = { date ->
         navController.navigate(Routes.editorForNew(date.toEpochDay()))
     }
-    val onOccurrenceClick: (Long) -> Unit = { eventId ->
-        navController.navigate(Routes.editorForEdit(eventId))
+    val onOccurrenceClick: (Long, Long) -> Unit = { eventId, occurrenceStart ->
+        navController.navigate(Routes.editorForEdit(eventId, occurrenceStart))
     }
     val onSelectView: (CalendarView) -> Unit = { view -> navController.switchCalendarView(view) }
 
@@ -61,6 +61,10 @@ fun AppRoot() {
                     defaultValue = -1L
                 },
                 navArgument(Routes.ARG_DATE) {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                },
+                navArgument(Routes.ARG_OCCURRENCE_START) {
                     type = NavType.LongType
                     defaultValue = -1L
                 },

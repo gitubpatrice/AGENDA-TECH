@@ -13,12 +13,16 @@ import javax.inject.Inject
 
 /**
  * The query that backs the calendar views: streams every concrete [EventOccurrence] overlapping
- * `[windowStartUtcMillis, windowEndUtcMillis)`, recurring events already expanded, sorted by start.
- * Only events of currently-visible calendars are included, so toggling a calendar off in the
- * calendar manager hides its events everywhere (all views + widget).
+ * `[windowStartUtcMillis, windowEndUtcMillis)`, sorted by start.
  *
- * Expansion is CPU work, so it runs on [DefaultDispatcher] (the repositories keep their DB reads on
- * IO upstream). Re-emits whenever the underlying events or calendar visibility change.
+ *  - Only events of currently-visible calendars are included (toggling a calendar off hides it
+ *    everywhere, incl. the widget).
+ *  - Recurring masters are expanded; the occurrence replaced by a per-occurrence override is
+ *    skipped (via the override's `originalStartUtcMillis`), and the override event shows itself
+ *    (it is a standalone non-recurring event).
+ *
+ * Expansion is CPU work, so it runs on [DefaultDispatcher]. Re-emits on any change to events,
+ * overrides or calendar visibility.
  */
 class ObserveOccurrencesInRangeUseCase @Inject constructor(
     private val repository: EventRepository,
@@ -33,11 +37,23 @@ class ObserveOccurrencesInRangeUseCase @Inject constructor(
         return combine(
             repository.observeForExpansion(windowStartUtcMillis, windowEndUtcMillis),
             calendarRepository.observeVisible(),
-        ) { events, visibleCalendars ->
+            repository.observeOverrides(),
+        ) { events, visibleCalendars, overrides ->
             val visibleIds = visibleCalendars.mapTo(HashSet()) { it.id }
+            val excludedByParent = overrides
+                .groupBy { it.recurrenceParentId }
+                .mapValues { (_, list) -> list.mapNotNull { it.originalStartUtcMillis }.toHashSet() }
+
             events
                 .filter { it.calendarId in visibleIds }
-                .flatMap { expander.expand(it, windowStartUtcMillis, windowEndUtcMillis) }
+                .flatMap { event ->
+                    val extraExcluded = if (event.isRecurring) {
+                        excludedByParent[event.id].orEmpty()
+                    } else {
+                        emptySet()
+                    }
+                    expander.expand(event, windowStartUtcMillis, windowEndUtcMillis, extraExcluded)
+                }
                 .sortedBy { it.startUtcMillis }
         }.flowOn(defaultDispatcher)
     }

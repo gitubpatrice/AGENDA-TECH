@@ -13,6 +13,9 @@ enum class EditorError { BLANK_TITLE, END_BEFORE_START, SAVE_FAILED }
 /** How a recurrence terminates. */
 enum class RecurrenceEnd { NEVER, AFTER_COUNT, ON_DATE }
 
+/** Which scope dialog to show when acting on one occurrence of a recurring master. */
+enum class ScopePrompt { SAVE, DELETE }
+
 /**
  * Form state for the event editor. Dates/times are held as local `LocalDateTime` in the device
  * zone and converted to UTC instants on save. For an all-day event only the *dates* matter and the
@@ -43,6 +46,8 @@ data class EventEditorUiState(
     val description: String = "",
     val location: String = "",
     val error: EditorError? = null,
+    /** Non-null when the editor is asking whether to apply to this occurrence or the whole series. */
+    val scopePrompt: ScopePrompt? = null,
     val isSaved: Boolean = false,
     val isDeleted: Boolean = false,
 ) {

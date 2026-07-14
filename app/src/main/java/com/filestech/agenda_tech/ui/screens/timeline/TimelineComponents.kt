@@ -56,7 +56,7 @@ fun HourGutter(modifier: Modifier = Modifier) {
 fun EventsColumn(
     positioned: List<PositionedItem<TimelineItem>>,
     nowMinute: Int?,
-    onItemClick: (Long) -> Unit,
+    onItemClick: (Long, Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val minuteHeight = HOUR_HEIGHT / 60
@@ -90,7 +90,7 @@ fun EventsColumn(
                     .padding(1.dp)
                     .clip(MaterialTheme.shapes.extraSmall)
                     .background(Color(block.item.colorArgb))
-                    .clickable { onItemClick(block.item.eventId) }
+                    .clickable { onItemClick(block.item.eventId, block.item.startUtcMillis) }
                     .padding(horizontal = 4.dp, vertical = 2.dp),
             ) {
                 Text(
@@ -119,7 +119,7 @@ fun EventsColumn(
 @Composable
 fun AllDayStrip(
     items: List<TimelineItem>,
-    onItemClick: (Long) -> Unit,
+    onItemClick: (Long, Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
@@ -130,7 +130,7 @@ fun AllDayStrip(
                     .padding(vertical = 2.dp)
                     .clip(MaterialTheme.shapes.extraSmall)
                     .background(Color(item.colorArgb))
-                    .clickable { onItemClick(item.eventId) }
+                    .clickable { onItemClick(item.eventId, item.startUtcMillis) }
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

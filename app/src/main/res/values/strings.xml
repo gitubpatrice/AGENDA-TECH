@@ -45,6 +45,10 @@
     <string name="editor_ends">Ends</string>
     <string name="editor_recurrence">Repeat</string>
     <string name="editor_color">Colour</string>
+    <string name="scope_edit_title">Edit recurring event</string>
+    <string name="scope_delete_title">Delete recurring event</string>
+    <string name="scope_this_occurrence">This event only</string>
+    <string name="scope_whole_series">All events in the series</string>
     <string name="editor_description">Description</string>
     <string name="editor_location">Location</string>
     <string name="editor_error_blank_title">Title is required</string>

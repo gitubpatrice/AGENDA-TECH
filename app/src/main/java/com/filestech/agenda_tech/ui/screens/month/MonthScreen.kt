@@ -73,7 +73,7 @@ import java.util.Locale
 fun MonthScreen(
     onSelectView: (CalendarView) -> Unit,
     onAddEvent: (LocalDate) -> Unit,
-    onOccurrenceClick: (Long) -> Unit,
+    onOccurrenceClick: (Long, Long) -> Unit,
     onOpenSettings: () -> Unit,
     viewModel: MonthViewModel = hiltViewModel(),
     icsViewModel: IcsViewModel = hiltViewModel(),
@@ -126,7 +126,7 @@ private fun MonthScreenContent(
     onToday: () -> Unit,
     onSelectDate: (LocalDate) -> Unit,
     onAddEvent: (LocalDate) -> Unit,
-    onOccurrenceClick: (Long) -> Unit,
+    onOccurrenceClick: (Long, Long) -> Unit,
     onExportIcs: () -> Unit,
     onImportIcs: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -307,7 +307,7 @@ private fun RowScope.DayCell(cell: DayCellData, onClick: (LocalDate) -> Unit) {
 private fun SelectedDayOccurrences(
     occurrences: List<OccurrenceData>,
     locale: Locale,
-    onOccurrenceClick: (Long) -> Unit,
+    onOccurrenceClick: (Long, Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (occurrences.isEmpty()) {
@@ -333,12 +333,12 @@ private fun OccurrenceRow(
     occurrence: OccurrenceData,
     zone: ZoneId,
     locale: Locale,
-    onOccurrenceClick: (Long) -> Unit,
+    onOccurrenceClick: (Long, Long) -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onOccurrenceClick(occurrence.eventId) }
+            .clickable { onOccurrenceClick(occurrence.eventId, occurrence.startUtcMillis) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

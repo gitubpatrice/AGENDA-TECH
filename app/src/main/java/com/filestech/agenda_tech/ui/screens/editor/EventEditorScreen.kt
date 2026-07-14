@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -90,6 +91,14 @@ fun EventEditorScreen(
         if (state.isSaved || state.isDeleted) onDone()
     }
 
+    state.scopePrompt?.let { prompt ->
+        ScopeDialog(
+            prompt = prompt,
+            onSelect = viewModel::confirmScope,
+            onDismiss = viewModel::dismissScope,
+        )
+    }
+
     EventEditorContent(
         state = state,
         onBack = onDone,
@@ -113,6 +122,38 @@ fun EventEditorScreen(
         onRemoveReminder = viewModel::onRemoveReminder,
         onDescriptionChange = viewModel::onDescriptionChange,
         onLocationChange = viewModel::onLocationChange,
+    )
+}
+
+@Composable
+private fun ScopeDialog(
+    prompt: ScopePrompt,
+    onSelect: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                stringResource(
+                    if (prompt == ScopePrompt.DELETE) R.string.scope_delete_title else R.string.scope_edit_title,
+                ),
+            )
+        },
+        text = {
+            Column {
+                TextButton(onClick = { onSelect(false) }) {
+                    Text(stringResource(R.string.scope_this_occurrence))
+                }
+                TextButton(onClick = { onSelect(true) }) {
+                    Text(stringResource(R.string.scope_whole_series))
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
     )
 }
 

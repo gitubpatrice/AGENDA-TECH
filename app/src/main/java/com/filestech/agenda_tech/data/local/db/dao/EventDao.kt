@@ -54,6 +54,14 @@ interface EventDao {
     @Query("SELECT * FROM events WHERE calendar_id = :calendarId ORDER BY start_utc_millis ASC")
     fun observeByCalendar(calendarId: Long): Flow<List<EventEntity>>
 
+    /** Every per-occurrence override (recurrence_parent_id set) — used to expand recurring series. */
+    @Query("SELECT * FROM events WHERE recurrence_parent_id IS NOT NULL")
+    fun observeOverrides(): Flow<List<EventEntity>>
+
+    /** Deletes the overrides of a recurring master (called when the whole series is deleted). */
+    @Query("DELETE FROM events WHERE recurrence_parent_id = :parentId")
+    suspend fun deleteOverridesForParent(parentId: Long)
+
     @Query("SELECT * FROM events WHERE id = :id")
     suspend fun getById(id: Long): EventEntity?
 

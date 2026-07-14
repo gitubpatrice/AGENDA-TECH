@@ -37,7 +37,7 @@ import java.util.Locale
 fun DayScreen(
     onSelectView: (CalendarView) -> Unit,
     onAddEvent: (LocalDate) -> Unit,
-    onOccurrenceClick: (Long) -> Unit,
+    onOccurrenceClick: (Long, Long) -> Unit,
     viewModel: DayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()

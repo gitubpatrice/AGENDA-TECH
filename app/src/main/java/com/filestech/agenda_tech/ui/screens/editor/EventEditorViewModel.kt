@@ -48,8 +48,20 @@ class EventEditorViewModel @Inject constructor(
     private val eventId: Long = savedStateHandle.get<Long>(Routes.ARG_EVENT_ID) ?: NEW
     private val initialDateEpochDay: Long = savedStateHandle.get<Long>(Routes.ARG_DATE) ?: NO_DATE
 
+    /** The start of the specific occurrence tapped in a view (-1 when N/A); drives the scope prompt. */
+    private val occurrenceStart: Long = savedStateHandle.get<Long>(Routes.ARG_OCCURRENCE_START) ?: NO_OCCURRENCE
+
+    // Populated when editing an existing event so save/delete can preserve override links or
+    // decide whether a scope prompt (this occurrence / whole series) is needed.
+    private var loadedRecurrence: RecurrenceRule? = null
+    private var loadedParentId: Long? = null
+    private var loadedOriginalStart: Long? = null
+
     private val _state = MutableStateFlow(initialState())
     val state: StateFlow<EventEditorUiState> = _state.asStateFlow()
+
+    /** True when the user tapped a single occurrence of a recurring master (needs a scope choice). */
+    private fun isMasterOccurrence(): Boolean = loadedRecurrence != null && occurrenceStart > 0L
 
     init {
         viewModelScope.launch {
@@ -99,8 +111,18 @@ class EventEditorViewModel @Inject constructor(
 
     private suspend fun loadEvent(id: Long) {
         val event = eventRepository.getById(id) ?: return
-        val start = Instant.ofEpochMilli(event.startUtcMillis).atZone(zone).toLocalDateTime()
-        val storedEnd = Instant.ofEpochMilli(event.endUtcMillis).atZone(zone).toLocalDateTime()
+        loadedRecurrence = event.recurrence
+        loadedParentId = event.recurrenceParentId
+        loadedOriginalStart = event.originalStartUtcMillis
+
+        // For a tapped occurrence of a recurring master, show that occurrence's times (not the base).
+        val editingOccurrence = event.recurrence != null && occurrenceStart > 0L
+        val durationMillis = event.endUtcMillis - event.startUtcMillis
+        val startMillis = if (editingOccurrence) occurrenceStart else event.startUtcMillis
+        val endMillis = if (editingOccurrence) occurrenceStart + durationMillis else event.endUtcMillis
+
+        val start = Instant.ofEpochMilli(startMillis).atZone(zone).toLocalDateTime()
+        val storedEnd = Instant.ofEpochMilli(endMillis).atZone(zone).toLocalDateTime()
         // All-day end is stored as the exclusive next-midnight boundary — show the inclusive last day.
         val displayEnd = if (event.allDay) storedEnd.minusDays(1) else storedEnd
         val reminderMinutes = reminderRepository.getForEvent(id).map { it.minutesBefore }.sorted()
@@ -217,8 +239,39 @@ class EventEditorViewModel @Inject constructor(
             _state.update { it.copy(error = EditorError.END_BEFORE_START) }
             return
         }
+        if (isMasterOccurrence()) {
+            _state.update { it.copy(scopePrompt = ScopePrompt.SAVE) }
+            return
+        }
+        persist(asOverride = false)
+    }
+
+    fun onDelete() {
+        if (eventId <= 0L) return
+        if (isMasterOccurrence()) {
+            _state.update { it.copy(scopePrompt = ScopePrompt.DELETE) }
+            return
+        }
+        deleteDirect()
+    }
+
+    /** Resolve the scope dialog: apply to this occurrence only, or the whole series. */
+    fun confirmScope(applyToSeries: Boolean) {
+        val prompt = _state.value.scopePrompt ?: return
+        _state.update { it.copy(scopePrompt = null) }
+        when (prompt) {
+            ScopePrompt.SAVE -> persist(asOverride = !applyToSeries)
+            ScopePrompt.DELETE -> if (applyToSeries) deleteSeries() else deleteThisOccurrence()
+        }
+    }
+
+    fun dismissScope() = _state.update { it.copy(scopePrompt = null) }
+
+    private fun persist(asOverride: Boolean) {
+        val current = _state.value
+        val (startMillis, endMillis) = current.toInstants()
         val event = Event(
-            id = if (current.isEditing) eventId else 0L,
+            id = if (asOverride) 0L else if (current.isEditing) eventId else 0L,
             calendarId = current.selectedCalendarId,
             title = current.title,
             description = current.description.ifBlank { null },
@@ -227,19 +280,19 @@ class EventEditorViewModel @Inject constructor(
             endUtcMillis = endMillis,
             timeZoneId = zone.id,
             allDay = current.allDay,
-            recurrence = current.toRecurrenceRule(),
+            // An override is a single event; the whole-series save keeps the recurrence rule.
+            recurrence = if (asOverride) null else current.toRecurrenceRule(),
             colorOverride = current.colorOverride,
+            recurrenceParentId = if (asOverride) eventId else loadedParentId,
+            originalStartUtcMillis = if (asOverride) occurrenceStart else loadedOriginalStart,
         )
         val reminderMinutes = current.reminderMinutes
         viewModelScope.launch {
             when (val result = upsertEvent(event)) {
                 is Outcome.Success -> {
                     val savedId = result.value
-                    // Audit SEC-1 — cancel the currently-armed alarms BEFORE replacing the reminder
-                    // rows. deleteForEvent + re-insert generates fresh reminder ids, so the old
-                    // PendingIntents (keyed by the previous ids) would otherwise stay armed in
-                    // AlarmManager and fire a phantom notification with a stale time. cancelEvent
-                    // reads the existing rows to find those ids, so it must run before deleteForEvent.
+                    // Audit SEC-1 — cancel armed alarms BEFORE replacing reminder rows (fresh ids
+                    // otherwise leave the old PendingIntents armed → phantom notifications).
                     reminderScheduler.cancelEvent(savedId)
                     reminderRepository.deleteForEvent(savedId)
                     reminderMinutes.forEach { minutes ->
@@ -253,12 +306,35 @@ class EventEditorViewModel @Inject constructor(
         }
     }
 
-    fun onDelete() {
-        if (eventId <= 0L) return
+    private fun deleteDirect() {
         viewModelScope.launch {
-            // Cancel the alarms before the reminder rows vanish via the FK cascade.
             reminderScheduler.cancelEvent(eventId)
             deleteEvent(eventId)
+            _state.update { it.copy(isDeleted = true) }
+        }
+    }
+
+    private fun deleteSeries() {
+        viewModelScope.launch {
+            reminderScheduler.cancelEvent(eventId)
+            eventRepository.deleteOverridesForParent(eventId)
+            deleteEvent(eventId)
+            _state.update { it.copy(isDeleted = true) }
+        }
+    }
+
+    /** Exclude just the tapped occurrence: add its start to the master's EXDATE. */
+    private fun deleteThisOccurrence() {
+        viewModelScope.launch {
+            val master = eventRepository.getById(eventId)
+            val rule = master?.recurrence
+            if (master == null || rule == null) {
+                deleteDirect()
+                return@launch
+            }
+            val updatedRule = rule.copy(exDatesUtcMillis = rule.exDatesUtcMillis + occurrenceStart)
+            eventRepository.upsert(master.copy(recurrence = updatedRule))
+            reminderScheduler.rescheduleEvent(eventId)
             _state.update { it.copy(isDeleted = true) }
         }
     }
@@ -303,6 +379,7 @@ class EventEditorViewModel @Inject constructor(
     private companion object {
         const val NEW = -1L
         const val NO_DATE = -1L
+        const val NO_OCCURRENCE = -1L
         const val DEFAULT_HOUR = 9
         const val MAX_INTERVAL = 999
         const val MAX_COUNT = 999
