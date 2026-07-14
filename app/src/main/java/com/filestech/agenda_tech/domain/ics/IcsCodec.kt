@@ -161,6 +161,7 @@ object IcsCodec {
             timeZoneId = zoneId,
             allDay = allDay,
             recurrence = recurrence,
+            uid = props["UID"]?.value?.let(::unescapeText)?.takeIf { it.isNotBlank() },
         )
     }
 

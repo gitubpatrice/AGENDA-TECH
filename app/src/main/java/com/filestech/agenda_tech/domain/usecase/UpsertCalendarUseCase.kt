@@ -16,7 +16,8 @@ class UpsertCalendarUseCase @Inject constructor(
     suspend operator fun invoke(calendar: Calendar): Outcome<Long> {
         val name = calendar.name.trim()
         if (name.isEmpty()) {
-            return Outcome.Failure(AppError.Validation("Le nom du calendrier ne peut pas être vide"))
+            // Dev-facing AppError message (English, like the rest); the UI blocks blank names anyway.
+            return Outcome.Failure(AppError.Validation("Calendar name must not be blank"))
         }
         val id = repository.upsert(calendar.copy(name = name))
         return Outcome.Success(id)

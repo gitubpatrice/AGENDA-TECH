@@ -122,12 +122,17 @@ class MonthViewModel @Inject constructor(
         isLoading: Boolean,
     ): MonthUiState {
         val today = LocalDate.now(zone)
-        val byStartDate = occurrences.groupBy { it.startUtcMillis.toLocalDate() }
 
         val weekRows = MonthGrid.weeks(month, firstDayOfWeek)
         val weeks = weekRows.map { week ->
             week.map { date ->
-                val dayOccurrences = byStartDate[date].orEmpty()
+                // FIAB-2 — dots must appear on every day an event overlaps, not only its start day,
+                // so multi-day / all-day-span events (e.g. a 2-day holiday) show on each covered cell.
+                val dayStart = date.toStartOfDayUtc()
+                val dayEnd = date.plusDays(1).toStartOfDayUtc()
+                val dayOccurrences = occurrences.filter {
+                    it.startUtcMillis < dayEnd && it.endUtcMillis > dayStart
+                }
                 DayCellData(
                     date = date,
                     isInMonth = YearMonth.from(date) == month,

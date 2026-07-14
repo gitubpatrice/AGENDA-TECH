@@ -12,32 +12,14 @@ import kotlinx.coroutines.flow.Flow
 interface EventDao {
 
     /**
-     * Events that **overlap** the half-open window `[startUtcMillis, endUtcMillis)` — i.e. that
-     * start before the window ends and end after it begins. This is the correct predicate for
-     * drawing a day/week/month view (a multi-day event straddling the edge still appears).
-     *
-     * Phase 2: recurring events (`rrule_freq` non-null) whose *base* occurrence sits outside the
-     * window are not matched here — the `RecurrenceExpander` queries them separately and expands
-     * their occurrences into the window.
-     */
-    @Query(
-        """
-        SELECT * FROM events
-        WHERE start_utc_millis < :endUtcMillis AND end_utc_millis > :startUtcMillis
-        ORDER BY start_utc_millis ASC
-        """,
-    )
-    fun observeInRange(startUtcMillis: Long, endUtcMillis: Long): Flow<List<EventEntity>>
-
-    /**
      * Candidate events for occurrence expansion over `[windowStartUtcMillis, windowEndUtcMillis)`:
      *  - non-recurring events that overlap the window, and
      *  - recurring events whose series *could* intersect the window — the base starts before the
      *    window ends and the rule has not already ended (`rrule_until` null or ≥ window start).
      *
      * The [com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander] then turns each
-     * recurring candidate into its concrete in-window occurrences. Unlike [observeInRange], this
-     * intentionally returns recurring events whose *base* sits before the window.
+     * recurring candidate into its concrete in-window occurrences — hence this intentionally returns
+     * recurring events whose *base* sits before the window.
      */
     @Query(
         """

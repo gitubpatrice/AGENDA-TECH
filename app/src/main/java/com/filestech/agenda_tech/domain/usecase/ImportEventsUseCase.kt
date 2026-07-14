@@ -23,9 +23,17 @@ class ImportEventsUseCase @Inject constructor(
 
         val zone = runCatching { ZoneId.of(defaultZoneId) }.getOrDefault(ZoneId.systemDefault())
         val parsed = IcsCodec.decode(icsText, zone)
-        parsed.forEach { icsEvent ->
-            eventRepository.upsert(icsEvent.toEvent(targetId))
+
+        // FIAB-1 — idempotent re-import: an event whose VEVENT UID was already imported updates the
+        // same row instead of adding a duplicate (events without a UID still insert). Same pattern
+        // as the device-calendar import.
+        val existing = eventRepository.sourceUidMap(targetId)
+        val mapped = parsed.map { icsEvent ->
+            val event = icsEvent.toEvent(targetId)
+            val existingId = event.sourceUid?.let { existing[it] }
+            if (existingId != null) event.copy(id = existingId) else event
         }
-        return parsed.size
+        eventRepository.upsertAll(mapped) // PERF-1 — single atomic batch, not N transactions
+        return mapped.size
     }
 }

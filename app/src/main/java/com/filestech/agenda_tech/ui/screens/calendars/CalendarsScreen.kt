@@ -55,6 +55,7 @@ fun CalendarsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<Calendar?>(null) }
     var showDialog by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf<Calendar?>(null) }
 
     Scaffold(
         topBar = {
@@ -104,10 +105,29 @@ fun CalendarsScreen(
                 showDialog = false
             },
             onDelete = {
-                editing?.let { viewModel.delete(it.id) }
+                confirmDelete = editing
                 showDialog = false
             },
             onDismiss = { showDialog = false },
+        )
+    }
+
+    confirmDelete?.let { target ->
+        AlertDialog(
+            onDismissRequest = { confirmDelete = null },
+            title = { Text(stringResource(R.string.calendar_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.calendar_delete_confirm_body, target.name)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.delete(target.id)
+                    confirmDelete = null
+                }) {
+                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = null }) { Text(stringResource(R.string.action_cancel)) }
+            },
         )
     }
 }

@@ -16,6 +16,8 @@ data class IcsEvent(
     val timeZoneId: String,
     val allDay: Boolean,
     val recurrence: RecurrenceRule?,
+    /** RFC 5545 `UID` of the source VEVENT, used to update the same row on re-import (idempotence). */
+    val uid: String? = null,
 )
 
 /** Drop the identity/membership for export. */
@@ -41,4 +43,5 @@ fun IcsEvent.toEvent(calendarId: Long): Event = Event(
     timeZoneId = timeZoneId,
     allDay = allDay,
     recurrence = recurrence,
+    sourceUid = uid?.let { "ics:$it" },
 )

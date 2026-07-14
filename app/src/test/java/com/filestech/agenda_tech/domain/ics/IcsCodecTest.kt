@@ -34,7 +34,9 @@ class IcsCodecTest {
             allDay = false,
             recurrence = null,
         )
-        assertThat(roundTrip(event)).isEqualTo(event)
+        // decode() captures the synthetic UID that encode() emits (used for idempotent re-import);
+        // every other field must round-trip identically.
+        assertThat(roundTrip(event).copy(uid = null)).isEqualTo(event)
     }
 
     @Test
@@ -132,6 +134,8 @@ class IcsCodecTest {
         assertThat(decoded.startUtcMillis).isEqualTo(
             LocalDateTime.of(2025, 6, 1, 8, 0).atZone(ZoneId.of("UTC")).toInstant().toEpochMilli(),
         )
+        // FIAB-1 — the VEVENT UID is captured so a re-import can dedup instead of duplicating.
+        assertThat(decoded.uid).isEqualTo("external@example.com")
     }
 
     @Test

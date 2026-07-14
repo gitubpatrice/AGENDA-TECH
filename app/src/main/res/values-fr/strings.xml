@@ -156,6 +156,10 @@
     <string name="device_import_done">%1$d événements importés depuis %2$d calendrier(s).</string>
     <string name="device_import_clear">Effacer les calendriers déjà importés</string>
     <string name="device_import_cleared">Calendriers importés effacés.</string>
+    <string name="device_import_clear_confirm_title">Effacer les calendriers importés ?</string>
+    <string name="device_import_clear_confirm_body">Cela supprime tous les calendriers déjà importés et leurs événements. Vos propres calendriers sont conservés.</string>
+    <string name="calendar_delete_confirm_title">Supprimer le calendrier ?</string>
+    <string name="calendar_delete_confirm_body">« %1$s » et tous ses événements seront définitivement supprimés.</string>
     <string name="settings_section_security">Sécurité</string>
     <string name="settings_lock_enabled">Verrouiller l\'application</string>
     <string name="settings_lock_enabled_sub">Exiger un code PIN ou la biométrie à l\'ouverture</string>

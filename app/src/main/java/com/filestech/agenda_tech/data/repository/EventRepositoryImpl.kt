@@ -18,11 +18,6 @@ class EventRepositoryImpl @Inject constructor(
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : EventRepository {
 
-    override fun observeInRange(startUtcMillis: Long, endUtcMillis: Long): Flow<List<Event>> =
-        dao.observeInRange(startUtcMillis, endUtcMillis)
-            .map { rows -> rows.map { it.toDomain() } }
-            .flowOn(io)
-
     override fun observeForExpansion(windowStartUtcMillis: Long, windowEndUtcMillis: Long): Flow<List<Event>> =
         dao.observeForExpansion(windowStartUtcMillis, windowEndUtcMillis)
             .map { rows -> rows.map { it.toDomain() } }

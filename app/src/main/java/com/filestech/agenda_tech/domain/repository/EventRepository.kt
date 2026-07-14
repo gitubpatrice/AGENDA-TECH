@@ -6,15 +6,10 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Persistence contract for [Event]s.
  *
- * IMPORTANT (phase 2): [observeInRange] returns the *stored* events whose base start falls in the
- * window — it does NOT yet expand recurring events into their concrete occurrences. Occurrence
- * expansion (respecting time zone / DST, `EXDATE`, and per-occurrence overrides) is the job of the
- * `RecurrenceExpander` layered on top of this repository, added when the calendar views land.
+ * Occurrence expansion (time zone / DST, `EXDATE`, per-occurrence overrides) is not done here — it
+ * is the job of the `RecurrenceExpander` layered on top of [observeForExpansion].
  */
 interface EventRepository {
-
-    /** Streams the stored events whose interval overlaps `[startUtcMillis, endUtcMillis)`. */
-    fun observeInRange(startUtcMillis: Long, endUtcMillis: Long): Flow<List<Event>>
 
     /**
      * Streams the events that are candidates for occurrence expansion over the window — non-recurring

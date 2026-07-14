@@ -156,6 +156,10 @@
     <string name="device_import_done">%1$d events imported from %2$d calendar(s).</string>
     <string name="device_import_clear">Delete previously imported calendars</string>
     <string name="device_import_cleared">Imported calendars deleted.</string>
+    <string name="device_import_clear_confirm_title">Delete imported calendars?</string>
+    <string name="device_import_clear_confirm_body">This removes all previously imported calendars and their events. Your own calendars are kept.</string>
+    <string name="calendar_delete_confirm_title">Delete calendar?</string>
+    <string name="calendar_delete_confirm_body">“%1$s” and all its events will be permanently deleted.</string>
     <string name="settings_section_security">Security</string>
     <string name="settings_lock_enabled">Lock the app</string>
     <string name="settings_lock_enabled_sub">Require a PIN or biometrics on open</string>
