@@ -57,6 +57,10 @@ interface EventDao {
     @Query("SELECT * FROM events WHERE id = :id")
     suspend fun getById(id: Long): EventEntity?
 
+    /** Every event — used to export the whole agenda to `.ics`. */
+    @Query("SELECT * FROM events ORDER BY start_utc_millis ASC")
+    suspend fun getAll(): List<EventEntity>
+
     /**
      * ⚠️ Audit SEC-1 — the returned `Long` is the rowid only on the INSERT path; on UPDATE Room may
      * return `-1`. NEVER use it to link a child (e.g. a reminder's `event_id`) after an edit; use

@@ -30,6 +30,9 @@ interface EventRepository {
 
     suspend fun getById(id: Long): Event?
 
+    /** All events — used to export the whole agenda to `.ics`. */
+    suspend fun getAll(): List<Event>
+
     /** Inserts or updates; returns the event's id (freshly generated on insert). */
     suspend fun upsert(event: Event): Long
 

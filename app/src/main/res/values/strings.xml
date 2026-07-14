@@ -14,6 +14,14 @@
     <!-- First-run default calendar -->
     <string name="default_calendar_name">Personal</string>
 
+    <!-- Import / export (.ics) -->
+    <string name="menu_more">More</string>
+    <string name="menu_import_ics">Import .ics…</string>
+    <string name="menu_export_ics">Export .ics…</string>
+    <string name="ics_export_ok">%1$d events exported</string>
+    <string name="ics_import_ok">%1$d events imported</string>
+    <string name="ics_error">Couldn\'t read the calendar file</string>
+
     <!-- Month view -->
     <string name="month_today">Today</string>
     <string name="month_previous">Previous month</string>

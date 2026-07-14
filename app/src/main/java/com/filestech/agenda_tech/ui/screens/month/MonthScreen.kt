@@ -1,5 +1,9 @@
 package com.filestech.agenda_tech.ui.screens.month
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +23,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -28,13 +35,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -43,6 +55,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.ui.CalendarScaffold
+import com.filestech.agenda_tech.ui.ics.IcsResult
+import com.filestech.agenda_tech.ui.ics.IcsViewModel
 import com.filestech.agenda_tech.ui.navigation.CalendarView
 import java.time.DayOfWeek
 import java.time.Instant
@@ -60,8 +74,32 @@ fun MonthScreen(
     onAddEvent: (LocalDate) -> Unit,
     onOccurrenceClick: (Long) -> Unit,
     viewModel: MonthViewModel = hiltViewModel(),
+    icsViewModel: IcsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val icsResult by icsViewModel.result.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/calendar"),
+    ) { uri -> uri?.let(icsViewModel::export) }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> uri?.let(icsViewModel::import) }
+
+    LaunchedEffect(icsResult) {
+        val message = when (val result = icsResult) {
+            is IcsResult.Exported -> context.getString(R.string.ics_export_ok, result.count)
+            is IcsResult.Imported -> context.getString(R.string.ics_import_ok, result.count)
+            IcsResult.Failed -> context.getString(R.string.ics_error)
+            null -> null
+        }
+        if (message != null) {
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            icsViewModel.consumeResult()
+        }
+    }
+
     MonthScreenContent(
         state = state,
         onSelectView = onSelectView,
@@ -71,6 +109,8 @@ fun MonthScreen(
         onSelectDate = viewModel::onSelectDate,
         onAddEvent = onAddEvent,
         onOccurrenceClick = onOccurrenceClick,
+        onExportIcs = { exportLauncher.launch("agenda-tech.ics") },
+        onImportIcs = { importLauncher.launch(arrayOf("text/calendar", "*/*")) },
     )
 }
 
@@ -84,6 +124,8 @@ private fun MonthScreenContent(
     onSelectDate: (LocalDate) -> Unit,
     onAddEvent: (LocalDate) -> Unit,
     onOccurrenceClick: (Long) -> Unit,
+    onExportIcs: () -> Unit,
+    onImportIcs: () -> Unit,
 ) {
     val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
 
@@ -92,7 +134,21 @@ private fun MonthScreenContent(
         onSelectView = onSelectView,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(text = monthLabel(state.yearMonth, locale)) },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(R.drawable.app_logo),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape),
+                        )
+                        Text(
+                            text = monthLabel(state.yearMonth, locale),
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onPreviousMonth) {
                         Icon(
@@ -109,6 +165,7 @@ private fun MonthScreenContent(
                             contentDescription = stringResource(R.string.month_next),
                         )
                     }
+                    MonthOverflowMenu(onExportIcs = onExportIcs, onImportIcs = onImportIcs)
                 },
             )
         },
@@ -279,6 +336,30 @@ private fun OccurrenceRow(
 }
 
 // --- formatting helpers (UI-side, locale-aware) -----------------------------
+
+@Composable
+private fun MonthOverflowMenu(onExportIcs: () -> Unit, onImportIcs: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    IconButton(onClick = { expanded = true }) {
+        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.menu_more))
+    }
+    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.menu_import_ics)) },
+            onClick = {
+                expanded = false
+                onImportIcs()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.menu_export_ics)) },
+            onClick = {
+                expanded = false
+                onExportIcs()
+            },
+        )
+    }
+}
 
 private fun monthLabel(yearMonth: YearMonth, locale: Locale): String {
     val month = yearMonth.month.getDisplayName(TextStyle.FULL, locale)

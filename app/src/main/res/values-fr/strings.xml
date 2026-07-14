@@ -14,6 +14,14 @@
     <!-- Calendrier par défaut (1er lancement) -->
     <string name="default_calendar_name">Perso</string>
 
+    <!-- Import / export (.ics) -->
+    <string name="menu_more">Plus</string>
+    <string name="menu_import_ics">Importer .ics…</string>
+    <string name="menu_export_ics">Exporter .ics…</string>
+    <string name="ics_export_ok">%1$d événements exportés</string>
+    <string name="ics_import_ok">%1$d événements importés</string>
+    <string name="ics_error">Impossible de lire le fichier agenda</string>
+
     <!-- Vue Mois -->
     <string name="month_today">Aujourd\'hui</string>
     <string name="month_previous">Mois précédent</string>
