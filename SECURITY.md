@@ -33,6 +33,18 @@ laissé sans surveillance).
 - `FLAG_SECURE` est posé par défaut sur l'`Activity` : pas d'aperçu dans les Récents, capture
   d'écran bloquée. Un réglage pour l'assouplir viendra avec la phase Réglages.
 
+### Widget écran d'accueil (limitation connue)
+
+Le widget optionnel affiche la date du jour et les **titres** des prochains événements
+directement sur l'écran d'accueil. C'est le comportement attendu d'un widget d'agenda (identique
+à Google Agenda), mais `FLAG_SECURE` **ne s'applique pas** aux widgets — leur contenu est rendu
+par le launcher, hors du contrôle de l'app. Un titre potentiellement sensible peut donc être
+visible par quiconque a un accès visuel à l'écran d'accueil.
+
+Choix assumé : le widget est **opt-in** (l'utilisateur choisit de le poser). Un réglage
+« confidentialité du widget » (masquer les titres → n'afficher que l'heure ou un compteur)
+sera proposé avec la phase Réglages pour qui souhaite un compromis plus strict.
+
 ## Sauvegardes
 
 - `allowBackup="false"` + règles d'exclusion (`data_extraction_rules.xml`, `backup_rules.xml`) :

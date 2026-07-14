@@ -37,6 +37,10 @@ object IcsCodec {
     )
     private val BYDAY_TO_ISO = ISO_TO_BYDAY.entries.associate { (k, v) -> v to k }
 
+    // Unicode bidirectional overrides/isolates removed from imported text (anti-spoofing, SEC-ICS2).
+    private val BIDI_CONTROLS: Set<Char> =
+        ((0x202A..0x202E) + (0x2066..0x2069)).map { it.toChar() }.toSet()
+
     // --- Encode --------------------------------------------------------------
 
     fun encode(events: List<IcsEvent>, nowUtcMillis: Long): String {
@@ -137,7 +141,9 @@ object IcsCodec {
     }
 
     private fun parseVEvent(props: Map<String, IcsProperty>, defaultZone: ZoneId): IcsEvent? {
-        val summary = props["SUMMARY"]?.value?.let(::unescapeText) ?: return null
+        // SEC-ICS3 — an event with no usable title is dropped (matches the editor's non-blank rule).
+        val summary = props["SUMMARY"]?.value?.let(::unescapeText)?.let(::sanitizeText)
+            ?.takeIf { it.isNotBlank() } ?: return null
         val dtStart = props["DTSTART"] ?: return null
         val start = parseDateTime(dtStart, defaultZone) ?: return null
         val dtEnd = props["DTEND"]
@@ -151,8 +157,8 @@ object IcsCodec {
         val recurrence = props["RRULE"]?.let { parseRRule(it.value, props["EXDATE"], defaultZone) }
         return IcsEvent(
             title = summary,
-            description = props["DESCRIPTION"]?.value?.let(::unescapeText),
-            location = props["LOCATION"]?.value?.let(::unescapeText),
+            description = props["DESCRIPTION"]?.value?.let(::unescapeText)?.let(::sanitizeText),
+            location = props["LOCATION"]?.value?.let(::unescapeText)?.let(::sanitizeText),
             startUtcMillis = start,
             endUtcMillis = maxOf(end, start),
             timeZoneId = zoneId,
@@ -207,19 +213,34 @@ object IcsCodec {
         return IcsProperty(name, params, value)
     }
 
-    /** Join RFC 5545 folded lines (a following line starting with space/tab continues the previous). */
+    /**
+     * Join RFC 5545 folded lines (a following line starting with space/tab continues the previous).
+     *
+     * SEC-ICS1 — accumulates each logical line in a [StringBuilder] rather than repeatedly
+     * concatenating immutable strings, so a maliciously deep fold stays O(n) instead of O(n²).
+     */
     private fun unfold(text: String): List<String> {
         val rawLines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
         val result = ArrayList<String>()
+        var current: StringBuilder? = null
         for (raw in rawLines) {
-            if ((raw.startsWith(" ") || raw.startsWith("\t")) && result.isNotEmpty()) {
-                result[result.lastIndex] = result.last() + raw.substring(1)
-            } else if (raw.isNotEmpty()) {
-                result += raw
+            if ((raw.startsWith(" ") || raw.startsWith("\t")) && current != null) {
+                current.append(raw, 1, raw.length)
+            } else {
+                current?.let { result += it.toString() }
+                current = if (raw.isNotEmpty()) StringBuilder(raw) else null
             }
         }
+        current?.let { result += it.toString() }
         return result
     }
+
+    /**
+     * SEC-ICS2 — strip Unicode bidirectional-control characters from imported free text. An
+     * imported `.ics` is untrusted; without this, an RLO/LRO override could spoof how a title reads
+     * on screen and in the widget.
+     */
+    private fun sanitizeText(text: String): String = text.filterNot { it in BIDI_CONTROLS }
 
     private fun unescapeText(text: String): String {
         val out = StringBuilder(text.length)

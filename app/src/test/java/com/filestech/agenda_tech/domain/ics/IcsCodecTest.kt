@@ -135,6 +135,35 @@ class IcsCodecTest {
     }
 
     @Test
+    fun `bidi control characters are stripped from imported text`() {
+        val rlo = "‮"
+        val text = buildString {
+            append("BEGIN:VCALENDAR\r\n")
+            append("BEGIN:VEVENT\r\n")
+            append("DTSTART:20250601T080000Z\r\n")
+            append("SUMMARY:Safe${rlo}spoof\r\n")
+            append("END:VEVENT\r\n")
+            append("END:VCALENDAR\r\n")
+        }
+        val decoded = IcsCodec.decode(text, paris).single()
+        assertThat(decoded.title).isEqualTo("Safespoof")
+        assertThat(decoded.title.contains(rlo)).isFalse()
+    }
+
+    @Test
+    fun `an event with a blank summary is dropped on import`() {
+        val text = buildString {
+            append("BEGIN:VCALENDAR\r\n")
+            append("BEGIN:VEVENT\r\n")
+            append("DTSTART:20250601T080000Z\r\n")
+            append("SUMMARY: \r\n")
+            append("END:VEVENT\r\n")
+            append("END:VCALENDAR\r\n")
+        }
+        assertThat(IcsCodec.decode(text, paris)).isEmpty()
+    }
+
+    @Test
     fun `encode wraps events in a VCALENDAR envelope`() {
         val text = IcsCodec.encode(emptyList(), now)
         assertThat(text).contains("BEGIN:VCALENDAR")

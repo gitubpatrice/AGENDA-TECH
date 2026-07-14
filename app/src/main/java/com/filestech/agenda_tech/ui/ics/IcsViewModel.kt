@@ -60,6 +60,11 @@ class IcsViewModel @Inject constructor(
     fun import(uri: Uri) = viewModelScope.launch {
         val outcome = withContext(io) {
             runCatching {
+                // SEC-ICS1 — reject oversized files before loading them into memory (DoS guard).
+                context.contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
+                    val size = descriptor.statSize
+                    check(size in 0..MAX_ICS_BYTES) { "ics file too large: $size bytes" }
+                }
                 val text = context.contentResolver.openInputStream(uri)
                     ?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
                     ?: error("no input stream for $uri")
@@ -74,5 +79,10 @@ class IcsViewModel @Inject constructor(
 
     fun consumeResult() {
         _result.value = null
+    }
+
+    private companion object {
+        // A personal agenda export is a few KB; 5 MB is a generous ceiling that blocks a DoS file.
+        const val MAX_ICS_BYTES = 5L * 1024 * 1024
     }
 }
