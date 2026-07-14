@@ -6,6 +6,8 @@
     <string name="view_month">Mois</string>
     <string name="view_week">Semaine</string>
     <string name="view_day">Jour</string>
+    <string name="view_agenda">Agenda</string>
+    <string name="agenda_empty">Aucun événement à venir</string>
     <string name="day_previous">Jour précédent</string>
     <string name="day_next">Jour suivant</string>
     <string name="week_previous">Semaine précédente</string>

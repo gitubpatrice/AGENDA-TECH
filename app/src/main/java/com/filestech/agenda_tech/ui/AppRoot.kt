@@ -10,6 +10,7 @@ import androidx.navigation.navArgument
 import com.filestech.agenda_tech.ui.navigation.CalendarView
 import com.filestech.agenda_tech.ui.navigation.Routes
 import com.filestech.agenda_tech.ui.screens.about.AboutScreen
+import com.filestech.agenda_tech.ui.screens.agenda.AgendaScreen
 import com.filestech.agenda_tech.ui.screens.editor.EventEditorScreen
 import com.filestech.agenda_tech.ui.screens.month.MonthScreen
 import com.filestech.agenda_tech.ui.screens.settings.SettingsScreen
@@ -47,6 +48,9 @@ fun AppRoot() {
         }
         composable(Routes.DAY) {
             DayScreen(onSelectView = onSelectView, onAddEvent = onAddEvent, onOccurrenceClick = onOccurrenceClick)
+        }
+        composable(Routes.AGENDA) {
+            AgendaScreen(onSelectView = onSelectView, onAddEvent = onAddEvent, onOccurrenceClick = onOccurrenceClick)
         }
         composable(
             route = Routes.EDITOR_PATTERN,

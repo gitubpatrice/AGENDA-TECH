@@ -14,6 +14,7 @@ object Routes {
     const val MONTH = "month"
     const val WEEK = "week"
     const val DAY = "day"
+    const val AGENDA = "agenda"
 
     const val EDITOR = "editor"
     const val ARG_EVENT_ID = "eventId"
