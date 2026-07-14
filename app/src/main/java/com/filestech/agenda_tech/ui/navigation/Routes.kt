@@ -7,10 +7,22 @@ package com.filestech.agenda_tech.ui.navigation
  *
  * Phase-2 destinations still to add:
  *   - WEEK / DAY / AGENDA  (the other calendar views)
- *   - EVENT_EDITOR         (create / edit, arg: eventId — next step)
  *   - CALENDARS            (manage local calendars)
  *   - SETTINGS
  */
 object Routes {
     const val MONTH = "month"
+
+    const val EDITOR = "editor"
+    const val ARG_EVENT_ID = "eventId"
+    const val ARG_DATE = "date"
+
+    /** Full pattern (optional args) registered by the NavHost. */
+    const val EDITOR_PATTERN = "$EDITOR?$ARG_EVENT_ID={$ARG_EVENT_ID}&$ARG_DATE={$ARG_DATE}"
+
+    /** Open the editor to create a new event, pre-filling the given day. */
+    fun editorForNew(dateEpochDay: Long): String = "$EDITOR?$ARG_DATE=$dateEpochDay"
+
+    /** Open the editor to edit an existing event. */
+    fun editorForEdit(eventId: Long): String = "$EDITOR?$ARG_EVENT_ID=$eventId"
 }

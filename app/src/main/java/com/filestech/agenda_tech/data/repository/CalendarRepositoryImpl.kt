@@ -28,6 +28,8 @@ class CalendarRepositoryImpl @Inject constructor(
         dao.getById(id)?.toDomain()
     }
 
+    override suspend fun count(): Int = withContext(io) { dao.count() }
+
     override suspend fun upsert(calendar: Calendar): Long = withContext(io) {
         // Preserve the original createdAt on edit; stamp a fresh one on insert.
         val createdAt = if (calendar.id != 0L) {

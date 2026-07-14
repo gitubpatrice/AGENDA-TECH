@@ -2,6 +2,9 @@
 <resources>
     <string name="app_name">Agenda Tech</string>
 
+    <!-- First-run default calendar -->
+    <string name="default_calendar_name">Personal</string>
+
     <!-- Month view -->
     <string name="month_today">Today</string>
     <string name="month_previous">Previous month</string>
@@ -9,4 +12,31 @@
     <string name="month_add_event">Add event</string>
     <string name="month_no_events">No events on this day</string>
     <string name="month_all_day">All day</string>
+
+    <!-- Event editor -->
+    <string name="editor_new_title">New event</string>
+    <string name="editor_edit_title">Edit event</string>
+    <string name="editor_save">Save</string>
+    <string name="editor_delete">Delete</string>
+    <string name="editor_back">Back</string>
+    <string name="editor_title_label">Title</string>
+    <string name="editor_all_day">All day</string>
+    <string name="editor_calendar">Calendar</string>
+    <string name="editor_starts">Starts</string>
+    <string name="editor_ends">Ends</string>
+    <string name="editor_recurrence">Repeat</string>
+    <string name="editor_description">Description</string>
+    <string name="editor_location">Location</string>
+    <string name="editor_error_blank_title">Title is required</string>
+    <string name="editor_error_end_before_start">End must be after start</string>
+    <string name="editor_error_save_failed">Couldn\'t save the event</string>
+    <string name="editor_ok">OK</string>
+    <string name="editor_cancel">Cancel</string>
+
+    <!-- Recurrence options -->
+    <string name="recurrence_none">Does not repeat</string>
+    <string name="recurrence_daily">Daily</string>
+    <string name="recurrence_weekly">Weekly</string>
+    <string name="recurrence_monthly">Monthly</string>
+    <string name="recurrence_yearly">Yearly</string>
 </resources>

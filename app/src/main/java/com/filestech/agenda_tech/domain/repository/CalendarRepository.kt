@@ -17,6 +17,9 @@ interface CalendarRepository {
 
     suspend fun getById(id: Long): Calendar?
 
+    /** Number of calendars — used to decide whether the first-run default calendar is needed. */
+    suspend fun count(): Int
+
     /** Inserts or updates; returns the calendar's id (freshly generated on insert). */
     suspend fun upsert(calendar: Calendar): Long
 
