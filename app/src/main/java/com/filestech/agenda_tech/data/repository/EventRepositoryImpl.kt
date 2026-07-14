@@ -45,6 +45,16 @@ class EventRepositoryImpl @Inject constructor(
         dao.deleteOverridesForParent(parentId)
     }
 
+    override suspend fun deleteSeriesAtomic(parentId: Long) = withContext(io) {
+        dao.deleteSeriesAtomic(parentId)
+    }
+
+    override suspend fun upsertAndDelete(event: Event, deleteId: Long) = withContext(io) {
+        val now = System.currentTimeMillis()
+        val createdAt = if (event.id != 0L) dao.getById(event.id)?.createdAt ?: now else now
+        dao.upsertAndDelete(event.toEntity(createdAt = createdAt, updatedAt = now), deleteId)
+    }
+
     override suspend fun upsert(event: Event): Long = withContext(io) {
         val now = System.currentTimeMillis()
         // Preserve the original createdAt on edit; stamp a fresh one on insert.

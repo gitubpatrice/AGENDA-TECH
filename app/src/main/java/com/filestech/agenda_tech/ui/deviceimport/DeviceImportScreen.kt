@@ -4,7 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -205,13 +206,20 @@ private fun ReadyContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(enabled = !importing) { onToggle(calendar.id) }
+                        // UX-NEW-1 — one toggleable node (Role.Checkbox) instead of a clickable Row +
+                        // a separately-focusable Checkbox, so TalkBack announces the row once.
+                        .toggleable(
+                            value = calendar.id in selected,
+                            enabled = !importing,
+                            role = Role.Checkbox,
+                            onValueChange = { onToggle(calendar.id) },
+                        )
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Checkbox(
                         checked = calendar.id in selected,
-                        onCheckedChange = { onToggle(calendar.id) },
+                        onCheckedChange = null,
                         enabled = !importing,
                     )
                     Column(modifier = Modifier.padding(start = 8.dp)) {

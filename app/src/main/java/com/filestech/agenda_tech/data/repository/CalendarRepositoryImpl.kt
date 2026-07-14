@@ -52,6 +52,10 @@ class CalendarRepositoryImpl @Inject constructor(
         dao.delete(id)
     }
 
+    override suspend fun promoteDefaultAndDelete(promoteId: Long?, deleteId: Long) = withContext(io) {
+        dao.promoteAndDelete(promoteId, deleteId)
+    }
+
     override suspend fun deleteImported() = withContext(io) {
         dao.deleteImported()
     }

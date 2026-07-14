@@ -23,6 +23,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.filestech.agenda_tech.data.local.db.AppDatabase
 import com.filestech.agenda_tech.data.local.db.DatabaseFactory
 import com.filestech.agenda_tech.domain.repository.LockRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
@@ -48,6 +49,10 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var lockRepository: LockRepository
     @Inject lateinit var appLock: AppLockManager
+
+    // ROB-NEW-1 — injecting the DB forces DatabaseFactory.build() (and any reset-on-failure) to run
+    // now, so consumeResetFlag() below sees a reset that happened on THIS launch, not the next one.
+    @Inject lateinit var appDatabase: AppDatabase
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }

@@ -20,7 +20,11 @@ data class IcsEvent(
     val uid: String? = null,
 )
 
-/** Drop the identity/membership for export. */
+/**
+ * Drop the persistence membership for export, but keep a **stable** UID so a re-export of the same
+ * event carries the same UID across exports (FIAB-NEW-2): reuse the imported source UID if any, else
+ * derive one from the stable Room row id — never from list position.
+ */
 fun Event.toIcsEvent(): IcsEvent = IcsEvent(
     title = title,
     description = description,
@@ -30,6 +34,7 @@ fun Event.toIcsEvent(): IcsEvent = IcsEvent(
     timeZoneId = timeZoneId,
     allDay = allDay,
     recurrence = recurrence,
+    uid = sourceUid?.removePrefix("ics:") ?: "row-$id",
 )
 
 /** Attach an imported event to a target calendar (a new, unsaved [Event]). */

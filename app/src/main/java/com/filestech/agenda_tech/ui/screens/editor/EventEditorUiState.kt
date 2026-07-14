@@ -48,6 +48,8 @@ data class EventEditorUiState(
     val error: EditorError? = null,
     /** Non-null when the editor is asking whether to apply to this occurrence or the whole series. */
     val scopePrompt: ScopePrompt? = null,
+    /** True when deleting opens the scope dialog (a recurring occurrence) — then no extra confirm is shown. */
+    val deleteNeedsScope: Boolean = false,
     val isSaved: Boolean = false,
     val isDeleted: Boolean = false,
 ) {

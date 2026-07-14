@@ -46,6 +46,20 @@ interface EventDao {
     @Query("DELETE FROM events WHERE recurrence_parent_id = :parentId")
     suspend fun deleteOverridesForParent(parentId: Long)
 
+    /** ROB-NEW-2 — delete a recurring master and its overrides in one transaction (all-or-nothing). */
+    @Transaction
+    suspend fun deleteSeriesAtomic(parentId: Long) {
+        deleteOverridesForParent(parentId)
+        delete(parentId)
+    }
+
+    /** ROB-NEW-2 — upsert one event and delete another atomically (exclude-from-master + drop override). */
+    @Transaction
+    suspend fun upsertAndDelete(entity: EventEntity, deleteId: Long) {
+        upsert(entity)
+        delete(deleteId)
+    }
+
     @Query("SELECT * FROM events WHERE id = :id")
     suspend fun getById(id: Long): EventEntity?
 

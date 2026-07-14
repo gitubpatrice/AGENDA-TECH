@@ -9,7 +9,7 @@ import androidx.compose.material.icons.filled.CalendarViewWeek
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.filestech.agenda_tech.R
 
-/** The three calendar views, surfaced in the bottom navigation switcher. */
+/** The four calendar views (Month / Week / Day / Agenda), surfaced in the bottom navigation switcher. */
 enum class CalendarView(
     val route: String,
     val icon: ImageVector,

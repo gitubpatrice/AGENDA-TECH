@@ -48,14 +48,14 @@ class CalendarsViewModel @Inject constructor(
         viewModelScope.launch {
             // DIAL/ROB-1 — keep the "exactly one default calendar" invariant that deleteImported()
             // (DELETE WHERE is_default = 0) and new-event bootstrapping rely on: if the default is
-            // being removed, promote another calendar to default first.
+            // being removed, promote another calendar to default. ROB-NEW-2 — done atomically.
             val target = uiState.value.calendars.firstOrNull { it.id == id } ?: return@launch
-            if (target.isDefault) {
-                uiState.value.calendars.firstOrNull { it.id != id }?.let { replacement ->
-                    calendarRepository.upsert(replacement.copy(isDefault = true))
-                }
+            val promoteId = if (target.isDefault) {
+                uiState.value.calendars.firstOrNull { it.id != id }?.id
+            } else {
+                null
             }
-            calendarRepository.delete(id)
+            calendarRepository.promoteDefaultAndDelete(promoteId, id)
         }
     }
 

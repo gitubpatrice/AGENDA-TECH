@@ -153,6 +153,7 @@ class EventEditorViewModel @Inject constructor(
                 reminderMinutes = reminderMinutes,
                 description = event.description.orEmpty(),
                 location = event.location.orEmpty(),
+                deleteNeedsScope = editingOccurrence,
             )
         }
     }
@@ -268,15 +269,17 @@ class EventEditorViewModel @Inject constructor(
      */
     private fun deleteOverrideAndExclude(parentId: Long, originalStart: Long) {
         viewModelScope.launch {
+            reminderScheduler.cancelEvent(eventId)
             val master = eventRepository.getById(parentId)
             val rule = master?.recurrence
             if (master != null && rule != null && originalStart !in rule.exDatesUtcMillis) {
-                eventRepository.upsert(
-                    master.copy(recurrence = rule.copy(exDatesUtcMillis = rule.exDatesUtcMillis + originalStart)),
-                )
+                val updated = master.copy(recurrence = rule.copy(exDatesUtcMillis = rule.exDatesUtcMillis + originalStart))
+                // ROB-NEW-2 — exclude on the master and drop the override in one transaction.
+                eventRepository.upsertAndDelete(updated, eventId)
+                reminderScheduler.rescheduleEvent(parentId)
+            } else {
+                deleteEvent(eventId)
             }
-            reminderScheduler.cancelEvent(eventId)
-            deleteEvent(eventId)
             _state.update { it.copy(isDeleted = true) }
         }
     }
@@ -325,11 +328,25 @@ class EventEditorViewModel @Inject constructor(
                         reminderRepository.upsert(Reminder(eventId = savedId, minutesBefore = minutes))
                     }
                     reminderScheduler.rescheduleEvent(savedId)
+                    if (asOverride) {
+                        // FIAB-NEW-3 — exclude the overridden date from the master (iCalendar
+                        // RECURRENCE-ID model) so the master's default occurrence AND its reminder no
+                        // longer fire at that instant next to the moved override.
+                        excludeFromMaster(eventId, occurrenceStart)
+                    }
                     _state.update { it.copy(isSaved = true) }
                 }
                 is Outcome.Failure -> _state.update { it.copy(error = EditorError.SAVE_FAILED) }
             }
         }
+    }
+
+    private suspend fun excludeFromMaster(masterId: Long, originalStart: Long) {
+        val master = eventRepository.getById(masterId)
+        val rule = master?.recurrence ?: return
+        if (originalStart in rule.exDatesUtcMillis) return
+        eventRepository.upsert(master.copy(recurrence = rule.copy(exDatesUtcMillis = rule.exDatesUtcMillis + originalStart)))
+        reminderScheduler.rescheduleEvent(masterId)
     }
 
     private fun deleteDirect() {
@@ -343,8 +360,7 @@ class EventEditorViewModel @Inject constructor(
     private fun deleteSeries() {
         viewModelScope.launch {
             reminderScheduler.cancelEvent(eventId)
-            eventRepository.deleteOverridesForParent(eventId)
-            deleteEvent(eventId)
+            eventRepository.deleteSeriesAtomic(eventId) // ROB-NEW-2 — master + overrides in one transaction
             _state.update { it.copy(isDeleted = true) }
         }
     }

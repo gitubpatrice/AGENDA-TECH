@@ -185,6 +185,26 @@ private fun EventEditorContent(
     val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
     var datePickerTarget by remember { mutableStateOf<EditTarget?>(null) }
     var timePickerTarget by remember { mutableStateOf<EditTarget?>(null) }
+    var confirmDelete by remember { mutableStateOf(false) }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.event_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.event_delete_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDelete = false
+                    onDelete()
+                }) {
+                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -203,7 +223,11 @@ private fun EventEditorContent(
                 },
                 actions = {
                     if (state.isEditing) {
-                        IconButton(onClick = onDelete) {
+                        IconButton(onClick = {
+                            // A recurring occurrence opens the scope dialog (this/series) — a deliberate
+                            // choice, no extra confirm. A plain event gets an anti-mistap confirmation.
+                            if (state.deleteNeedsScope) onDelete() else confirmDelete = true
+                        }) {
                             Icon(Icons.Filled.Delete, stringResource(R.string.editor_delete))
                         }
                     }

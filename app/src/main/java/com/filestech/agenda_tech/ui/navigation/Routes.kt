@@ -1,14 +1,8 @@
 package com.filestech.agenda_tech.ui.navigation
 
 /**
- * Navigation destinations. String-based for now (no kotlinx-serialization dependency in the
- * scaffold); each future screen adds a `const` here and a `composable(...)` in
- * [com.filestech.agenda_tech.ui.AppRoot].
- *
- * Phase-2 destinations still to add:
- *   - AGENDA               (list view)
- *   - CALENDARS            (manage local calendars)
- *   - SETTINGS
+ * Navigation destinations. String-based (no kotlinx-serialization dependency); each screen has a
+ * `const` here and a matching `composable(...)` in [com.filestech.agenda_tech.ui.AppRoot].
  */
 object Routes {
     const val MONTH = "month"

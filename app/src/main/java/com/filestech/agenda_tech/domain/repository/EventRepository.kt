@@ -34,6 +34,12 @@ interface EventRepository {
     /** Deletes the overrides of a recurring master (when the whole series is deleted). */
     suspend fun deleteOverridesForParent(parentId: Long)
 
+    /** Atomically deletes a recurring master and all its overrides. */
+    suspend fun deleteSeriesAtomic(parentId: Long)
+
+    /** Atomically upserts [event] and deletes the event with [deleteId] (exclude-from-master + drop override). */
+    suspend fun upsertAndDelete(event: Event, deleteId: Long)
+
     /** Inserts or updates; returns the event's id (freshly generated on insert). */
     suspend fun upsert(event: Event): Long
 

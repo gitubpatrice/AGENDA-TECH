@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.ics
 
+import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Weekday
@@ -20,6 +21,21 @@ class IcsCodecTest {
     private fun roundTrip(event: IcsEvent): IcsEvent {
         val text = IcsCodec.encode(listOf(event), now)
         return IcsCodec.decode(text, paris).single()
+    }
+
+    @Test
+    fun `export UID is derived from the event identity, not its list position`() {
+        val base = Event(
+            id = 5, calendarId = 1, title = "A",
+            startUtcMillis = parisMillis(2025, 6, 1, 9, 0),
+            endUtcMillis = parisMillis(2025, 6, 1, 10, 0),
+            timeZoneId = "Europe/Paris",
+        )
+        // No source uid → stable row-based uid.
+        assertThat(base.toIcsEvent().uid).isEqualTo("row-5")
+        // Previously imported (.ics) event → keeps the original uid so re-export/re-import dedups.
+        assertThat(base.copy(sourceUid = "ics:external@example.com").toIcsEvent().uid)
+            .isEqualTo("external@example.com")
     }
 
     @Test

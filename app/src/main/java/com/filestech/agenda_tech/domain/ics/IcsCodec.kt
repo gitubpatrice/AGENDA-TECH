@@ -57,7 +57,12 @@ object IcsCodec {
 
     private fun appendVEvent(out: StringBuilder, event: IcsEvent, index: Int, nowUtcMillis: Long) {
         out.appendContentLine("BEGIN:VEVENT")
-        out.appendContentLine("UID:agenda-tech-$index-${event.startUtcMillis}@filestech")
+        // Stable UID (FIAB-NEW-2): from the event's identity, not its position — so re-exporting an
+        // evolving agenda keeps each event's UID and a later re-import updates instead of duplicating.
+        // Only add the "@filestech" domain when the UID has none, so it never accumulates on round-trips.
+        val base = event.uid?.takeIf { it.isNotBlank() } ?: "agenda-tech-$index-${event.startUtcMillis}"
+        val uid = if (base.contains("@")) base else "$base@filestech"
+        out.appendContentLine("UID:$uid")
         out.appendContentLine("DTSTAMP:${utcStamp(nowUtcMillis)}")
         out.appendContentLine(dateProperty("DTSTART", event.startUtcMillis, event))
         out.appendContentLine(dateProperty("DTEND", event.endUtcMillis, event))

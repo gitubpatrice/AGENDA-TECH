@@ -158,6 +158,8 @@
     <string name="device_import_cleared">Imported calendars deleted.</string>
     <string name="device_import_clear_confirm_title">Delete imported calendars?</string>
     <string name="device_import_clear_confirm_body">This removes all previously imported calendars and their events. Your own calendars are kept.</string>
+    <string name="event_delete_confirm_title">Delete event?</string>
+    <string name="event_delete_confirm_body">This event and its reminders will be permanently deleted.</string>
     <string name="calendar_delete_confirm_title">Delete calendar?</string>
     <string name="calendar_delete_confirm_body">“%1$s” and all its events will be permanently deleted.</string>
     <string name="db_reset_notice">Your data could not be unlocked (device security key changed) and was reset.</string>

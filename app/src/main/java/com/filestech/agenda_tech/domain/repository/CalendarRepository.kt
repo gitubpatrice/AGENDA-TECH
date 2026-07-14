@@ -30,6 +30,9 @@ interface CalendarRepository {
 
     suspend fun delete(id: Long)
 
+    /** Atomically promotes [promoteId] to default (if non-null) then deletes [deleteId]. */
+    suspend fun promoteDefaultAndDelete(promoteId: Long?, deleteId: Long)
+
     /** Deletes all imported (non-default) calendars and their events; keeps the default calendar. */
     suspend fun deleteImported()
 }

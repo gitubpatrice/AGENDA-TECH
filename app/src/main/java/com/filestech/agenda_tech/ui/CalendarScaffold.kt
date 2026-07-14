@@ -11,8 +11,8 @@ import androidx.compose.ui.res.stringResource
 import com.filestech.agenda_tech.ui.navigation.CalendarView
 
 /**
- * Shared scaffold for the three calendar views: it owns the bottom navigation that switches between
- * Month / Week / Day, so each screen only provides its own top bar, FAB and body.
+ * Shared scaffold for the four calendar views: it owns the bottom navigation that switches between
+ * Month / Week / Day / Agenda, so each screen only provides its own top bar, FAB and body.
  */
 @Composable
 fun CalendarScaffold(

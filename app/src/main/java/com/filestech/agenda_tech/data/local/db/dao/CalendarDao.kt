@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.data.local.db.dao
 
 import androidx.room.Dao
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Upsert
 import com.filestech.agenda_tech.data.local.db.entity.CalendarEntity
 import kotlinx.coroutines.flow.Flow
@@ -36,6 +37,20 @@ interface CalendarDao {
 
     @Query("UPDATE calendars SET visible = :visible WHERE id = :id")
     suspend fun setVisibility(id: Long, visible: Boolean)
+
+    @Query("UPDATE calendars SET is_default = 1 WHERE id = :id")
+    suspend fun setDefault(id: Long)
+
+    /**
+     * ROB-NEW-2 — promote another calendar to default (if [promoteId] != null) and delete [deleteId]
+     * in one transaction, so the "exactly one default calendar" invariant can never be transiently
+     * broken by a crash between the two writes.
+     */
+    @Transaction
+    suspend fun promoteAndDelete(promoteId: Long?, deleteId: Long) {
+        promoteId?.let { setDefault(it) }
+        delete(deleteId)
+    }
 
     @Query("DELETE FROM calendars WHERE id = :id")
     suspend fun delete(id: Long)
