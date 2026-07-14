@@ -79,4 +79,8 @@
     <string name="reminder_days">%1$d jour avant</string>
     <string name="reminder_channel_name">Rappels d\'événements</string>
     <string name="reminder_channel_desc">Notifications des rappels d\'agenda</string>
+
+    <!-- Widget écran d'accueil -->
+    <string name="widget_description">Date du jour et prochains événements</string>
+    <string name="widget_no_events">Aucun événement à venir</string>
 </resources>

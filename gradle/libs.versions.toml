@@ -26,6 +26,9 @@ coroutines = "1.11.0"
 # SQLCipher — base chiffrée at-rest (embarque sa propre SQLite).
 sqlcipher = "4.16.0"
 
+# Glance (home-screen widget)
+glance = "1.1.1"
+
 # Logging
 timber = "5.0.1"
 
@@ -84,6 +87,9 @@ hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", ve
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+
+# Glance
+androidx-glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
 
 # SQLCipher
 sqlcipher-android = { module = "net.zetetic:sqlcipher-android", version.ref = "sqlcipher" }

@@ -192,6 +192,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
+    // Glance (home-screen widget)
+    implementation(libs.androidx.glance.appwidget)
+
     // SQLCipher
     implementation(libs.sqlcipher.android)
 
