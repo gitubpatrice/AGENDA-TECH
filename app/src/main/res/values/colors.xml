@@ -3,6 +3,6 @@
     <!-- Files Tech brand blue. -->
     <color name="brand_blue">#FF2460AB</color>
     <!-- White behind the logo (a dark-toned mark) for the adaptive icon and splash. -->
-    <color name="ic_launcher_background">#FFFFFFFF</color>
+    <color name="ic_launcher_background">#FF14142B</color>
     <color name="splash_background">#FFFFFFFF</color>
 </resources>
