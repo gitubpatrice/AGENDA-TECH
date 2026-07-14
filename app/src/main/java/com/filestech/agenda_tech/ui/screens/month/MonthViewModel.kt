@@ -105,6 +105,11 @@ class MonthViewModel @Inject constructor(
         selectedDate.value = LocalDate.now(zone)
     }
 
+    /** Jump straight to a month (used by the swipe pager once it settles on a page). */
+    fun showMonth(month: YearMonth) {
+        if (displayedMonth.value != month) displayedMonth.value = month
+    }
+
     /** Selecting a leading/trailing cell that belongs to an adjacent month navigates to it. */
     fun onSelectDate(date: LocalDate) {
         selectedDate.value = date

@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -35,17 +37,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TextButton
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
@@ -66,14 +65,16 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.WeekFields
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
 
-/** Minimum horizontal drag (px) to trigger a month change via swipe. */
-private const val SWIPE_THRESHOLD_PX = 60f
+// A large virtual page window centred on the anchor month lets the pager scroll ~100 years either way.
+private const val PAGER_PAGE_COUNT = 2400
+private const val PAGER_ANCHOR_PAGE = PAGER_PAGE_COUNT / 2
 
 @Composable
 fun MonthScreen(
@@ -114,6 +115,7 @@ fun MonthScreen(
         onPreviousMonth = viewModel::onPreviousMonth,
         onNextMonth = viewModel::onNextMonth,
         onToday = viewModel::onToday,
+        onShowMonth = viewModel::showMonth,
         onSelectDate = viewModel::onSelectDate,
         onAddEvent = onAddEvent,
         onOccurrenceClick = onOccurrenceClick,
@@ -130,6 +132,7 @@ private fun MonthScreenContent(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onToday: () -> Unit,
+    onShowMonth: (YearMonth) -> Unit,
     onSelectDate: (LocalDate) -> Unit,
     onAddEvent: (LocalDate) -> Unit,
     onOccurrenceClick: (Long, Long) -> Unit,
@@ -173,25 +176,32 @@ private fun MonthScreenContent(
             }
         },
     ) { innerPadding ->
-        var dragAccumulator by remember { mutableFloatStateOf(0f) }
+        val today = remember { LocalDate.now(ZoneId.systemDefault()) }
+        // Anchor the pager on the month shown when the screen first appeared; each page is that
+        // month ± an offset, so swiping slides smoothly to the adjacent month (follow-the-finger).
+        val anchorMonth = remember { state.yearMonth }
+        fun monthForPage(page: Int): YearMonth = anchorMonth.plusMonths((page - PAGER_ANCHOR_PAGE).toLong())
+        fun pageForMonth(month: YearMonth): Int =
+            PAGER_ANCHOR_PAGE + (month.year - anchorMonth.year) * 12 + (month.monthValue - anchorMonth.monthValue)
+
+        val pagerState = rememberPagerState(initialPage = pageForMonth(state.yearMonth)) { PAGER_PAGE_COUNT }
+
+        // Pager settled on a page → tell the ViewModel which month is now shown.
+        LaunchedEffect(pagerState.settledPage) {
+            onShowMonth(monthForPage(pagerState.settledPage))
+        }
+        // Month changed elsewhere (Today, arrows, tapping an adjacent-month day) → move the pager.
+        LaunchedEffect(state.yearMonth) {
+            val target = pageForMonth(state.yearMonth)
+            if (pagerState.currentPage != target) pagerState.animateScrollToPage(target)
+        }
+
         Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .fillMaxSize()
-                // Swipe horizontally to change month: left → next, right → previous.
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            if (dragAccumulator <= -SWIPE_THRESHOLD_PX) onNextMonth()
-                            else if (dragAccumulator >= SWIPE_THRESHOLD_PX) onPreviousMonth()
-                            dragAccumulator = 0f
-                        },
-                        onDragCancel = { dragAccumulator = 0f },
-                        onHorizontalDrag = { _, dragAmount -> dragAccumulator += dragAmount },
-                    )
-                },
+                .fillMaxSize(),
         ) {
-            // Second row: month navigation + actions, moved out of the crowded app bar.
+            // Month navigation row (moved out of the crowded app bar).
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -213,13 +223,31 @@ private fun MonthScreenContent(
                 }
             }
             WeekdayHeader(state.firstDayOfWeek, locale, state.showWeekNumbers)
-            state.weeks.forEachIndexed { index, week ->
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    if (state.showWeekNumbers) {
-                        WeekNumberCell(state.weekNumbers.getOrElse(index) { 0 })
+            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
+                val pageMonth = monthForPage(page)
+                // The settled month has its event dots from the ViewModel; the pages sliding in show
+                // the bare grid (dots fill in once that month settles) — keeps swiping cheap and fluid.
+                val weeks = if (pageMonth == state.yearMonth) {
+                    state.weeks
+                } else {
+                    MonthGrid.weeks(pageMonth, state.firstDayOfWeek).map { row ->
+                        row.map { date ->
+                            DayCellData(
+                                date = date,
+                                isInMonth = YearMonth.from(date) == pageMonth,
+                                isToday = date == today,
+                                isSelected = date == state.selectedDate,
+                                eventColors = emptyList(),
+                                eventCount = 0,
+                            )
+                        }
                     }
-                    week.forEach { cell -> DayCell(cell = cell, onClick = onSelectDate) }
                 }
+                MonthGridRows(
+                    weeks = weeks,
+                    showWeekNumbers = state.showWeekNumbers,
+                    onSelectDate = onSelectDate,
+                )
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Text(
@@ -235,6 +263,26 @@ private fun MonthScreenContent(
                     .fillMaxWidth()
                     .weight(1f),
             )
+        }
+    }
+}
+
+/** The 6×7 day grid for one month page (ISO week numbers from the mid-week cell when enabled). */
+@Composable
+private fun MonthGridRows(
+    weeks: List<List<DayCellData>>,
+    showWeekNumbers: Boolean,
+    onSelectDate: (LocalDate) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        weeks.forEach { week ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                if (showWeekNumbers) {
+                    val weekNumber = week[MonthGrid.DAYS_PER_WEEK / 2].date.get(WeekFields.ISO.weekOfWeekBasedYear())
+                    WeekNumberCell(weekNumber)
+                }
+                week.forEach { cell -> DayCell(cell = cell, onClick = onSelectDate) }
+            }
         }
     }
 }
