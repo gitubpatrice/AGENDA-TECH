@@ -42,5 +42,8 @@ interface EventRepository {
     /** Inserts or updates; returns the event's id (freshly generated on insert). */
     suspend fun upsert(event: Event): Long
 
+    /** Atomically inserts a batch of new events (import). All or nothing — no half-populated import. */
+    suspend fun upsertAll(events: List<Event>)
+
     suspend fun delete(id: Long)
 }

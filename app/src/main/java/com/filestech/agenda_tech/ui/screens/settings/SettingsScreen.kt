@@ -68,6 +68,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenCalendars: () -> Unit,
+    onOpenDeviceImport: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
@@ -120,6 +121,11 @@ fun SettingsScreen(
             HorizontalDivider()
             SectionHeader(stringResource(R.string.settings_section_events))
             ClickRow(title = stringResource(R.string.settings_calendars), onClick = onOpenCalendars)
+            ClickRow(
+                title = stringResource(R.string.settings_device_import),
+                subtitle = stringResource(R.string.settings_device_import_sub),
+                onClick = onOpenDeviceImport,
+            )
             ColorRow(
                 title = stringResource(R.string.settings_default_color),
                 selected = settings.defaultEventColor,

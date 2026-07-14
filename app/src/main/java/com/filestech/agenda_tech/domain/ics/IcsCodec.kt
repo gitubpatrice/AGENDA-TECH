@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.domain.ics
 
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
+import com.filestech.agenda_tech.core.text.BidiSanitizer
 import com.filestech.agenda_tech.domain.model.Weekday
 import java.time.Instant
 import java.time.LocalDate
@@ -36,10 +37,6 @@ object IcsCodec {
         Weekday.THURSDAY to "TH", Weekday.FRIDAY to "FR", Weekday.SATURDAY to "SA", Weekday.SUNDAY to "SU",
     )
     private val BYDAY_TO_ISO = ISO_TO_BYDAY.entries.associate { (k, v) -> v to k }
-
-    // Unicode bidirectional overrides/isolates removed from imported text (anti-spoofing, SEC-ICS2).
-    private val BIDI_CONTROLS: Set<Char> =
-        ((0x202A..0x202E) + (0x2066..0x2069)).map { it.toChar() }.toSet()
 
     // --- Encode --------------------------------------------------------------
 
@@ -240,7 +237,7 @@ object IcsCodec {
      * imported `.ics` is untrusted; without this, an RLO/LRO override could spoof how a title reads
      * on screen and in the widget.
      */
-    private fun sanitizeText(text: String): String = text.filterNot { it in BIDI_CONTROLS }
+    private fun sanitizeText(text: String): String = BidiSanitizer.strip(text)
 
     private fun unescapeText(text: String): String {
         val out = StringBuilder(text.length)

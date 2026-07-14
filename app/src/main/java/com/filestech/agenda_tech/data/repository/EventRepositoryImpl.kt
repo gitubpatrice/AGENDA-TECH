@@ -61,6 +61,12 @@ class EventRepositoryImpl @Inject constructor(
         dao.upsert(event.toEntity(createdAt = createdAt, updatedAt = now))
     }
 
+    override suspend fun upsertAll(events: List<Event>) = withContext(io) {
+        // Import path: every event is new, so stamp a single timestamp and insert atomically.
+        val now = System.currentTimeMillis()
+        dao.upsertAll(events.map { it.toEntity(createdAt = now, updatedAt = now) })
+    }
+
     override suspend fun delete(id: Long) = withContext(io) {
         dao.delete(id)
     }

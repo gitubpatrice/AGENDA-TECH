@@ -9,6 +9,16 @@
       (RFC 5545) via le sélecteur de fichiers système, pas par synchronisation réseau.
     -->
 
+    <!--
+      Import ponctuel des événements déjà synchronisés localement sur l'appareil
+      (agenda Google, Exchange, etc.) via le Calendar Provider Android (CalendarContract).
+      LECTURE SEULE, 100 % LOCALE : Agenda Tech ne fait que lire ce que le système a déjà
+      stocké sur le téléphone — AUCUNE connexion réseau, aucun accès au compte Google.
+      La synchronisation distante reste gérée par les apps système. Permission dangereuse,
+      demandée à l'exécution UNIQUEMENT quand l'utilisateur ouvre l'écran d'import.
+    -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+
     <!-- Rappels (notifications) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />

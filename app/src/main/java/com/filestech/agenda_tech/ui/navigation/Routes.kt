@@ -24,6 +24,7 @@ object Routes {
     const val SETTINGS = "settings"
     const val ABOUT = "about"
     const val CALENDARS = "calendars"
+    const val DEVICE_IMPORT = "device_import"
 
     /** Full pattern (optional args) registered by the NavHost. */
     const val EDITOR_PATTERN =

@@ -144,6 +144,16 @@
     <string name="about_license">Licensed under Apache 2.0</string>
     <string name="about_privacy">All your data stays on this device, encrypted. No Internet permission.</string>
 
+    <string name="settings_device_import">Import from the device calendar</string>
+    <string name="settings_device_import_sub">Copy events already on this phone (Google, etc.) — no Internet</string>
+    <string name="device_import_title">Device calendar import</string>
+    <string name="device_import_rationale">Agenda Tech can copy events already synced onto this phone (Google, Exchange, local calendars). It only reads them locally — no Internet access, no connection to your account.</string>
+    <string name="device_import_grant">Allow calendar access</string>
+    <string name="device_import_pick">Choose the calendars to import:</string>
+    <string name="device_import_empty">No calendar found on this device.</string>
+    <string name="device_import_action">Import (%1$d)</string>
+    <string name="device_import_running">Importing…</string>
+    <string name="device_import_done">%1$d events imported from %2$d calendar(s).</string>
     <string name="settings_section_security">Security</string>
     <string name="settings_lock_enabled">Lock the app</string>
     <string name="settings_lock_enabled_sub">Require a PIN or biometrics on open</string>

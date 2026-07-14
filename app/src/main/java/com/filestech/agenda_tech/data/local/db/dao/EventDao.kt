@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.data.local.db.dao
 
 import androidx.room.Dao
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Upsert
 import com.filestech.agenda_tech.data.local.db.entity.EventEntity
 import kotlinx.coroutines.flow.Flow
@@ -76,6 +77,12 @@ interface EventDao {
      */
     @Upsert
     suspend fun upsert(entity: EventEntity): Long
+
+    /** Atomic batch insert (device/ICS import): all rows land in one transaction or none do. */
+    @Transaction
+    suspend fun upsertAll(entities: List<EventEntity>) {
+        entities.forEach { upsert(it) }
+    }
 
     @Query("DELETE FROM events WHERE id = :id")
     suspend fun delete(id: Long)

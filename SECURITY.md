@@ -73,6 +73,26 @@ Deux garde-fous : le widget est **opt-in** (l'utilisateur choisit de le poser) ;
 titres sont masqués d'office dans le widget (LOCK-3)** — activer le verrou ne laisse donc jamais de
 titre lisible sur l'écran d'accueil.
 
+## Import du calendrier de l'appareil (READ_CALENDAR)
+
+L'app peut copier ponctuellement les événements **déjà synchronisés localement** sur le téléphone
+(agenda Google, Exchange, calendriers locaux) via le Calendar Provider Android (`CalendarContract`).
+C'est la **seule** permission dangereuse de l'app, et elle **ne trahit pas** la doctrine zéro-réseau :
+
+- **Lecture seule, 100 % locale.** `READ_CALENDAR` uniquement — jamais `WRITE_CALENDAR` ni
+  `GET_ACCOUNTS`. Aucune connexion réseau, aucun accès au compte Google : Agenda Tech ne lit que ce
+  que le système a déjà stocké sur l'appareil. La synchro distante reste gérée par les apps système.
+- **Demandée à l'exécution, scoped à l'écran d'import** (`DeviceImportScreen`), jamais au démarrage.
+  Aucune requête `CalendarContract` avant octroi ; refus géré proprement (pas de crash, pas de boucle).
+- **Défenses sur le contenu tiers** (un calendrier partagé peut être piégé) : requêtes
+  ContentResolver **paramétrées** (pas de concat SQL), cursors fermés (`use{}`), plafond
+  `MAX_EVENTS` (20 000) et cap de longueur des champs, nettoyage **anti-Bidi** partagé avec l'import
+  `.ics` (`BidiSanitizer`), parsing RRULE/EXDATE/durée **tolérant** (retourne null plutôt que de
+  crasher, durée bornée anti-overflow). Import résilient : une erreur sur un calendrier est journalisée
+  et ignorée, jamais propagée. Écriture DB **atomique par lot** (`upsertAll` en transaction).
+- **V1 = copie ponctuelle, pas une synchro** : ré-importer duplique les événements (pas de dédup ni
+  de sync bidirectionnelle). Occurrences déplacées et VALARM hors périmètre (comme l'import `.ics`).
+
 ## Sauvegardes
 
 - `allowBackup="false"` + règles d'exclusion (`data_extraction_rules.xml`, `backup_rules.xml`) :
