@@ -23,6 +23,11 @@ class EventRepositoryImpl @Inject constructor(
             .map { rows -> rows.map { it.toDomain() } }
             .flowOn(io)
 
+    override fun observeForExpansion(windowStartUtcMillis: Long, windowEndUtcMillis: Long): Flow<List<Event>> =
+        dao.observeForExpansion(windowStartUtcMillis, windowEndUtcMillis)
+            .map { rows -> rows.map { it.toDomain() } }
+            .flowOn(io)
+
     override fun observeByCalendar(calendarId: Long): Flow<List<Event>> =
         dao.observeByCalendar(calendarId)
             .map { rows -> rows.map { it.toDomain() } }

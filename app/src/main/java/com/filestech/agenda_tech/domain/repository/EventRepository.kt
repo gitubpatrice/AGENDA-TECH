@@ -13,8 +13,17 @@ import kotlinx.coroutines.flow.Flow
  */
 interface EventRepository {
 
-    /** Streams the events whose base start instant is within `[startUtcMillis, endUtcMillis)`. */
+    /** Streams the stored events whose interval overlaps `[startUtcMillis, endUtcMillis)`. */
     fun observeInRange(startUtcMillis: Long, endUtcMillis: Long): Flow<List<Event>>
+
+    /**
+     * Streams the events that are candidates for occurrence expansion over the window — non-recurring
+     * events that overlap it, plus recurring events whose series could intersect it (base before the
+     * window end, rule not yet ended). Feed the result to
+     * [com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander] to get concrete occurrences;
+     * [com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase] does exactly that.
+     */
+    fun observeForExpansion(windowStartUtcMillis: Long, windowEndUtcMillis: Long): Flow<List<Event>>
 
     /** Streams the events belonging to a given calendar. */
     fun observeByCalendar(calendarId: Long): Flow<List<Event>>

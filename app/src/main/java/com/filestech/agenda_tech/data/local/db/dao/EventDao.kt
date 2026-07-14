@@ -27,12 +27,41 @@ interface EventDao {
     )
     fun observeInRange(startUtcMillis: Long, endUtcMillis: Long): Flow<List<EventEntity>>
 
+    /**
+     * Candidate events for occurrence expansion over `[windowStartUtcMillis, windowEndUtcMillis)`:
+     *  - non-recurring events that overlap the window, and
+     *  - recurring events whose series *could* intersect the window — the base starts before the
+     *    window ends and the rule has not already ended (`rrule_until` null or ≥ window start).
+     *
+     * The [com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander] then turns each
+     * recurring candidate into its concrete in-window occurrences. Unlike [observeInRange], this
+     * intentionally returns recurring events whose *base* sits before the window.
+     */
+    @Query(
+        """
+        SELECT * FROM events
+        WHERE (rrule_freq IS NULL
+                   AND start_utc_millis < :windowEndUtcMillis
+                   AND end_utc_millis > :windowStartUtcMillis)
+           OR (rrule_freq IS NOT NULL
+                   AND start_utc_millis < :windowEndUtcMillis
+                   AND (rrule_until IS NULL OR rrule_until >= :windowStartUtcMillis))
+        ORDER BY start_utc_millis ASC
+        """,
+    )
+    fun observeForExpansion(windowStartUtcMillis: Long, windowEndUtcMillis: Long): Flow<List<EventEntity>>
+
     @Query("SELECT * FROM events WHERE calendar_id = :calendarId ORDER BY start_utc_millis ASC")
     fun observeByCalendar(calendarId: Long): Flow<List<EventEntity>>
 
     @Query("SELECT * FROM events WHERE id = :id")
     suspend fun getById(id: Long): EventEntity?
 
+    /**
+     * ⚠️ Audit SEC-1 — the returned `Long` is the rowid only on the INSERT path; on UPDATE Room may
+     * return `-1`. NEVER use it to link a child (e.g. a reminder's `event_id`) after an edit; use
+     * the caller's known `entity.id` instead.
+     */
     @Upsert
     suspend fun upsert(entity: EventEntity): Long
 

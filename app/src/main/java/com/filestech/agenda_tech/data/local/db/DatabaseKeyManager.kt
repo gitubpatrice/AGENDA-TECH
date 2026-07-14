@@ -10,6 +10,7 @@ import com.filestech.agenda_tech.core.result.Outcome
 import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
 import java.io.File
+import java.io.IOException
 import java.security.SecureRandom
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -84,8 +85,16 @@ class DatabaseKeyManager @Inject constructor(
                 throw Failure.WrapCorrupted()
             }
         }
+        // Audit SEC-2 — atomic write: stage to a temp file then rename, so a crash / power loss
+        // mid-write can never leave a truncated master.key that would type as WrapCorrupted and
+        // brick the (still-empty) database on first launch. rename() is atomic on the same volume.
         try {
-            keyFile.outputStream().use { it.write(wrapped) }
+            val tmp = File(keyDir, "master.key.tmp")
+            tmp.outputStream().use { it.write(wrapped) }
+            if (!tmp.renameTo(keyFile)) {
+                tmp.delete()
+                throw IOException("atomic rename of master.key failed")
+            }
         } catch (e: Throwable) {
             raw.wipe()
             throw Failure.Io(e)

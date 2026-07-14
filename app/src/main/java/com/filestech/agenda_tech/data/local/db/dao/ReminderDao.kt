@@ -12,6 +12,11 @@ interface ReminderDao {
     @Query("SELECT * FROM reminders WHERE event_id = :eventId ORDER BY minutes_before ASC")
     fun observeForEvent(eventId: Long): Flow<List<ReminderEntity>>
 
+    /**
+     * ⚠️ Audit SEC-1 — the returned `Long` is the rowid only on the INSERT path; on UPDATE Room may
+     * return `-1`. Don't rely on it as a stable identifier after an edit; use the caller's known
+     * `entity.id`.
+     */
     @Upsert
     suspend fun upsert(entity: ReminderEntity): Long
 

@@ -18,8 +18,15 @@ interface CalendarDao {
     @Query("SELECT * FROM calendars WHERE id = :id")
     suspend fun getById(id: Long): CalendarEntity?
 
-    // @Upsert (not @Insert REPLACE): REPLACE would DELETE+INSERT the row and cascade-delete this
-    // calendar's events on every edit. @Upsert does a true INSERT-or-UPDATE, preserving children.
+    /**
+     * `@Upsert` (not `@Insert(onConflict = REPLACE)`): REPLACE would DELETE+INSERT the row and
+     * cascade-delete this calendar's events on every edit. `@Upsert` does a true INSERT-or-UPDATE,
+     * preserving children.
+     *
+     * ⚠️ Audit SEC-1 — the returned `Long` is the rowid only on the INSERT path; on UPDATE Room may
+     * return `-1`. NEVER use it to link a child (e.g. an event's `calendar_id`); use the caller's
+     * known `entity.id` instead.
+     */
     @Upsert
     suspend fun upsert(entity: CalendarEntity): Long
 
