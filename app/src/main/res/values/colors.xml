@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Files Tech brand blue. -->
+    <color name="brand_blue">#FF2460AB</color>
+    <!-- Deep indigo used as the adaptive-icon and splash background across the portfolio. -->
+    <color name="ic_launcher_background">#FF262660</color>
+    <color name="splash_background">#FF262660</color>
+</resources>

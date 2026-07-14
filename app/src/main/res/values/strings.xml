@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Agenda Tech</string>
+
+    <!-- Home (placeholder — replaced by the month view in phase 2) -->
+    <string name="home_empty_title">Your local agenda</string>
+    <string name="home_empty_subtitle">No calendar yet (%1$d). Events, reminders and the month view are coming.</string>
+</resources>

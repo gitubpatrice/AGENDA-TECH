@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base app theme. The visible UI is drawn by Compose (AgendaTechTheme); this only sets the
+         window background so there is no flash before the first composition. -->
+    <style name="Theme.AgendaTech" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Splash screen (androidx.core:core-splashscreen). Shows the launcher glyph on the brand
+         background, then hands off to Theme.AgendaTech. -->
+    <style name="Theme.AgendaTech.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.AgendaTech</item>
+    </style>
+</resources>

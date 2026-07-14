@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Agenda Tech holds a SQLCipher-encrypted database and a Keystore-wrapped key. We exclude
+  everything from cloud backup and device transfer: the wrapped DB key is bound to this device's
+  AndroidKeyStore and would be useless (and a needless exposure) elsewhere.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+    </device-transfer>
+</data-extraction-rules>

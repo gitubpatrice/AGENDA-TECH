@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      DOCTRINE Agenda Tech : agenda 100 % LOCAL, chiffré, ZÉRO réseau.
+      Aucune permission INTERNET / ACCESS_NETWORK_STATE n'est déclarée — et ne doit
+      jamais l'être. L'interopérabilité se fait par import/export de fichiers .ics
+      (RFC 5545) via le sélecteur de fichiers système, pas par synchronisation réseau.
+
+      PERMISSIONS À AJOUTER EN PHASE 2 (rappels/alarmes exactes) — NON déclarées ici
+      pour ne pas créer de permissions orphelines (warning Play/lint + risque de
+      révocation Android 14+). À poser AU MOMENT où la feature rappels atterrit :
+        - android.permission.POST_NOTIFICATIONS        (Android 13+, rappels)
+        - android.permission.SCHEDULE_EXACT_ALARM      (rappel « X min avant »)
+        - android.permission.USE_EXACT_ALARM           (fallback exact alarm)
+        - android.permission.RECEIVE_BOOT_COMPLETED    (re-planifier après reboot)
+        - android.permission.VIBRATE                   (vibration du rappel)
+    -->
+
+    <application
+        android:name=".MainApplication"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:enableOnBackInvokedCallback="true"
+        android:largeHeap="false"
+        android:hardwareAccelerated="true"
+        android:theme="@style/Theme.AgendaTech.Splash"
+        tools:targetApi="34">
+
+        <!-- Single Activity host (Compose). -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|uiMode|locale|layoutDirection|keyboard|keyboardHidden|navigation|fontScale"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.AgendaTech.Splash">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

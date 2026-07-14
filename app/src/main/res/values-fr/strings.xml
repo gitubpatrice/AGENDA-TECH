@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Agenda Tech</string>
+
+    <!-- Accueil (placeholder — remplacé par la vue Mois en phase 2) -->
+    <string name="home_empty_title">Votre agenda local</string>
+    <string name="home_empty_subtitle">Aucun calendrier pour l\'instant (%1$d). Les événements, rappels et la vue Mois arrivent.</string>
+</resources>

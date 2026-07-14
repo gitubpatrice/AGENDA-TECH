@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Legacy (API < 31) counterpart of data_extraction_rules.xml: exclude all app data. -->
+<full-backup-content>
+    <exclude domain="root" />
+</full-backup-content>
