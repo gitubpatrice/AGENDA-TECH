@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -73,6 +74,7 @@ fun MonthScreen(
     onSelectView: (CalendarView) -> Unit,
     onAddEvent: (LocalDate) -> Unit,
     onOccurrenceClick: (Long) -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: MonthViewModel = hiltViewModel(),
     icsViewModel: IcsViewModel = hiltViewModel(),
 ) {
@@ -111,6 +113,7 @@ fun MonthScreen(
         onOccurrenceClick = onOccurrenceClick,
         onExportIcs = { exportLauncher.launch("agenda-tech.ics") },
         onImportIcs = { importLauncher.launch(arrayOf("text/calendar", "*/*")) },
+        onOpenSettings = onOpenSettings,
     )
 }
 
@@ -126,6 +129,7 @@ private fun MonthScreenContent(
     onOccurrenceClick: (Long) -> Unit,
     onExportIcs: () -> Unit,
     onImportIcs: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
 
@@ -165,7 +169,11 @@ private fun MonthScreenContent(
                             contentDescription = stringResource(R.string.month_next),
                         )
                     }
-                    MonthOverflowMenu(onExportIcs = onExportIcs, onImportIcs = onImportIcs)
+                    MonthOverflowMenu(
+                        onExportIcs = onExportIcs,
+                        onImportIcs = onImportIcs,
+                        onOpenSettings = onOpenSettings,
+                    )
                 },
             )
         },
@@ -180,9 +188,12 @@ private fun MonthScreenContent(
                 .padding(innerPadding)
                 .fillMaxSize(),
         ) {
-            WeekdayHeader(state.firstDayOfWeek, locale)
-            state.weeks.forEach { week ->
+            WeekdayHeader(state.firstDayOfWeek, locale, state.showWeekNumbers)
+            state.weeks.forEachIndexed { index, week ->
                 Row(modifier = Modifier.fillMaxWidth()) {
+                    if (state.showWeekNumbers) {
+                        WeekNumberCell(state.weekNumbers.getOrElse(index) { 0 })
+                    }
                     week.forEach { cell -> DayCell(cell = cell, onClick = onSelectDate) }
                 }
             }
@@ -205,8 +216,28 @@ private fun MonthScreenContent(
 }
 
 @Composable
-private fun WeekdayHeader(firstDayOfWeek: DayOfWeek, locale: Locale) {
+private fun WeekNumberCell(weekNumber: Int) {
+    Box(
+        modifier = Modifier
+            .width(24.dp)
+            .height(56.dp),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Text(
+            text = weekNumber.toString(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+@Composable
+private fun WeekdayHeader(firstDayOfWeek: DayOfWeek, locale: Locale, showWeekNumbers: Boolean) {
     Row(modifier = Modifier.fillMaxWidth()) {
+        if (showWeekNumbers) {
+            Box(modifier = Modifier.width(24.dp))
+        }
         MonthGrid.weekdayHeaders(firstDayOfWeek).forEach { dow ->
             Text(
                 text = dow.getDisplayName(TextStyle.SHORT, locale),
@@ -338,12 +369,23 @@ private fun OccurrenceRow(
 // --- formatting helpers (UI-side, locale-aware) -----------------------------
 
 @Composable
-private fun MonthOverflowMenu(onExportIcs: () -> Unit, onImportIcs: () -> Unit) {
+private fun MonthOverflowMenu(
+    onExportIcs: () -> Unit,
+    onImportIcs: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
     var expanded by remember { mutableStateOf(false) }
     IconButton(onClick = { expanded = true }) {
         Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.menu_more))
     }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.menu_settings)) },
+            onClick = {
+                expanded = false
+                onOpenSettings()
+            },
+        )
         DropdownMenuItem(
             text = { Text(stringResource(R.string.menu_import_ics)) },
             onClick = {

@@ -9,8 +9,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.filestech.agenda_tech.ui.navigation.CalendarView
 import com.filestech.agenda_tech.ui.navigation.Routes
+import com.filestech.agenda_tech.ui.screens.about.AboutScreen
 import com.filestech.agenda_tech.ui.screens.editor.EventEditorScreen
 import com.filestech.agenda_tech.ui.screens.month.MonthScreen
+import com.filestech.agenda_tech.ui.screens.settings.SettingsScreen
 import com.filestech.agenda_tech.ui.screens.timeline.DayScreen
 import com.filestech.agenda_tech.ui.screens.timeline.WeekScreen
 
@@ -33,7 +35,12 @@ fun AppRoot() {
 
     NavHost(navController = navController, startDestination = Routes.MONTH) {
         composable(Routes.MONTH) {
-            MonthScreen(onSelectView = onSelectView, onAddEvent = onAddEvent, onOccurrenceClick = onOccurrenceClick)
+            MonthScreen(
+                onSelectView = onSelectView,
+                onAddEvent = onAddEvent,
+                onOccurrenceClick = onOccurrenceClick,
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+            )
         }
         composable(Routes.WEEK) {
             WeekScreen(onSelectView = onSelectView, onAddEvent = onAddEvent, onOccurrenceClick = onOccurrenceClick)
@@ -55,6 +62,15 @@ fun AppRoot() {
             ),
         ) {
             EventEditorScreen(onDone = { navController.popBackStack() })
+        }
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenAbout = { navController.navigate(Routes.ABOUT) },
+            )
+        }
+        composable(Routes.ABOUT) {
+            AboutScreen(onBack = { navController.popBackStack() })
         }
     }
 }

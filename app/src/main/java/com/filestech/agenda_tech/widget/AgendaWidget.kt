@@ -27,6 +27,7 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.filestech.agenda_tech.MainActivity
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -61,6 +62,7 @@ class AgendaWidget : GlanceAppWidget() {
         val endMillis = today.plusDays(UPCOMING_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
 
         val occurrences = entryPoint.observeOccurrences().invoke(startMillis, endMillis).first()
+        val hideTitles = entryPoint.settingsRepository().current().widgetHideTitles
         val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale)
 
         val rows = occurrences
@@ -72,7 +74,8 @@ class AgendaWidget : GlanceAppWidget() {
                 } else {
                     Instant.ofEpochMilli(occurrence.startUtcMillis).atZone(zone).format(timeFormatter)
                 }
-                WidgetRow(time = time, title = occurrence.event.title)
+                // SEC-W1 — respect the "hide titles in widget" privacy setting.
+                WidgetRow(time = time, title = if (hideTitles) "" else occurrence.event.title)
             }
 
         val subtitle = today
@@ -155,4 +158,5 @@ private fun WidgetContent(data: WidgetData) {
 @InstallIn(SingletonComponent::class)
 interface WidgetEntryPoint {
     fun observeOccurrences(): ObserveOccurrencesInRangeUseCase
+    fun settingsRepository(): SettingsRepository
 }

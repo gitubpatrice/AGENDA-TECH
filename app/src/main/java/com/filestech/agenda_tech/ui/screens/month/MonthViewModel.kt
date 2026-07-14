@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.recurrence.EventOccurrence
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
+import com.filestech.agenda_tech.domain.repository.SettingsRepository
+import com.filestech.agenda_tech.domain.settings.toDayOfWeek
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -12,7 +14,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.DayOfWeek
 import java.time.Instant
@@ -24,29 +28,32 @@ import java.util.Locale
 import javax.inject.Inject
 
 /**
- * Drives the month view: tracks the displayed [YearMonth] and the selected day, streams the
- * occurrences of the whole visible grid (via [ObserveOccurrencesInRangeUseCase]) and folds them —
- * together with calendar colours — into a [MonthUiState].
- *
- * The display zone is the device zone and the first-day-of-week follows the device locale; both are
- * captured once. Occurrences are keyed to a day by their start date for the grid dots, while the
- * selected-day list uses true overlap so multi-day events still show on each day they cover.
+ * Drives the month view: tracks the displayed [YearMonth] and selected day, streams the occurrences
+ * of the whole visible grid ([ObserveOccurrencesInRangeUseCase]) and folds them — with calendar
+ * colours and the user's first-day-of-week / week-number settings — into a [MonthUiState].
  */
 @HiltViewModel
 class MonthViewModel @Inject constructor(
     private val observeOccurrences: ObserveOccurrencesInRangeUseCase,
-    calendarRepository: CalendarRepository,
+    private val calendarRepository: CalendarRepository,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()
-    private val firstDayOfWeek: DayOfWeek = WeekFields.of(Locale.getDefault()).firstDayOfWeek
+    private val locale: Locale = Locale.getDefault()
 
     private val displayedMonth = MutableStateFlow(YearMonth.now(zone))
     private val selectedDate = MutableStateFlow(LocalDate.now(zone))
 
+    private val firstDayOfWeekFlow = settingsRepository.settings
+        .map { it.weekStart.toDayOfWeek(locale) }
+        .distinctUntilChanged()
+
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val windowOccurrences = displayedMonth.flatMapLatest { month ->
-        val (startDate, endDate) = MonthGrid.gridRange(month, firstDayOfWeek)
+    private val windowOccurrences = combine(displayedMonth, firstDayOfWeekFlow) { month, firstDay ->
+        month to firstDay
+    }.flatMapLatest { (month, firstDay) ->
+        val (startDate, endDate) = MonthGrid.gridRange(month, firstDay)
         observeOccurrences(startDate.toStartOfDayUtc(), endDate.toStartOfDayUtc())
     }
 
@@ -55,16 +62,27 @@ class MonthViewModel @Inject constructor(
         selectedDate,
         windowOccurrences,
         calendarRepository.observeAll(),
-    ) { month, selected, occurrences, calendars ->
-        buildState(month, selected, occurrences, calendars.associate { it.id to it.color.argb }, isLoading = false)
+        settingsRepository.settings,
+    ) { month, selected, occurrences, calendars, settings ->
+        buildState(
+            month = month,
+            selected = selected,
+            occurrences = occurrences,
+            colorByCalendarId = calendars.associate { it.id to it.color.argb },
+            firstDayOfWeek = settings.weekStart.toDayOfWeek(locale),
+            showWeekNumbers = settings.showWeekNumbers,
+            isLoading = false,
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
         initialValue = buildState(
-            YearMonth.now(zone),
-            LocalDate.now(zone),
-            emptyList(),
-            emptyMap(),
+            month = YearMonth.now(zone),
+            selected = LocalDate.now(zone),
+            occurrences = emptyList(),
+            colorByCalendarId = emptyMap(),
+            firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek,
+            showWeekNumbers = false,
             isLoading = true,
         ),
     )
@@ -94,12 +112,15 @@ class MonthViewModel @Inject constructor(
         selected: LocalDate,
         occurrences: List<EventOccurrence>,
         colorByCalendarId: Map<Long, Int>,
+        firstDayOfWeek: DayOfWeek,
+        showWeekNumbers: Boolean,
         isLoading: Boolean,
     ): MonthUiState {
         val today = LocalDate.now(zone)
         val byStartDate = occurrences.groupBy { it.startUtcMillis.toLocalDate() }
 
-        val weeks = MonthGrid.weeks(month, firstDayOfWeek).map { week ->
+        val weekRows = MonthGrid.weeks(month, firstDayOfWeek)
+        val weeks = weekRows.map { week ->
             week.map { date ->
                 val dayOccurrences = byStartDate[date].orEmpty()
                 DayCellData(
@@ -112,6 +133,8 @@ class MonthViewModel @Inject constructor(
                 )
             }
         }
+        // ISO week number, read from the mid-week cell so it's stable whatever the first day is.
+        val weekNumbers = weekRows.map { it[MID_WEEK_INDEX].get(WeekFields.ISO.weekOfWeekBasedYear()) }
 
         val selectedStart = selected.toStartOfDayUtc()
         val selectedEnd = selected.plusDays(1).toStartOfDayUtc()
@@ -135,6 +158,8 @@ class MonthViewModel @Inject constructor(
             weeks = weeks,
             selectedDate = selected,
             selectedDayOccurrences = selectedDayOccurrences,
+            showWeekNumbers = showWeekNumbers,
+            weekNumbers = weekNumbers,
             isLoading = isLoading,
         )
     }
@@ -153,5 +178,6 @@ class MonthViewModel @Inject constructor(
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
         const val MAX_DOTS = 4
+        const val MID_WEEK_INDEX = 3
     }
 }

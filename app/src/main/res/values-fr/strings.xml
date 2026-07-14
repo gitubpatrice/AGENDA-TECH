@@ -83,4 +83,46 @@
     <!-- Widget écran d'accueil -->
     <string name="widget_description">Date du jour et prochains événements</string>
     <string name="widget_no_events">Aucun événement à venir</string>
+
+    <!-- Réglages -->
+    <string name="menu_settings">Réglages</string>
+    <string name="settings_title">Réglages</string>
+    <string name="settings_section_appearance">Apparence</string>
+    <string name="settings_theme">Thème</string>
+    <string name="theme_system">Automatique</string>
+    <string name="theme_light">Clair</string>
+    <string name="theme_dark">Sombre</string>
+    <string name="settings_week_start">Début de la semaine</string>
+    <string name="week_start_system">Automatique</string>
+    <string name="week_start_monday">Lundi</string>
+    <string name="week_start_saturday">Samedi</string>
+    <string name="week_start_sunday">Dimanche</string>
+    <string name="settings_show_week_numbers">Afficher les numéros de semaine</string>
+    <string name="settings_section_events">Événements</string>
+    <string name="settings_default_color">Couleur d\'événement par défaut</string>
+    <string name="settings_default_duration">Durée par défaut</string>
+    <string name="settings_default_reminder">Rappel par défaut</string>
+    <string name="settings_use_device_tz">Utiliser le fuseau de l\'appareil</string>
+    <string name="reminder_off">Aucun</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="duration_hours">%1$d h</string>
+    <string name="settings_section_notifications">Notifications de rappel</string>
+    <string name="settings_notif_sound">Sonnerie</string>
+    <string name="settings_notif_vibrate">Vibreur</string>
+    <string name="settings_notif_lockscreen">Afficher sur l\'écran de verrouillage</string>
+    <string name="settings_notif_system">Ouvrir les réglages système de notification</string>
+    <string name="settings_section_privacy">Confidentialité</string>
+    <string name="settings_flag_secure">Bloquer les captures d\'écran</string>
+    <string name="settings_flag_secure_sub">Masquer l\'app des Récents et de la capture d\'écran</string>
+    <string name="settings_widget_hide_titles">Masquer les titres dans le widget</string>
+    <string name="settings_widget_hide_titles_sub">N\'afficher que les heures sur l\'écran d\'accueil</string>
+    <string name="settings_about">À propos</string>
+
+    <!-- À propos -->
+    <string name="about_tagline">Agenda local, chiffré — zéro réseau.</string>
+    <string name="about_version">Version %1$s (build %2$d)</string>
+    <string name="about_website">files-tech.com</string>
+    <string name="about_source">Code source (GitHub)</string>
+    <string name="about_license">Sous licence Apache 2.0</string>
+    <string name="about_privacy">Toutes vos données restent sur cet appareil, chiffrées. Aucune permission Internet.</string>
 </resources>

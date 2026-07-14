@@ -40,5 +40,8 @@ data class MonthUiState(
     val weeks: List<List<DayCellData>>,
     val selectedDate: LocalDate,
     val selectedDayOccurrences: List<OccurrenceData>,
+    val showWeekNumbers: Boolean,
+    /** ISO week number for each of the 6 grid rows (parallel to [weeks]); shown when [showWeekNumbers]. */
+    val weekNumbers: List<Int>,
     val isLoading: Boolean,
 )

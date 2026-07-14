@@ -1,18 +1,22 @@
 package com.filestech.agenda_tech.system.notifications
 
 import android.Manifest
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.filestech.agenda_tech.MainActivity
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.Event
+import com.filestech.agenda_tech.domain.repository.SettingsRepository
+import com.filestech.agenda_tech.domain.settings.AppSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
 import java.time.Instant
@@ -24,25 +28,51 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Builds the reminders notification channel and posts a reminder for a specific occurrence. Tapping
- * the notification opens the app. Posting is a no-op if the runtime notification permission
- * (Android 13+) has not been granted.
+ * Builds the reminders notification channel (from the user's [AppSettings]) and posts a reminder
+ * for a specific occurrence. Tapping opens the app. Posting is a no-op if the runtime notification
+ * permission (Android 13+) is not granted.
+ *
+ * Android caches a channel's sound/vibration/lock-screen config after creation, so changing those
+ * settings recreates the channel ([rebuildChannel]) — the user can still override everything from
+ * the system notification settings.
  */
 @Singleton
 class ReminderNotifier @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val settingsRepository: SettingsRepository,
 ) {
-    private val manager = NotificationManagerCompat.from(context)
+    private val compatManager = NotificationManagerCompat.from(context)
+    private val platformManager = context.getSystemService(NotificationManager::class.java)
 
-    fun ensureChannel() {
-        val channel = NotificationChannelCompat.Builder(CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_HIGH)
-            .setName(context.getString(R.string.reminder_channel_name))
-            .setDescription(context.getString(R.string.reminder_channel_desc))
-            .build()
-        manager.createNotificationChannel(channel)
+    suspend fun ensureChannel() {
+        createChannel(settingsRepository.current())
     }
 
-    fun postReminder(event: Event, occurrenceStartUtcMillis: Long) {
+    /** Recreate the channel to apply changed sound/vibration/lock-screen preferences. */
+    suspend fun rebuildChannel() {
+        platformManager.deleteNotificationChannel(CHANNEL_ID)
+        createChannel(settingsRepository.current())
+    }
+
+    private fun createChannel(settings: AppSettings) {
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            context.getString(R.string.reminder_channel_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = context.getString(R.string.reminder_channel_desc)
+            enableVibration(settings.notifVibrate)
+            if (!settings.notifSound) setSound(null, null)
+            lockscreenVisibility = if (settings.notifLockScreen) {
+                Notification.VISIBILITY_PRIVATE
+            } else {
+                Notification.VISIBILITY_SECRET
+            }
+        }
+        platformManager.createNotificationChannel(channel)
+    }
+
+    suspend fun postReminder(event: Event, occurrenceStartUtcMillis: Long) {
         if (!hasNotificationPermission()) {
             Timber.w("ReminderNotifier: POST_NOTIFICATIONS not granted — skipping reminder for event %d", event.id)
             return
@@ -59,9 +89,7 @@ class ReminderNotifier @Inject constructor(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
-        // Audit SEC-2 — the event title/location are user-entered PII (medical appointment, etc.).
-        // Keep them off a locked screen to match the app's privacy posture (FLAG_SECURE, no backup):
-        // the notification is PRIVATE, and its public (lock-screen) version shows only a generic label.
+        // Audit SEC-2 — keep user-entered title/location off a locked screen (PRIVATE + generic public).
         val publicVersion = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(context.getString(R.string.reminder_channel_name))
@@ -82,7 +110,7 @@ class ReminderNotifier @Inject constructor(
             .setContentIntent(contentIntent)
             .build()
 
-        manager.notify(notificationId(event.id, occurrenceStartUtcMillis), notification)
+        compatManager.notify(notificationId(event.id, occurrenceStartUtcMillis), notification)
     }
 
     private fun contentText(event: Event, occurrenceStartUtcMillis: Long): String {

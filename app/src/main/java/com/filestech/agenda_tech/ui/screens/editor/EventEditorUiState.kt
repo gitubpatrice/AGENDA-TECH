@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.ui.screens.editor
 
 import com.filestech.agenda_tech.domain.model.Calendar
+import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.Weekday
 import java.time.LocalDate
@@ -28,6 +29,8 @@ data class EventEditorUiState(
     val endDateTime: LocalDateTime,
     val calendars: List<Calendar> = emptyList(),
     val selectedCalendarId: Long = 0L,
+    /** Per-event colour; null inherits the calendar's colour. Seeded from the default-colour setting. */
+    val colorOverride: CalendarColor? = null,
     val recurrenceFreq: RecurrenceFreq? = null,
     val recurrenceInterval: Int = 1,
     /** Weekly BYDAY selection (only meaningful when [recurrenceFreq] is WEEKLY). */

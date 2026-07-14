@@ -13,6 +13,7 @@ import com.filestech.agenda_tech.domain.model.Weekday
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.repository.ReminderRepository
+import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.DeleteEventUseCase
 import com.filestech.agenda_tech.domain.usecase.UpsertEventUseCase
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
@@ -38,6 +39,7 @@ class EventEditorViewModel @Inject constructor(
     private val calendarRepository: CalendarRepository,
     private val reminderRepository: ReminderRepository,
     private val reminderScheduler: ReminderScheduler,
+    private val settingsRepository: SettingsRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -59,7 +61,27 @@ class EventEditorViewModel @Inject constructor(
                         ?: defaultCalendarId(calendars),
                 )
             }
-            if (eventId > 0L) loadEvent(eventId)
+            if (eventId > 0L) {
+                loadEvent(eventId)
+            } else {
+                applyDefaults()
+            }
+        }
+    }
+
+    /** For a new event, seed duration / reminder / colour from the user's default settings. */
+    private suspend fun applyDefaults() {
+        val settings = settingsRepository.current()
+        _state.update { current ->
+            current.copy(
+                endDateTime = current.startDateTime.plusMinutes(settings.defaultDurationMinutes.toLong()),
+                colorOverride = settings.defaultEventColor,
+                reminderMinutes = if (settings.defaultReminderMinutes >= 0) {
+                    listOf(settings.defaultReminderMinutes)
+                } else {
+                    emptyList()
+                },
+            )
         }
     }
 
@@ -98,6 +120,7 @@ class EventEditorViewModel @Inject constructor(
                 startDateTime = start,
                 endDateTime = displayEnd,
                 selectedCalendarId = event.calendarId,
+                colorOverride = event.colorOverride,
                 recurrenceFreq = rule?.freq,
                 recurrenceInterval = rule?.interval ?: 1,
                 recurrenceByWeekdays = rule?.byWeekdays ?: emptySet(),
@@ -201,6 +224,7 @@ class EventEditorViewModel @Inject constructor(
             timeZoneId = zone.id,
             allDay = current.allDay,
             recurrence = current.toRecurrenceRule(),
+            colorOverride = current.colorOverride,
         )
         val reminderMinutes = current.reminderMinutes
         viewModelScope.launch {
