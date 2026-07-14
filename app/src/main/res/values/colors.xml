@@ -2,7 +2,7 @@
 <resources>
     <!-- Files Tech brand blue. -->
     <color name="brand_blue">#FF2460AB</color>
-    <!-- Deep indigo used as the adaptive-icon and splash background across the portfolio. -->
-    <color name="ic_launcher_background">#FF262660</color>
-    <color name="splash_background">#FF262660</color>
+    <!-- White behind the logo (a dark-toned mark) for the adaptive icon and splash. -->
+    <color name="ic_launcher_background">#FFFFFFFF</color>
+    <color name="splash_background">#FFFFFFFF</color>
 </resources>
