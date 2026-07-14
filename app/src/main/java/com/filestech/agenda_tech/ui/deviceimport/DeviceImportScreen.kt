@@ -26,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +58,7 @@ fun DeviceImportScreen(
     val selected by viewModel.selected.collectAsStateWithLifecycle()
     val importing by viewModel.importing.collectAsStateWithLifecycle()
     val result by viewModel.result.collectAsStateWithLifecycle()
+    val cleared by viewModel.cleared.collectAsStateWithLifecycle()
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -79,6 +81,17 @@ fun DeviceImportScreen(
             ).show()
             viewModel.consumeResult()
             onBack()
+        }
+    }
+
+    LaunchedEffect(cleared) {
+        if (cleared) {
+            android.widget.Toast.makeText(
+                context,
+                context.getString(R.string.device_import_cleared),
+                android.widget.Toast.LENGTH_SHORT,
+            ).show()
+            viewModel.consumeCleared()
         }
     }
 
@@ -115,6 +128,7 @@ fun DeviceImportScreen(
                     importing = importing,
                     onToggle = viewModel::toggle,
                     onImport = viewModel::import,
+                    onClearImported = viewModel::clearImported,
                 )
             }
         }
@@ -146,6 +160,7 @@ private fun ReadyContent(
     importing: Boolean,
     onToggle: (Long) -> Unit,
     onImport: () -> Unit,
+    onClearImported: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
@@ -154,6 +169,13 @@ private fun ReadyContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         )
+        TextButton(
+            onClick = onClearImported,
+            enabled = !importing,
+            modifier = Modifier.padding(horizontal = 8.dp),
+        ) {
+            Text(stringResource(R.string.device_import_clear))
+        }
         LazyColumn(modifier = Modifier.weight(1f)) {
             items(calendars, key = { it.id }) { calendar ->
                 Row(

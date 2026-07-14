@@ -33,6 +33,9 @@ class ImportDeviceEventsUseCase @Inject constructor(
     /** Lists the device calendars available to import from (requires READ_CALENDAR granted). */
     suspend fun listCalendars(): List<DeviceCalendar> = withContext(io) { reader.listCalendars() }
 
+    /** Wipes previously imported calendars (incl. legacy ones) so a fresh import starts clean. */
+    suspend fun clearImported() = calendarRepository.deleteImported()
+
     suspend operator fun invoke(selectedCalendarIds: List<Long>): Result = withContext(io) {
         val byId = reader.listCalendars().associateBy { it.id }
         var calendars = 0

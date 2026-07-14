@@ -124,6 +124,21 @@ class DeviceEventMapperTest {
     }
 
     @Test
+    fun `all-day event lands on its calendar date in the device zone, not shifted by the UTC offset`() {
+        val paris = java.time.ZoneId.of("Europe/Paris")
+        val utcMidnight = java.time.LocalDate.of(2026, 7, 14)
+            .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val e = DeviceEventMapper.toEvent(
+            deviceEvent(start = utcMidnight, end = utcMidnight + 86_400_000L, allDay = true, tz = "UTC"),
+            CAL_ID,
+            paris,
+        )!!
+        val startDate = java.time.Instant.ofEpochMilli(e.startUtcMillis).atZone(paris).toLocalDate()
+        assertThat(startDate).isEqualTo(java.time.LocalDate.of(2026, 7, 14))
+        assertThat(e.timeZoneId).isEqualTo("Europe/Paris")
+    }
+
+    @Test
     fun `carries the source uid for idempotent re-import`() {
         val e = DeviceEventMapper.toEvent(deviceEvent(uid = "abc-123"), CAL_ID)!!
         assertThat(e.sourceUid).isEqualTo("abc-123")

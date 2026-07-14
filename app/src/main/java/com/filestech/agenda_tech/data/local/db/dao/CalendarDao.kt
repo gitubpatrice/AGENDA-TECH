@@ -40,6 +40,14 @@ interface CalendarDao {
     @Query("DELETE FROM calendars WHERE id = :id")
     suspend fun delete(id: Long)
 
+    /**
+     * Deletes every non-default calendar (cascade-removes its events). Used to wipe previously
+     * imported calendars — including legacy imports made before `source_id` existed — so a fresh
+     * import starts clean. The default calendar and its hand-entered events are preserved.
+     */
+    @Query("DELETE FROM calendars WHERE is_default = 0")
+    suspend fun deleteImported()
+
     @Query("SELECT COUNT(*) FROM calendars")
     suspend fun count(): Int
 }

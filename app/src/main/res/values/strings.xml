@@ -154,6 +154,8 @@
     <string name="device_import_action">Import (%1$d)</string>
     <string name="device_import_running">Importing…</string>
     <string name="device_import_done">%1$d events imported from %2$d calendar(s).</string>
+    <string name="device_import_clear">Delete previously imported calendars</string>
+    <string name="device_import_cleared">Imported calendars deleted.</string>
     <string name="settings_section_security">Security</string>
     <string name="settings_lock_enabled">Lock the app</string>
     <string name="settings_lock_enabled_sub">Require a PIN or biometrics on open</string>

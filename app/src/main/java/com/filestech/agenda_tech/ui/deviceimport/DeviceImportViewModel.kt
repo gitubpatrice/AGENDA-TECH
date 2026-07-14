@@ -39,6 +39,9 @@ class DeviceImportViewModel @Inject constructor(
     private val _result = MutableStateFlow<ImportDeviceEventsUseCase.Result?>(null)
     val result: StateFlow<ImportDeviceEventsUseCase.Result?> = _result.asStateFlow()
 
+    private val _cleared = MutableStateFlow(false)
+    val cleared: StateFlow<Boolean> = _cleared.asStateFlow()
+
     fun onPermissionGranted() {
         _state.value = UiState.Loading
         viewModelScope.launch {
@@ -72,5 +75,20 @@ class DeviceImportViewModel @Inject constructor(
 
     fun consumeResult() {
         _result.value = null
+    }
+
+    /** Wipes previously imported calendars/events (fixes legacy duplicates) before a clean re-import. */
+    fun clearImported() {
+        if (_importing.value) return
+        _importing.value = true
+        viewModelScope.launch {
+            importDeviceEvents.clearImported()
+            _importing.value = false
+            _cleared.value = true
+        }
+    }
+
+    fun consumeCleared() {
+        _cleared.value = false
     }
 }

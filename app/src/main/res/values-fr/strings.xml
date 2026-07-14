@@ -154,6 +154,8 @@
     <string name="device_import_action">Importer (%1$d)</string>
     <string name="device_import_running">Import en cours…</string>
     <string name="device_import_done">%1$d événements importés depuis %2$d calendrier(s).</string>
+    <string name="device_import_clear">Effacer les calendriers déjà importés</string>
+    <string name="device_import_cleared">Calendriers importés effacés.</string>
     <string name="settings_section_security">Sécurité</string>
     <string name="settings_lock_enabled">Verrouiller l\'application</string>
     <string name="settings_lock_enabled_sub">Exiger un code PIN ou la biométrie à l\'ouverture</string>

@@ -29,4 +29,7 @@ interface CalendarRepository {
     suspend fun setVisibility(id: Long, visible: Boolean)
 
     suspend fun delete(id: Long)
+
+    /** Deletes all imported (non-default) calendars and their events; keeps the default calendar. */
+    suspend fun deleteImported()
 }

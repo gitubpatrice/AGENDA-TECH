@@ -6,6 +6,7 @@ import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Weekday
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -40,25 +41,42 @@ object DeviceEventMapper {
     private val LOCAL_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss")
     private val DATE_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd")
 
-    fun toEvent(device: DeviceEvent, calendarId: Long): Event? {
+    fun toEvent(device: DeviceEvent, calendarId: Long, defaultZone: ZoneId = ZoneId.systemDefault()): Event? {
         val title = device.title?.let(::sanitize)?.trim().orEmpty()
         if (title.isEmpty()) return null
 
-        val zoneId = device.eventTimeZone
-            ?.let { tz -> runCatching { ZoneId.of(tz) }.getOrNull() }
-            ?: ZoneId.systemDefault()
-
-        val end = device.dtEndUtcMillis
-            ?: device.durationRfc?.let { device.dtStartUtcMillis + parseDurationMillis(it) }
-            ?: (device.dtStartUtcMillis + if (device.allDay) DAY_MILLIS else DEFAULT_DURATION_MILLIS)
-        if (end < device.dtStartUtcMillis) return null
+        // Time model. All-day events are stored by the provider at UTC midnight; the rest of the app
+        // anchors all-day to the *device* zone (local midnight, exclusive end). Re-anchor here so an
+        // all-day holiday lands on its real calendar day instead of drifting by the UTC offset
+        // (e.g. "Fête nationale" showing on the 15th instead of the 14th).
+        val start: Long
+        val end: Long
+        val zoneId: ZoneId
+        if (device.allDay) {
+            val date = Instant.ofEpochMilli(device.dtStartUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
+            val days = device.dtEndUtcMillis
+                ?.let { ((it - device.dtStartUtcMillis) / DAY_MILLIS).coerceAtLeast(1) }
+                ?: 1
+            zoneId = defaultZone
+            start = date.atStartOfDay(defaultZone).toInstant().toEpochMilli()
+            end = date.plusDays(days).atStartOfDay(defaultZone).toInstant().toEpochMilli()
+        } else {
+            zoneId = device.eventTimeZone
+                ?.let { tz -> runCatching { ZoneId.of(tz) }.getOrNull() }
+                ?: defaultZone
+            start = device.dtStartUtcMillis
+            end = device.dtEndUtcMillis
+                ?: device.durationRfc?.let { device.dtStartUtcMillis + parseDurationMillis(it) }
+                ?: (device.dtStartUtcMillis + DEFAULT_DURATION_MILLIS)
+            if (end < start) return null
+        }
 
         return Event(
             calendarId = calendarId,
             title = title,
             description = device.description?.let(::sanitize)?.ifBlank { null },
             location = device.location?.let(::sanitize)?.ifBlank { null },
-            startUtcMillis = device.dtStartUtcMillis,
+            startUtcMillis = start,
             endUtcMillis = end,
             timeZoneId = zoneId.id,
             allDay = device.allDay,
