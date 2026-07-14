@@ -161,7 +161,12 @@ class EventEditorViewModel @Inject constructor(
             when (val result = upsertEvent(event)) {
                 is Outcome.Success -> {
                     val savedId = result.value
-                    // Replace the event's reminders with the current set, then (re)arm their alarms.
+                    // Audit SEC-1 — cancel the currently-armed alarms BEFORE replacing the reminder
+                    // rows. deleteForEvent + re-insert generates fresh reminder ids, so the old
+                    // PendingIntents (keyed by the previous ids) would otherwise stay armed in
+                    // AlarmManager and fire a phantom notification with a stale time. cancelEvent
+                    // reads the existing rows to find those ids, so it must run before deleteForEvent.
+                    reminderScheduler.cancelEvent(savedId)
                     reminderRepository.deleteForEvent(savedId)
                     reminderMinutes.forEach { minutes ->
                         reminderRepository.upsert(Reminder(eventId = savedId, minutesBefore = minutes))

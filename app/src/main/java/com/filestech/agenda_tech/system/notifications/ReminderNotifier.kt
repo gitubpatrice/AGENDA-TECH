@@ -59,6 +59,15 @@ class ReminderNotifier @Inject constructor(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
+        // Audit SEC-2 — the event title/location are user-entered PII (medical appointment, etc.).
+        // Keep them off a locked screen to match the app's privacy posture (FLAG_SECURE, no backup):
+        // the notification is PRIVATE, and its public (lock-screen) version shows only a generic label.
+        val publicVersion = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(context.getString(R.string.reminder_channel_name))
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .build()
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(event.title)
@@ -68,6 +77,8 @@ class ReminderNotifier @Inject constructor(
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(publicVersion)
             .setContentIntent(contentIntent)
             .build()
 
