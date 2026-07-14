@@ -49,8 +49,6 @@ class DayViewModel @Inject constructor(
         ),
     )
 
-    val displayedDateValue: LocalDate get() = displayedDate.value
-
     fun onPreviousDay() { displayedDate.value = displayedDate.value.minusDays(1) }
     fun onNextDay() { displayedDate.value = displayedDate.value.plusDays(1) }
     fun onToday() { displayedDate.value = LocalDate.now(zone) }

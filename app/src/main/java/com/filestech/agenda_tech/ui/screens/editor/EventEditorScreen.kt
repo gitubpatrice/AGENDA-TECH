@@ -1,14 +1,20 @@
 package com.filestech.agenda_tech.ui.screens.editor
 
 import android.text.format.DateFormat
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -46,6 +52,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -55,6 +63,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.Calendar
+import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.Weekday
 import java.time.DayOfWeek
@@ -93,6 +102,7 @@ fun EventEditorScreen(
         onEndDateChange = viewModel::onEndDateChange,
         onEndTimeChange = viewModel::onEndTimeChange,
         onCalendarSelect = viewModel::onCalendarSelect,
+        onColorChange = viewModel::onColorChange,
         onRecurrenceSelect = viewModel::onRecurrenceSelect,
         onRecurrenceIntervalChange = viewModel::onRecurrenceIntervalChange,
         onToggleRecurrenceWeekday = viewModel::onToggleRecurrenceWeekday,
@@ -119,6 +129,7 @@ private fun EventEditorContent(
     onEndDateChange: (LocalDate) -> Unit,
     onEndTimeChange: (Int, Int) -> Unit,
     onCalendarSelect: (Long) -> Unit,
+    onColorChange: (CalendarColor?) -> Unit,
     onRecurrenceSelect: (RecurrenceFreq?) -> Unit,
     onRecurrenceIntervalChange: (Int) -> Unit,
     onToggleRecurrenceWeekday: (Weekday) -> Unit,
@@ -193,6 +204,8 @@ private fun EventEditorContent(
                 selectedId = state.selectedCalendarId,
                 onSelect = onCalendarSelect,
             )
+
+            ColorPickerRow(selected = state.colorOverride, onSelect = onColorChange)
 
             DateTimeRow(
                 label = stringResource(R.string.editor_starts),
@@ -446,6 +459,46 @@ private fun TimePickerModal(
         },
         text = { TimePicker(state = pickerState) },
     )
+}
+
+@Composable
+private fun ColorPickerRow(selected: CalendarColor?, onSelect: (CalendarColor?) -> Unit) {
+    val ringColor = MaterialTheme.colorScheme.onSurface
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.editor_color),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // "Automatic" = inherit the calendar colour (null override): an outlined empty swatch.
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(CircleShape)
+                    .border(if (selected == null) 3.dp else 1.dp, ringColor, CircleShape)
+                    .clickable { onSelect(null) },
+            )
+            CalendarColor.entries.forEach { color ->
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(Color(color.argb))
+                        .then(
+                            if (color == selected) Modifier.border(3.dp, ringColor, CircleShape) else Modifier,
+                        )
+                        .clickable { onSelect(color) },
+                )
+            }
+        }
+    }
 }
 
 @Composable

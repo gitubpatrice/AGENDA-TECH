@@ -42,6 +42,7 @@
     <string name="editor_starts">Début</string>
     <string name="editor_ends">Fin</string>
     <string name="editor_recurrence">Récurrence</string>
+    <string name="editor_color">Couleur</string>
     <string name="editor_description">Description</string>
     <string name="editor_location">Lieu</string>
     <string name="editor_error_blank_title">Le titre est obligatoire</string>
@@ -102,7 +103,6 @@
     <string name="settings_default_color">Couleur d\'événement par défaut</string>
     <string name="settings_default_duration">Durée par défaut</string>
     <string name="settings_default_reminder">Rappel par défaut</string>
-    <string name="settings_use_device_tz">Utiliser le fuseau de l\'appareil</string>
     <string name="reminder_off">Aucun</string>
     <string name="duration_minutes">%1$d min</string>
     <string name="duration_hours">%1$d h</string>

@@ -39,7 +39,6 @@ class SettingsRepositoryImpl @Inject constructor(
         defaultEventColor = CalendarColor.fromRaw(this[Keys.DEFAULT_COLOR] ?: CalendarColor.DEFAULT.rawValue),
         defaultDurationMinutes = this[Keys.DEFAULT_DURATION] ?: AppSettings.DEFAULT_DURATION_MINUTES,
         defaultReminderMinutes = this[Keys.DEFAULT_REMINDER] ?: AppSettings.NO_DEFAULT_REMINDER,
-        useDeviceTimeZone = this[Keys.USE_DEVICE_TZ] ?: true,
         flagSecure = this[Keys.FLAG_SECURE] ?: true,
         widgetHideTitles = this[Keys.WIDGET_HIDE_TITLES] ?: false,
         notifSound = this[Keys.NOTIF_SOUND] ?: true,
@@ -54,7 +53,6 @@ class SettingsRepositoryImpl @Inject constructor(
         this[Keys.DEFAULT_COLOR] = settings.defaultEventColor.rawValue
         this[Keys.DEFAULT_DURATION] = settings.defaultDurationMinutes
         this[Keys.DEFAULT_REMINDER] = settings.defaultReminderMinutes
-        this[Keys.USE_DEVICE_TZ] = settings.useDeviceTimeZone
         this[Keys.FLAG_SECURE] = settings.flagSecure
         this[Keys.WIDGET_HIDE_TITLES] = settings.widgetHideTitles
         this[Keys.NOTIF_SOUND] = settings.notifSound
@@ -69,7 +67,6 @@ class SettingsRepositoryImpl @Inject constructor(
         val DEFAULT_COLOR = intPreferencesKey("default_color")
         val DEFAULT_DURATION = intPreferencesKey("default_duration")
         val DEFAULT_REMINDER = intPreferencesKey("default_reminder")
-        val USE_DEVICE_TZ = booleanPreferencesKey("use_device_tz")
         val FLAG_SECURE = booleanPreferencesKey("flag_secure")
         val WIDGET_HIDE_TITLES = booleanPreferencesKey("widget_hide_titles")
         val NOTIF_SOUND = booleanPreferencesKey("notif_sound")

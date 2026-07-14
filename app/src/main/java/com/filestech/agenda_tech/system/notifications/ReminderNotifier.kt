@@ -18,6 +18,8 @@ import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.settings.AppSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 import java.time.Instant
 import java.time.ZoneId
@@ -44,12 +46,16 @@ class ReminderNotifier @Inject constructor(
     private val compatManager = NotificationManagerCompat.from(context)
     private val platformManager = context.getSystemService(NotificationManager::class.java)
 
-    suspend fun ensureChannel() {
+    // Audit DATA-1 — serialise channel create/delete so a concurrent rebuild can never leave the
+    // channel momentarily absent while a reminder is being posted.
+    private val channelMutex = Mutex()
+
+    suspend fun ensureChannel() = channelMutex.withLock {
         createChannel(settingsRepository.current())
     }
 
     /** Recreate the channel to apply changed sound/vibration/lock-screen preferences. */
-    suspend fun rebuildChannel() {
+    suspend fun rebuildChannel() = channelMutex.withLock {
         platformManager.deleteNotificationChannel(CHANNEL_ID)
         createChannel(settingsRepository.current())
     }

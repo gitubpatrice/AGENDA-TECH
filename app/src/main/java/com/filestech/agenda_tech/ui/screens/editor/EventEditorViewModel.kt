@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.domain.model.Calendar
+import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
@@ -166,6 +167,9 @@ class EventEditorViewModel @Inject constructor(
     }
 
     fun onCalendarSelect(calendarId: Long) = _state.update { it.copy(selectedCalendarId = calendarId) }
+
+    /** Per-event colour override; null inherits the calendar's colour. */
+    fun onColorChange(color: CalendarColor?) = _state.update { it.copy(colorOverride = color) }
 
     fun onRecurrenceSelect(freq: RecurrenceFreq?) = _state.update { current ->
         // Seed weekly BYDAY with the start day's weekday so a fresh weekly rule has a sensible default.

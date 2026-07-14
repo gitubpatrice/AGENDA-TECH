@@ -143,9 +143,7 @@ private fun MonthScreenContent(
                         Image(
                             painter = painterResource(R.drawable.app_logo),
                             contentDescription = null,
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape),
+                            modifier = Modifier.size(28.dp),
                         )
                         Text(
                             text = monthLabel(state.yearMonth, locale),

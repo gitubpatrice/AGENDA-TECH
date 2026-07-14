@@ -42,7 +42,6 @@ data class AppSettings(
     val defaultDurationMinutes: Int = DEFAULT_DURATION_MINUTES,
     /** Minutes-before for a new event's reminder; -1 means no default reminder. */
     val defaultReminderMinutes: Int = NO_DEFAULT_REMINDER,
-    val useDeviceTimeZone: Boolean = true,
     val flagSecure: Boolean = true,
     /** SEC-W1 — when true the widget hides event titles (shows only times). */
     val widgetHideTitles: Boolean = false,

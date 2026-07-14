@@ -49,6 +49,11 @@ class MonthViewModel @Inject constructor(
         .map { it.weekStart.toDayOfWeek(locale) }
         .distinctUntilChanged()
 
+    // Audit DATA-4 — only the settings this view actually uses, so unrelated toggles don't rebuild the grid.
+    private val monthSettingsFlow = settingsRepository.settings
+        .map { it.weekStart to it.showWeekNumbers }
+        .distinctUntilChanged()
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val windowOccurrences = combine(displayedMonth, firstDayOfWeekFlow) { month, firstDay ->
         month to firstDay
@@ -62,15 +67,15 @@ class MonthViewModel @Inject constructor(
         selectedDate,
         windowOccurrences,
         calendarRepository.observeAll(),
-        settingsRepository.settings,
-    ) { month, selected, occurrences, calendars, settings ->
+        monthSettingsFlow,
+    ) { month, selected, occurrences, calendars, settingsPair ->
         buildState(
             month = month,
             selected = selected,
             occurrences = occurrences,
             colorByCalendarId = calendars.associate { it.id to it.color.argb },
-            firstDayOfWeek = settings.weekStart.toDayOfWeek(locale),
-            showWeekNumbers = settings.showWeekNumbers,
+            firstDayOfWeek = settingsPair.first.toDayOfWeek(locale),
+            showWeekNumbers = settingsPair.second,
             isLoading = false,
         )
     }.stateIn(

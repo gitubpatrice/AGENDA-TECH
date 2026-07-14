@@ -42,6 +42,7 @@
     <string name="editor_starts">Starts</string>
     <string name="editor_ends">Ends</string>
     <string name="editor_recurrence">Repeat</string>
+    <string name="editor_color">Colour</string>
     <string name="editor_description">Description</string>
     <string name="editor_location">Location</string>
     <string name="editor_error_blank_title">Title is required</string>
@@ -102,7 +103,6 @@
     <string name="settings_default_color">Default event colour</string>
     <string name="settings_default_duration">Default duration</string>
     <string name="settings_default_reminder">Default reminder</string>
-    <string name="settings_use_device_tz">Use device time zone</string>
     <string name="reminder_off">None</string>
     <string name="duration_minutes">%1$d min</string>
     <string name="duration_hours">%1$d h</string>
