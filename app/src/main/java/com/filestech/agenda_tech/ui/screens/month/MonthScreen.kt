@@ -25,7 +25,6 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -34,15 +33,19 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
@@ -68,6 +71,9 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
+
+/** Minimum horizontal drag (px) to trigger a month change via swipe. */
+private const val SWIPE_THRESHOLD_PX = 60f
 
 @Composable
 fun MonthScreen(
@@ -137,7 +143,7 @@ private fun MonthScreenContent(
         currentView = CalendarView.MONTH,
         onSelectView = onSelectView,
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Image(
@@ -147,26 +153,12 @@ private fun MonthScreenContent(
                         )
                         Text(
                             text = monthLabel(state.yearMonth, locale),
+                            style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = onPreviousMonth) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                            contentDescription = stringResource(R.string.month_previous),
-                        )
-                    }
-                },
                 actions = {
-                    TextButton(onClick = onToday) { Text(stringResource(R.string.month_today)) }
-                    IconButton(onClick = onNextMonth) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = stringResource(R.string.month_next),
-                        )
-                    }
                     MonthOverflowMenu(
                         onExportIcs = onExportIcs,
                         onImportIcs = onImportIcs,
@@ -181,11 +173,45 @@ private fun MonthScreenContent(
             }
         },
     ) { innerPadding ->
+        var dragAccumulator by remember { mutableFloatStateOf(0f) }
         Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .fillMaxSize(),
+                .fillMaxSize()
+                // Swipe horizontally to change month: left → next, right → previous.
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            if (dragAccumulator <= -SWIPE_THRESHOLD_PX) onNextMonth()
+                            else if (dragAccumulator >= SWIPE_THRESHOLD_PX) onPreviousMonth()
+                            dragAccumulator = 0f
+                        },
+                        onDragCancel = { dragAccumulator = 0f },
+                        onHorizontalDrag = { _, dragAmount -> dragAccumulator += dragAmount },
+                    )
+                },
         ) {
+            // Second row: month navigation + actions, moved out of the crowded app bar.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onPreviousMonth) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                        contentDescription = stringResource(R.string.month_previous),
+                    )
+                }
+                TextButton(onClick = onToday) { Text(stringResource(R.string.month_today)) }
+                IconButton(onClick = onNextMonth) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = stringResource(R.string.month_next),
+                    )
+                }
+            }
             WeekdayHeader(state.firstDayOfWeek, locale, state.showWeekNumbers)
             state.weeks.forEachIndexed { index, week ->
                 Row(modifier = Modifier.fillMaxWidth()) {
@@ -373,31 +399,35 @@ private fun MonthOverflowMenu(
     onOpenSettings: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    IconButton(onClick = { expanded = true }) {
-        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.menu_more))
-    }
-    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.menu_settings)) },
-            onClick = {
-                expanded = false
-                onOpenSettings()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.menu_import_ics)) },
-            onClick = {
-                expanded = false
-                onImportIcs()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.menu_export_ics)) },
-            onClick = {
-                expanded = false
-                onExportIcs()
-            },
-        )
+    // Wrap the button + menu in a Box so the DropdownMenu anchors to the icon (top-right) instead of
+    // floating to the screen edge.
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.menu_more))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.menu_settings)) },
+                onClick = {
+                    expanded = false
+                    onOpenSettings()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.menu_import_ics)) },
+                onClick = {
+                    expanded = false
+                    onImportIcs()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.menu_export_ics)) },
+                onClick = {
+                    expanded = false
+                    onExportIcs()
+                },
+            )
+        }
     }
 }
 
