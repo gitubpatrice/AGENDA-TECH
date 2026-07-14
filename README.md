@@ -1,61 +1,94 @@
 # Agenda Tech
 
-Agenda / calendrier **100 % local, chiffré, zéro réseau** — la brique agenda de l'écosystème
-Files Tech, pensée pour sortir de Google Agenda sans rien confier au cloud.
+Agenda / calendrier Android **100 % local, chiffré, zéro réseau** — la brique agenda de
+l'écosystème **Files Tech**, pensée pour sortir de Google Agenda sans rien confier au cloud.
 
-> État : **fondations** (scaffold). L'architecture, la base chiffrée et le graphe d'injection
-> sont posés et compilent ; les fonctionnalités (vues calendrier, récurrence, rappels, ICS)
-> arrivent en phase 2.
+[![Licence](https://img.shields.io/badge/licence-Apache%202.0-blue.svg)](LICENSE)
+[![Zéro réseau](https://img.shields.io/badge/r%C3%A9seau-z%C3%A9ro-success.svg)](#confidentialité)
+[![Plateforme](https://img.shields.io/badge/Android-8.0%2B%20(API%2026)-brightgreen.svg)](#installation)
 
-## Principes
+> **Version de test** `v0.1.0`. Fonctionnelle de bout en bout ; en cours de finition avant une
+> première publication stable. Vos retours de bug sont les bienvenus dans les
+> [issues](https://github.com/gitubpatrice/AGENDA-TECH/issues).
 
-- **Aucune permission Internet.** L'interopérabilité passe par l'import/export de fichiers
-  `.ics` (RFC 5545) via le sélecteur système — jamais par synchronisation réseau.
-- **Chiffré au repos.** Base Room adossée à SQLCipher ; clé maître enveloppée par
-  l'AndroidKeyStore (matériel sur les appareils avec TEE). Cf. [SECURITY.md](SECURITY.md).
-- **Confidentialité par défaut.** `FLAG_SECURE` posé (pas d'aperçu dans les Récents, pas de
-  capture d'écran), backups cloud exclus.
+## Installation
 
-## Stack
+1. Téléchargez le fichier **`agenda-tech-v0.1.0-universal.apk`** depuis la
+   [dernière release](https://github.com/gitubpatrice/AGENDA-TECH/releases/latest).
+2. Ouvrez-le sur votre téléphone Android (8.0 ou plus). Autorisez si besoin « installer des
+   applications inconnues ».
+3. C'est tout — aucune inscription, aucun compte, aucune connexion.
+
+L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à choisir) et **signé**.
+
+## Fonctionnalités
+
+- **Vues** Mois (changement de mois par glissement fluide), Semaine, Jour et Agenda (liste).
+- **Événements** : création/édition, journée entière, lieu, description, couleur par événement.
+- **Récurrences** (RFC 5545) : quotidienne / hebdo (jours choisis) / mensuelle / annuelle, avec
+  intervalle, fin après N occurrences ou à une date, et **modification/suppression d'une seule
+  occurrence** (modèle iCalendar `RECURRENCE-ID`).
+- **Rappels** par alarmes exactes, avec re-programmation après redémarrage.
+- **Import / export `.ics`** (RFC 5545) via le sélecteur de fichiers système.
+- **Import depuis le calendrier de l'appareil** (Google, Exchange, calendriers locaux) en
+  **lecture seule** — l'app copie ce qui est déjà synchronisé sur le téléphone, **sans réseau**.
+- **Verrou optionnel** par code PIN et/ou biométrie.
+- **Thème sombre** (style GitHub), **widgets** écran d'accueil, français / anglais.
+
+## Confidentialité
+
+- **Aucune permission Internet.** Aucune donnée ne quitte l'appareil : ni cloud, ni analytics,
+  ni publicité, ni SDK tiers de traçage.
+- **Chiffré au repos.** Base Room adossée à **SQLCipher** (AES-256) ; clé maître enveloppée par
+  l'**AndroidKeyStore** (matériel/TEE sur les appareils compatibles).
+- **Confidentialité à l'écran.** `FLAG_SECURE` (pas d'aperçu dans les Récents, capture d'écran
+  bloquée), sauvegardes cloud exclues (`allowBackup=false`).
+
+Détails : [SECURITY.md](SECURITY.md) · [PRIVACY.md](PRIVACY.md).
+
+## Stack technique
 
 Kotlin natif · Jetpack Compose (Material 3) · Hilt · Room + SQLCipher · Coroutines/Flow ·
-`Outcome`/`AppError` typés · Timber · tests JUnit5 + Truth + MockK. Version affichée lue
-dynamiquement via `PackageInfo` (pas de constante à bumper).
+`Outcome`/`AppError` typés · Timber · tests JUnit5 + Truth + MockK.
 
 `applicationId` : `com.filestech.agenda_tech` — `minSdk 26` (java.time natif) / `compileSdk 36`.
 
-## Architecture (couches)
+### Architecture (couches)
 
 ```
-core/      Outcome, AppError, crypto (AeadCipher, KeystoreManager), logging
-domain/    modèles purs (Calendar, Event, RecurrenceRule, Reminder + enums),
-           interfaces de repository, use cases      ← aucune dépendance Android/Room
-data/      entités Room, DAOs, AppDatabase (SQLCipher), mappers, repository impls
-di/        modules Hilt (Coroutine, Database, Repository)
-ui/        thème, navigation, écrans (HomeScreen placeholder)
+core/      Outcome, AppError, crypto (AeadCipher, KeystoreManager, PinHasher), texte, logging
+domain/    modèles purs (Calendar, Event, RecurrenceRule, Reminder + enums), interfaces de
+           repository, use cases, moteur de récurrence (DST-correct)   ← aucune dépendance Android
+data/      entités Room, DAOs, AppDatabase (SQLCipher), mappers, repository impls, lecture
+           du Calendar Provider (import appareil)
+di/        modules Hilt
+ui/        thème, navigation, écrans (Mois/Semaine/Jour/Agenda, éditeur, réglages, verrou…)
+system/    alarmes exactes des rappels · notifications
+widget/    widgets Glance (agenda + icône date)
 ```
 
 Le domaine est **100 % pur** ; le seul point de traversée domaine↔Room est
 `data/repository/EntityMappers.kt`. La récurrence est stockée en colonnes structurées
 (`rrule_*`) sur l'événement — modèle iCalendar (RRULE = propriété du VEVENT).
 
-## Roadmap (phase 2+)
+## Compiler depuis les sources
 
-1. **Expansion de récurrence** (`RecurrenceExpander`) — occurrences concrètes, fuseaux/DST, `EXDATE`.
-2. **Vues** Mois / Semaine / Jour / Agenda + éditeur d'événement.
-3. **Rappels** — `AlarmManager` exact + `SCHEDULE_EXACT_ALARM` (Android 13+) avec dégradation.
-4. **Interop ICS** — import/export RFC 5545.
-5. **Widget écran d'accueil** (Glance).
-6. **Réglages** (thème, calendrier par défaut) + verrou biométrique optionnel.
-
-## Build
-
+```bash
+git clone https://github.com/gitubpatrice/AGENDA-TECH.git
+cd AGENDA-TECH
+./gradlew :app:assembleDebug          # APK de debug (splits + universel)
+./gradlew :app:testDebugUnitTest      # tests unitaires
 ```
-./gradlew :app:assembleDebug        # APK debug
-./gradlew test                      # tests unitaires (JUnit5)
-./gradlew detekt ktlintCheck        # qualité
-```
+
+La signature de release attend un fichier `keystore.properties` (non versionné) ; le build
+de debug n'en a pas besoin.
+
+## Sécurité & vie privée
+
+- Modèle de menace, chiffrement, verrou : [SECURITY.md](SECURITY.md).
+- Politique de confidentialité (permissions, données, contact) : [PRIVACY.md](PRIVACY.md).
+- Signalement de vulnérabilité : voir [SECURITY.md](SECURITY.md#signalement).
 
 ## Licence
 
-[Apache 2.0](LICENSE).
+[Apache License 2.0](LICENSE) — © 2026 Patrice Haltaya / Files Tech.
