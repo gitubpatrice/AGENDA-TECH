@@ -2,10 +2,12 @@ package com.filestech.agenda_tech.data.local.db.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.filestech.agenda_tech.domain.model.CalendarColor
 
-@Entity(tableName = "calendars")
+// Indexed on source_id: looked up on every (re-)import to reuse the calendar of a device source.
+@Entity(tableName = "calendars", indices = [Index(value = ["source_id"])])
 data class CalendarEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "name") val name: String,

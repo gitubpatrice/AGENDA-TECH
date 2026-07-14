@@ -233,11 +233,12 @@ object IcsCodec {
     }
 
     /**
-     * SEC-ICS2 — strip Unicode bidirectional-control characters from imported free text. An
-     * imported `.ics` is untrusted; without this, an RLO/LRO override could spoof how a title reads
-     * on screen and in the widget.
+     * SEC-ICS2 — strip Unicode bidirectional-control characters from imported free text and cap its
+     * length. An imported `.ics` is untrusted; without the strip an RLO/LRO override could spoof how
+     * a title reads on screen/in the widget, and without the cap a single multi-MB folded field
+     * could bloat the DB (same guard as the device-calendar import).
      */
-    private fun sanitizeText(text: String): String = BidiSanitizer.strip(text)
+    private fun sanitizeText(text: String): String = BidiSanitizer.stripAndCap(text)
 
     private fun unescapeText(text: String): String {
         val out = StringBuilder(text.length)

@@ -14,7 +14,8 @@ data class DeviceCalendar(
 /**
  * A raw event row read from `CalendarContract.Events`, kept as plain values so the
  * [DeviceEventMapper] (which turns it into a domain `Event`) stays pure and unit-testable without a
- * `Cursor`. Only master / standalone events are read (exception instances are skipped in V1).
+ * `Cursor`. Recurring masters, standalone events and moved single occurrences are all read; only
+ * deleted tombstones are skipped.
  *
  * Time fields follow the Calendar Provider contract: [dtStartUtcMillis] is an absolute instant;
  * [dtEndUtcMillis] is null for recurring events (which carry [durationRfc] instead); [allDay] events

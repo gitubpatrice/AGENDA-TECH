@@ -90,8 +90,13 @@ C'est la **seule** permission dangereuse de l'app, et elle **ne trahit pas** la 
   `.ics` (`BidiSanitizer`), parsing RRULE/EXDATE/durée **tolérant** (retourne null plutôt que de
   crasher, durée bornée anti-overflow). Import résilient : une erreur sur un calendrier est journalisée
   et ignorée, jamais propagée. Écriture DB **atomique par lot** (`upsertAll` en transaction).
-- **V1 = copie ponctuelle, pas une synchro** : ré-importer duplique les événements (pas de dédup ni
-  de sync bidirectionnelle). Occurrences déplacées et VALARM hors périmètre (comme l'import `.ics`).
+- **Import idempotent (refresh sûr).** Chaque calendrier device est rattaché via un `source_id`
+  stable (réutilisé au ré-import, plus de calendrier dupliqué) et chaque événement via un `source_uid`
+  (`_sync_id`, repli `rowid`) : ré-importer met à jour les lignes en place et ajoute les nouveaux
+  événements au lieu de tout dupliquer. Ce n'est PAS une synchro bidirectionnelle : un événement
+  supprimé à la source n'est pas retiré (import additif). Réserve : un événement créé hors-ligne et
+  pas encore synchronisé côté serveur peut être ré-inséré une fois au premier passage `rowid → _sync_id`.
+  VALARM hors périmètre (comme l'import `.ics`).
 
 ## Sauvegardes
 

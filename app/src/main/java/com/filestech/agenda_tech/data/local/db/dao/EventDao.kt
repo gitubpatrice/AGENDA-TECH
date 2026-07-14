@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.data.local.db.dao
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Transaction
@@ -88,6 +89,10 @@ interface EventDao {
     @Query("SELECT id, source_uid FROM events WHERE calendar_id = :calendarId AND source_uid IS NOT NULL")
     suspend fun sourceUidRows(calendarId: Long): List<SourceUidRow>
 
+    /** Original `created_at` of the given events — so a re-import update preserves it instead of resetting. */
+    @Query("SELECT id, created_at FROM events WHERE id IN (:ids)")
+    suspend fun createdAtByIds(ids: List<Long>): List<CreatedAtRow>
+
     @Query("DELETE FROM events WHERE id = :id")
     suspend fun delete(id: Long)
 
@@ -98,5 +103,11 @@ interface EventDao {
 /** Projection for [EventDao.sourceUidRows]: the id of an imported event and its external source uid. */
 data class SourceUidRow(
     val id: Long,
-    @androidx.room.ColumnInfo(name = "source_uid") val sourceUid: String,
+    @ColumnInfo(name = "source_uid") val sourceUid: String,
+)
+
+/** Projection for [EventDao.createdAtByIds]: an event id and its original creation timestamp. */
+data class CreatedAtRow(
+    val id: Long,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
 )

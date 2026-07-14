@@ -42,5 +42,17 @@ object Migrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+    /**
+     * v4 (2026-07): index `calendars.source_id`, looked up on every (re-)import to reuse a source's
+     * calendar. Mirrors the index convention already applied to `events.source_uid`. Purely additive.
+     */
+    private val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_calendars_source_id ON calendars (source_id)",
+            )
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 }

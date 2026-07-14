@@ -62,10 +62,16 @@ class EventRepositoryImpl @Inject constructor(
     }
 
     override suspend fun upsertAll(events: List<Event>) = withContext(io) {
-        // Import path: stamp a single timestamp and write atomically. Events carrying an existing id
-        // (matched by source uid) are updated in place; the rest are inserted — idempotent re-import.
+        // Import path: write atomically. Events carrying an existing id (matched by source uid) are
+        // updated in place — preserve their original createdAt; new rows get `now`. updatedAt is now.
         val now = System.currentTimeMillis()
-        dao.upsertAll(events.map { it.toEntity(createdAt = now, updatedAt = now) })
+        val existingIds = events.mapNotNull { it.id.takeIf { id -> id != 0L } }
+        val createdAtById = if (existingIds.isEmpty()) {
+            emptyMap()
+        } else {
+            dao.createdAtByIds(existingIds).associate { it.id to it.createdAt }
+        }
+        dao.upsertAll(events.map { it.toEntity(createdAt = createdAtById[it.id] ?: now, updatedAt = now) })
     }
 
     override suspend fun sourceUidMap(calendarId: Long): Map<String, Long> = withContext(io) {
