@@ -119,6 +119,17 @@
     <string name="settings_widget_hide_titles">Hide titles in the widget</string>
     <string name="settings_widget_hide_titles_sub">Show only times on the home screen</string>
     <string name="settings_about">About</string>
+    <string name="settings_calendars">Manage calendars</string>
+
+    <!-- Calendars -->
+    <string name="calendars_title">Calendars</string>
+    <string name="calendar_add">Add calendar</string>
+    <string name="calendar_name">Name</string>
+    <string name="calendar_new_title">New calendar</string>
+    <string name="calendar_edit_title">Edit calendar</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
 
     <!-- About -->
     <string name="about_tagline">Local, encrypted agenda — zero network.</string>

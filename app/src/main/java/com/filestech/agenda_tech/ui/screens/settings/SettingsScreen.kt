@@ -55,6 +55,7 @@ private val REMINDER_OPTIONS = listOf(AppSettings.NO_DEFAULT_REMINDER, 0, 5, 10,
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenCalendars: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
@@ -98,6 +99,7 @@ fun SettingsScreen(
 
             HorizontalDivider()
             SectionHeader(stringResource(R.string.settings_section_events))
+            ClickRow(title = stringResource(R.string.settings_calendars), onClick = onOpenCalendars)
             ColorRow(
                 title = stringResource(R.string.settings_default_color),
                 selected = settings.defaultEventColor,

@@ -22,6 +22,7 @@ object Routes {
 
     const val SETTINGS = "settings"
     const val ABOUT = "about"
+    const val CALENDARS = "calendars"
 
     /** Full pattern (optional args) registered by the NavHost. */
     const val EDITOR_PATTERN = "$EDITOR?$ARG_EVENT_ID={$ARG_EVENT_ID}&$ARG_DATE={$ARG_DATE}"
