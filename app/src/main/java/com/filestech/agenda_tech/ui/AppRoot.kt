@@ -1,28 +1,45 @@
 package com.filestech.agenda_tech.ui
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.filestech.agenda_tech.ui.navigation.CalendarView
 import com.filestech.agenda_tech.ui.navigation.Routes
 import com.filestech.agenda_tech.ui.screens.editor.EventEditorScreen
 import com.filestech.agenda_tech.ui.screens.month.MonthScreen
+import com.filestech.agenda_tech.ui.screens.timeline.DayScreen
+import com.filestech.agenda_tech.ui.screens.timeline.WeekScreen
 
 /**
- * Root of the Compose tree: owns the [NavHost]. Kept deliberately thin so each phase-2 view
- * ([Routes]) plugs in as one more `composable(...)` entry.
+ * Root of the Compose tree: owns the [NavHost]. The three calendar views (Month/Week/Day) are
+ * siblings switched via the bottom navigation; the editor is pushed on top of whichever view is
+ * active.
  */
 @Composable
 fun AppRoot() {
     val navController = rememberNavController()
+
+    val onAddEvent: (java.time.LocalDate) -> Unit = { date ->
+        navController.navigate(Routes.editorForNew(date.toEpochDay()))
+    }
+    val onOccurrenceClick: (Long) -> Unit = { eventId ->
+        navController.navigate(Routes.editorForEdit(eventId))
+    }
+    val onSelectView: (CalendarView) -> Unit = { view -> navController.switchCalendarView(view) }
+
     NavHost(navController = navController, startDestination = Routes.MONTH) {
         composable(Routes.MONTH) {
-            MonthScreen(
-                onAddEvent = { date -> navController.navigate(Routes.editorForNew(date.toEpochDay())) },
-                onOccurrenceClick = { eventId -> navController.navigate(Routes.editorForEdit(eventId)) },
-            )
+            MonthScreen(onSelectView = onSelectView, onAddEvent = onAddEvent, onOccurrenceClick = onOccurrenceClick)
+        }
+        composable(Routes.WEEK) {
+            WeekScreen(onSelectView = onSelectView, onAddEvent = onAddEvent, onOccurrenceClick = onOccurrenceClick)
+        }
+        composable(Routes.DAY) {
+            DayScreen(onSelectView = onSelectView, onAddEvent = onAddEvent, onOccurrenceClick = onOccurrenceClick)
         }
         composable(
             route = Routes.EDITOR_PATTERN,
@@ -39,5 +56,13 @@ fun AppRoot() {
         ) {
             EventEditorScreen(onDone = { navController.popBackStack() })
         }
+    }
+}
+
+/** Switch between the sibling calendar views, keeping Month as the single back-stack base. */
+private fun NavHostController.switchCalendarView(view: CalendarView) {
+    navigate(view.route) {
+        popUpTo(Routes.MONTH) { inclusive = false }
+        launchSingleTop = true
     }
 }

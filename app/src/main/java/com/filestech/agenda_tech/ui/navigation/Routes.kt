@@ -6,12 +6,14 @@ package com.filestech.agenda_tech.ui.navigation
  * [com.filestech.agenda_tech.ui.AppRoot].
  *
  * Phase-2 destinations still to add:
- *   - WEEK / DAY / AGENDA  (the other calendar views)
+ *   - AGENDA               (list view)
  *   - CALENDARS            (manage local calendars)
  *   - SETTINGS
  */
 object Routes {
     const val MONTH = "month"
+    const val WEEK = "week"
+    const val DAY = "day"
 
     const val EDITOR = "editor"
     const val ARG_EVENT_ID = "eventId"

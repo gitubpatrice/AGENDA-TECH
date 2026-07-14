@@ -25,7 +25,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,6 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.ui.CalendarScaffold
+import com.filestech.agenda_tech.ui.navigation.CalendarView
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -55,6 +56,7 @@ import java.util.Locale
 
 @Composable
 fun MonthScreen(
+    onSelectView: (CalendarView) -> Unit,
     onAddEvent: (LocalDate) -> Unit,
     onOccurrenceClick: (Long) -> Unit,
     viewModel: MonthViewModel = hiltViewModel(),
@@ -62,6 +64,7 @@ fun MonthScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     MonthScreenContent(
         state = state,
+        onSelectView = onSelectView,
         onPreviousMonth = viewModel::onPreviousMonth,
         onNextMonth = viewModel::onNextMonth,
         onToday = viewModel::onToday,
@@ -74,6 +77,7 @@ fun MonthScreen(
 @Composable
 private fun MonthScreenContent(
     state: MonthUiState,
+    onSelectView: (CalendarView) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onToday: () -> Unit,
@@ -83,7 +87,9 @@ private fun MonthScreenContent(
 ) {
     val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
 
-    Scaffold(
+    CalendarScaffold(
+        currentView = CalendarView.MONTH,
+        onSelectView = onSelectView,
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(text = monthLabel(state.yearMonth, locale)) },

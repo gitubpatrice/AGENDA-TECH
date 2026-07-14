@@ -2,6 +2,15 @@
 <resources>
     <string name="app_name">Agenda Tech</string>
 
+    <!-- Sélecteur de vue -->
+    <string name="view_month">Mois</string>
+    <string name="view_week">Semaine</string>
+    <string name="view_day">Jour</string>
+    <string name="day_previous">Jour précédent</string>
+    <string name="day_next">Jour suivant</string>
+    <string name="week_previous">Semaine précédente</string>
+    <string name="week_next">Semaine suivante</string>
+
     <!-- Calendrier par défaut (1er lancement) -->
     <string name="default_calendar_name">Perso</string>
 
