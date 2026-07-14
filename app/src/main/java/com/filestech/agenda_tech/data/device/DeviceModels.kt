@@ -23,6 +23,11 @@ data class DeviceCalendar(
  *
  * [uid] is a stable identifier of the source event (iCalendar UID / sync id / row id) used to update
  * the same Agenda Tech row on re-import instead of duplicating it.
+ *
+ * For a *moved single occurrence* of a recurring series the provider sets [originalId] (the master's
+ * row id) and [originalInstanceTime] (the instant of the occurrence it replaces). The import folds
+ * that instant into the master's EXDATE so the original occurrence doesn't survive as a ghost
+ * alongside the moved one (FIAB-3). [deviceId] is the row's own `_ID`, used to correlate them.
  */
 data class DeviceEvent(
     val uid: String,
@@ -36,4 +41,7 @@ data class DeviceEvent(
     val allDay: Boolean,
     val rrule: String?,
     val exDate: String?,
+    val deviceId: Long = 0L,
+    val originalId: Long? = null,
+    val originalInstanceTime: Long? = null,
 )

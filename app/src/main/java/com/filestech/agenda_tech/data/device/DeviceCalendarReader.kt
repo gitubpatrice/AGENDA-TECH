@@ -78,6 +78,10 @@ class DeviceCalendarReader @Inject constructor(
             // and stable across syncs for account calendars; _ID is the local fallback for unsynced ones.
             CalendarContract.Events._SYNC_ID,
             CalendarContract.Events._ID,
+            // Moved-occurrence linkage: ORIGINAL_ID = master row id, ORIGINAL_INSTANCE_TIME = the
+            // instant of the occurrence this row replaces (folded into the master's EXDATE on import).
+            CalendarContract.Events.ORIGINAL_ID,
+            CalendarContract.Events.ORIGINAL_INSTANCE_TIME,
         )
         // Everything the user can see: masters, standalone AND moved occurrences (ORIGINAL_ID set).
         // Skip only deleted tombstones — `DELETED` may be NULL on some providers, so guard for it.
@@ -95,8 +99,9 @@ class DeviceCalendarReader @Inject constructor(
                 buildList {
                     while (c.moveToNext() && size < MAX_EVENTS) {
                         val dtStart = if (c.isNull(3)) continue else c.getLong(3)
+                        val deviceId = c.getLong(11)
                         // Stable per-row identity for idempotent re-import: sync id, else local row id.
-                        val uid = c.getStringOrNull(10) ?: "rowid:${c.getLong(11)}"
+                        val uid = c.getStringOrNull(10) ?: "rowid:$deviceId"
                         add(
                             DeviceEvent(
                                 uid = uid,
@@ -110,6 +115,9 @@ class DeviceCalendarReader @Inject constructor(
                                 eventTimeZone = c.getStringOrNull(7),
                                 rrule = c.getStringOrNull(8),
                                 exDate = c.getStringOrNull(9),
+                                deviceId = deviceId,
+                                originalId = c.getStringOrNull(12)?.toLongOrNull(),
+                                originalInstanceTime = if (c.isNull(13)) null else c.getLong(13),
                             ),
                         )
                     }

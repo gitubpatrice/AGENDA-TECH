@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.filestech.agenda_tech.core.crypto.wipe
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,7 +22,20 @@ class DatabaseFactory @Inject constructor(
 
     fun build(context: Context): AppDatabase {
         loadNativeOnce()
-        val raw = keyManager.getOrCreatePassphrase()
+        // SEC/ROB-1 — only the passphrase acquisition is guarded (never the Room build/migration,
+        // which opens lazily on first query). If the Keystore key is gone/corrupted the encrypted DB
+        // is cryptographically unrecoverable and there is no backup (allowBackup=false), so we reset
+        // to a fresh usable DB and flag it, instead of crashing on every launch forever. A genuine
+        // migration bug still surfaces as a visible crash later — it is never silently wiped here.
+        val raw = try {
+            keyManager.getOrCreatePassphrase()
+        } catch (e: Exception) {
+            Timber.e(e, "DB passphrase unrecoverable — resetting the local database")
+            keyManager.destroyKeyFile()
+            context.deleteDatabase(AppDatabase.DATABASE_NAME)
+            markResetPending(context)
+            keyManager.getOrCreatePassphrase() // fresh key; a second failure is a truly broken device
+        }
         val factory = SupportOpenHelperFactory(raw)
         val db = Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.DATABASE_NAME)
             .openHelperFactory(factory)
@@ -35,6 +49,11 @@ class DatabaseFactory @Inject constructor(
         return db
     }
 
+    private fun markResetPending(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_RESET_PENDING, true).apply()
+    }
+
     @Synchronized
     private fun loadNativeOnce() {
         if (loaded) return
@@ -44,5 +63,19 @@ class DatabaseFactory @Inject constructor(
 
     companion object {
         @Volatile private var loaded = false
+
+        private const val PREFS = "agendatech_db"
+        private const val KEY_RESET_PENDING = "db_reset_pending"
+
+        /**
+         * Returns true once if the DB had to be reset after an unrecoverable key failure, clearing
+         * the flag. The UI reads this at startup to inform the user their data was reset.
+         */
+        fun consumeResetFlag(context: Context): Boolean {
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            if (!prefs.getBoolean(KEY_RESET_PENDING, false)) return false
+            prefs.edit().remove(KEY_RESET_PENDING).apply()
+            return true
+        }
     }
 }

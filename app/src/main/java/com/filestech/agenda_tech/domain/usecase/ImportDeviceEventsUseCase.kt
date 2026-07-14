@@ -57,14 +57,28 @@ class ImportDeviceEventsUseCase @Inject constructor(
                             sourceId = sourceId,
                         ),
                     )
+                val deviceEvents = reader.readEvents(deviceId)
+                // FIAB-3 — fold each moved occurrence's original instant into its master's EXDATE, so
+                // a provider that omits EXDATE on the master can't leave a ghost at the original time
+                // next to the moved one.
+                val exByMasterDeviceId: Map<Long, List<Long>> = deviceEvents
+                    .filter { it.originalId != null && it.originalInstanceTime != null }
+                    .groupBy({ it.originalId!! }, { it.originalInstanceTime!! })
                 // Map source uid → existing row id so a re-import updates in place instead of duplicating.
                 val existing = eventRepository.sourceUidMap(targetCalendarId)
-                val mapped = reader.readEvents(deviceId)
-                    .mapNotNull { DeviceEventMapper.toEvent(it, targetCalendarId) }
-                    .map { ev ->
-                        val existingId = ev.sourceUid?.let { existing[it] }
-                        if (existingId != null) ev.copy(id = existingId) else ev
+                val mapped = deviceEvents.mapNotNull { de ->
+                    val ev = DeviceEventMapper.toEvent(de, targetCalendarId) ?: return@mapNotNull null
+                    val rule = ev.recurrence
+                    val withEx = if (rule != null) {
+                        val extra = exByMasterDeviceId[de.deviceId].orEmpty()
+                        if (extra.isEmpty()) ev
+                        else ev.copy(recurrence = rule.copy(exDatesUtcMillis = (rule.exDatesUtcMillis + extra).distinct()))
+                    } else {
+                        ev
                     }
+                    val existingId = withEx.sourceUid?.let { existing[it] }
+                    if (existingId != null) withEx.copy(id = existingId) else withEx
+                }
                 eventRepository.upsertAll(mapped) // atomic batch — all rows or none
                 mapped.size
             }.onSuccess { imported ->

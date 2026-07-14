@@ -23,6 +23,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.filestech.agenda_tech.data.local.db.DatabaseFactory
 import com.filestech.agenda_tech.domain.repository.LockRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.settings.AppSettings
@@ -56,6 +57,11 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         requestNotificationPermissionIfNeeded()
+        // SEC/ROB-1 — if an unrecoverable Keystore failure forced a DB reset, tell the user (once)
+        // rather than losing their data silently.
+        if (DatabaseFactory.consumeResetFlag(this)) {
+            android.widget.Toast.makeText(this, getString(R.string.db_reset_notice), android.widget.Toast.LENGTH_LONG).show()
+        }
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         enableEdgeToEdge()
 

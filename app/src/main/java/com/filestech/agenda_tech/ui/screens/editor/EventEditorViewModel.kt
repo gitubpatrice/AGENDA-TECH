@@ -252,7 +252,33 @@ class EventEditorViewModel @Inject constructor(
             _state.update { it.copy(scopePrompt = ScopePrompt.DELETE) }
             return
         }
+        val parentId = loadedParentId
+        val originalStart = loadedOriginalStart
+        if (parentId != null && originalStart != null) {
+            deleteOverrideAndExclude(parentId, originalStart)
+            return
+        }
         deleteDirect()
+    }
+
+    /**
+     * FIAB-4 — deleting a *modified* occurrence (an override) must also exclude its original date
+     * from the master's EXDATE; otherwise removing the override lets the master's default occurrence
+     * reappear on that day, so "delete" would silently behave as "revert".
+     */
+    private fun deleteOverrideAndExclude(parentId: Long, originalStart: Long) {
+        viewModelScope.launch {
+            val master = eventRepository.getById(parentId)
+            val rule = master?.recurrence
+            if (master != null && rule != null && originalStart !in rule.exDatesUtcMillis) {
+                eventRepository.upsert(
+                    master.copy(recurrence = rule.copy(exDatesUtcMillis = rule.exDatesUtcMillis + originalStart)),
+                )
+            }
+            reminderScheduler.cancelEvent(eventId)
+            deleteEvent(eventId)
+            _state.update { it.copy(isDeleted = true) }
+        }
     }
 
     /** Resolve the scope dialog: apply to this occurrence only, or the whole series. */
