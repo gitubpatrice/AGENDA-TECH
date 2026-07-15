@@ -25,6 +25,16 @@ class SearchTextTest {
     }
 
     @Test
+    fun `expands typographic ligatures — imported text can carry them`() {
+        // Never typed on a phone, but an .ics exported from a publishing tool can hold them, and
+        // NFD leaves them intact: "fiche" would then never match its own entry.
+        assertThat(SearchText.fold("ﬁche")).isEqualTo("fiche")
+        assertThat(SearchText.fold("conﬂit")).isEqualTo("conflit")
+        assertThat(SearchText.fold("eﬃcace")).isEqualTo("efficace")
+        assertThat(SearchText.fold("souﬄe")).isEqualTo("souffle")
+    }
+
+    @Test
     fun `folds text already composed the other way - NFD vs NFC must agree`() {
         // "e-acute" can arrive as one code point (NFC) or as "e" + a combining acute (NFD); an
         // .ics file or a device calendar can carry either, and both must fold to the same thing.

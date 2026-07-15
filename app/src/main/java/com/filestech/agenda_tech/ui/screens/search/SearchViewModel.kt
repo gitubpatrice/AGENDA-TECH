@@ -29,7 +29,7 @@ class SearchViewModel @Inject constructor(
      * i.e. a flash of "no results" on every keystroke.
      */
     val hits: StateFlow<List<EventSearchHit>> = searchEvents(_query)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
 
     fun onQueryChange(value: String) {
         _query.value = value
@@ -41,6 +41,6 @@ class SearchViewModel @Inject constructor(
 
     private companion object {
         /** Survives a configuration change without restarting the corpus flow. */
-        const val STOP_TIMEOUT_MILLIS = 5_000L
+        const val STOP_TIMEOUT_MS = 5_000L
     }
 }

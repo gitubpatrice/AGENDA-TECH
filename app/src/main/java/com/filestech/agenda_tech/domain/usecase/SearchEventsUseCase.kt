@@ -51,24 +51,48 @@ class SearchEventsUseCase @Inject constructor(
         val corpus = combine(
             eventRepository.observeAll(),
             calendarRepository.observeAll(),
-        ) { events, calendars -> buildCorpus(events, calendars) }
+            eventRepository.observeOverrides(),
+        ) { events, calendars, overrides -> buildCorpus(events, calendars, overrides) }
 
         return combine(corpus, queries) { entries, query ->
             search(entries, query, nowUtcMillis())
         }.flowOn(defaultDispatcher)
     }
 
-    /** One event, with its searchable text pre-folded. */
-    internal data class Entry(val event: Event, val calendar: Calendar, val haystack: String)
+    /**
+     * One event, with its searchable text pre-folded and the instants its own overrides replace.
+     *
+     * [excludedStarts] is derived from the live overrides rather than read off the master's stored
+     * `EXDATE`s — the same mechanism the calendar views use
+     * ([com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase]). Trusting the
+     * master's stored list instead would make search the only reader with its own answer to
+     * "does this occurrence still exist", and it would date a master to an occurrence the user has
+     * already moved away.
+     */
+    private data class Entry(
+        val event: Event,
+        val calendar: Calendar,
+        val haystack: String,
+        val excludedStarts: Set<Long>,
+    )
 
-    internal fun buildCorpus(events: List<Event>, calendars: List<Calendar>): List<Entry> {
+    private fun buildCorpus(
+        events: List<Event>,
+        calendars: List<Calendar>,
+        overrides: List<Event>,
+    ): List<Entry> {
         val byId = calendars.associateBy { it.id }
+        val excludedByParent = overrides
+            .groupBy { it.recurrenceParentId }
+            .mapValues { (_, list) -> list.mapNotNull { it.originalStartUtcMillis }.toHashSet() }
+
         return events.mapNotNull { event ->
             // An event with no calendar cannot be shown (no colour, no name, and tapping it would
             // open an editor with a dangling parent). The DB's foreign key makes this unreachable;
             // dropping it beats rendering a broken row if it ever happens.
             val calendar = byId[event.calendarId] ?: return@mapNotNull null
-            Entry(event, calendar, foldedHaystack(event))
+            val excluded = if (event.isRecurring) excludedByParent[event.id].orEmpty() else emptySet()
+            Entry(event, calendar, foldedHaystack(event), excluded)
         }
     }
 
@@ -89,7 +113,7 @@ class SearchEventsUseCase @Inject constructor(
         ).joinToString("\n"),
     )
 
-    internal fun search(entries: List<Entry>, query: String, nowUtcMillis: Long): List<EventSearchHit> {
+    private fun search(entries: List<Entry>, query: String, nowUtcMillis: Long): List<EventSearchHit> {
         val needle = SearchText.fold(query.trim())
         // An empty query returns nothing, never everything: dumping the whole agenda the moment the
         // field is focused would bury the one thing being looked for.
@@ -113,10 +137,10 @@ class SearchEventsUseCase @Inject constructor(
      * day it was created.
      */
     private fun dateHit(entry: Entry, nowUtcMillis: Long): EventSearchHit? {
-        expander.nextOccurrenceStart(entry.event, nowUtcMillis)?.let { next ->
+        expander.nextOccurrenceStart(entry.event, nowUtcMillis, entry.excludedStarts)?.let { next ->
             return EventSearchHit(entry.event, entry.calendar, next, isUpcoming = true)
         }
-        expander.lastOccurrenceStartBefore(entry.event, nowUtcMillis)?.let { last ->
+        expander.lastOccurrenceStartBefore(entry.event, nowUtcMillis, entry.excludedStarts)?.let { last ->
             return EventSearchHit(entry.event, entry.calendar, last, isUpcoming = false)
         }
         // Neither ahead nor behind: every occurrence was excluded (EXDATE), so the series has no

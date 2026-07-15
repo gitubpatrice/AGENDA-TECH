@@ -192,6 +192,39 @@ class SearchEventsUseCaseTest {
     }
 
     @Test
+    fun `a master is dated past an occurrence a live override replaces, even without its EXDATE`() = runTest {
+        // The editor normally writes the override AND adds its date to the master's EXDATEs, but those
+        // are two separate writes. Search must not depend on the second one having landed: it reads
+        // the live overrides, exactly like the calendar views do.
+        val master = event(
+            10, "Sport", at(2026, 1, 6, 18),
+            recurrence = RecurrenceRule(freq = RecurrenceFreq.WEEKLY, byWeekdays = setOf(Weekday.TUESDAY)),
+            // Note: no exDatesUtcMillis — this is the state after a crash between the two writes.
+        )
+        val movedOccurrence = at(2026, 7, 21, 18) // the next Tuesday, which the user moved
+        val override = Event(
+            id = 11,
+            calendarId = 1,
+            title = "Sport",
+            startUtcMillis = at(2026, 7, 23, 19), // moved to Thursday 19:00
+            endUtcMillis = at(2026, 7, 23, 20),
+            timeZoneId = zone.id,
+            recurrenceParentId = 10,
+            originalStartUtcMillis = movedOccurrence,
+        )
+        seed(master, override)
+
+        val hits = search("sport")
+
+        // The master skips the replaced Tuesday and points at the following one...
+        val masterHit = hits.single { it.event.id == 10L }
+        assertThat(masterHit.occurrenceStartUtcMillis).isEqualTo(at(2026, 7, 28, 18))
+        // ...and the moved occurrence shows itself, on its real date.
+        val overrideHit = hits.single { it.event.id == 11L }
+        assertThat(overrideHit.occurrenceStartUtcMillis).isEqualTo(at(2026, 7, 23, 19))
+    }
+
+    @Test
     fun `is case-insensitive and matches inside a word`() = runTest {
         seed(event(10, "Rendez-vous MÉDICAL", at(2026, 7, 20)))
 

@@ -46,6 +46,9 @@ object SearchText {
         'æ' to "ae", 'Æ' to "ae",
         // Not a ligature, but the same problem: NFD leaves it alone and it has no lowercase pair.
         'ß' to "ss",
+        // Typographic ligatures. Never typed on a phone, but the app ingests foreign text — an .ics
+        // exported from a publishing tool can carry them, and "ﬁche" would then never match "fiche".
+        'ﬁ' to "fi", 'ﬂ' to "fl", 'ﬃ' to "ffi", 'ﬄ' to "ffl", 'ﬅ' to "st",
     )
     private val LIGATURES = LIGATURE_EXPANSIONS.keys
 }

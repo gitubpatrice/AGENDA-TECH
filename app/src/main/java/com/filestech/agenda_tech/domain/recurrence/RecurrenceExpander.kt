@@ -73,12 +73,21 @@ class RecurrenceExpander @Inject constructor() {
      * The start instant of the first occurrence of [event] at or after [afterUtcMillis], or null if
      * the series has no such occurrence (already ended). Used by the reminder scheduler to find the
      * next fire time. Honours `COUNT`/`UNTIL`/`EXDATE`.
+     *
+     * [extraExcludedStartsUtcMillis] carries the instants replaced by per-occurrence overrides, the
+     * same way [expand] takes them — see that parameter's use in
+     * [com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase].
      */
-    fun nextOccurrenceStart(event: Event, afterUtcMillis: Long): Long? {
+    fun nextOccurrenceStart(
+        event: Event,
+        afterUtcMillis: Long,
+        extraExcludedStartsUtcMillis: Set<Long> = emptySet(),
+    ): Long? {
         val rule = event.recurrence
             ?: return event.startUtcMillis.takeIf { it >= afterUtcMillis }
         val zone = resolveZone(event.timeZoneId)
-        return occurrenceStarts(event, rule, zone).firstOrNull { it >= afterUtcMillis }
+        return occurrenceStarts(event, rule, zone, extraExcludedStartsUtcMillis)
+            .firstOrNull { it >= afterUtcMillis }
     }
 
     /**
@@ -91,11 +100,15 @@ class RecurrenceExpander @Inject constructor() {
      * materialising the whole past series. Terminates on an open-ended rule too, since the starts are
      * ascending and stop being taken once they reach [beforeUtcMillis].
      */
-    fun lastOccurrenceStartBefore(event: Event, beforeUtcMillis: Long): Long? {
+    fun lastOccurrenceStartBefore(
+        event: Event,
+        beforeUtcMillis: Long,
+        extraExcludedStartsUtcMillis: Set<Long> = emptySet(),
+    ): Long? {
         val rule = event.recurrence
             ?: return event.startUtcMillis.takeIf { it < beforeUtcMillis }
         val zone = resolveZone(event.timeZoneId)
-        return occurrenceStarts(event, rule, zone)
+        return occurrenceStarts(event, rule, zone, extraExcludedStartsUtcMillis)
             .takeWhile { it < beforeUtcMillis }
             .lastOrNull()
     }

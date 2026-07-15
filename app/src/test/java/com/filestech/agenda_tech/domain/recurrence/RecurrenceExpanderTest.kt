@@ -306,9 +306,93 @@ class RecurrenceExpanderTest {
         )
     }
 
+
+    // --- lastOccurrenceStartBefore -------------------------------------------
+
+    @Test
+    fun `lastOccurrenceStartBefore returns a non-recurring event's start only when strictly before`() {
+        val event = singleEvent(UTC, at(2025, 6, 10, 9, 0), 60)
+        assertThat(lastStart(event, at(2025, 6, 20, 0, 0))).isEqualTo(ms(UTC, at(2025, 6, 10, 9, 0)))
+        assertThat(lastStart(event, at(2025, 6, 1, 0, 0))).isNull()
+    }
+
+    @Test
+    fun `lastOccurrenceStartBefore finds the last occurrence of an open-ended series`() {
+        // The path with no COUNT and no UNTIL: nothing bounds the sequence except the instant asked
+        // for. Left untested, a refactor could make this run to the scan cap — or forever.
+        val event = recurringEvent(UTC, at(2025, 6, 1, 9, 0), 60, RecurrenceRule(RecurrenceFreq.DAILY))
+
+        assertThat(lastStart(event, at(2025, 6, 4, 12, 0))).isEqualTo(ms(UTC, at(2025, 6, 4, 9, 0)))
+    }
+
+    @Test
+    fun `lastOccurrenceStartBefore returns the final occurrence of a series that has ended`() {
+        val event = recurringEvent(
+            UTC,
+            at(2025, 6, 1, 9, 0),
+            60,
+            RecurrenceRule(RecurrenceFreq.DAILY, count = 3),
+        )
+
+        // Series is 1, 2, 3 June — long after it ended, the answer stays the 3rd.
+        assertThat(lastStart(event, at(2026, 1, 1, 0, 0))).isEqualTo(ms(UTC, at(2025, 6, 3, 9, 0)))
+    }
+
+    @Test
+    fun `lastOccurrenceStartBefore excludes an occurrence starting exactly at the instant`() {
+        // "Before" is strict — the mirror of nextOccurrenceStart, which is inclusive. Without this
+        // boundary being pinned, an occurrence could be reported as both next and last.
+        val event = recurringEvent(UTC, at(2025, 6, 1, 9, 0), 60, RecurrenceRule(RecurrenceFreq.DAILY))
+        val exactly = at(2025, 6, 4, 9, 0)
+
+        assertThat(lastStart(event, exactly)).isEqualTo(ms(UTC, at(2025, 6, 3, 9, 0)))
+        assertThat(nextStart(event, exactly)).isEqualTo(ms(UTC, exactly))
+    }
+
+    @Test
+    fun `lastOccurrenceStartBefore skips an excluded occurrence`() {
+        val event = recurringEvent(
+            UTC,
+            at(2025, 6, 1, 9, 0),
+            60,
+            RecurrenceRule(
+                RecurrenceFreq.DAILY,
+                exDatesUtcMillis = listOf(ms(UTC, at(2025, 6, 4, 9, 0))),
+            ),
+        )
+
+        assertThat(lastStart(event, at(2025, 6, 4, 12, 0))).isEqualTo(ms(UTC, at(2025, 6, 3, 9, 0)))
+    }
+
+    @Test
+    fun `lastOccurrenceStartBefore returns null when every occurrence was excluded`() {
+        val event = recurringEvent(
+            UTC,
+            at(2025, 6, 1, 9, 0),
+            60,
+            RecurrenceRule(
+                RecurrenceFreq.DAILY,
+                count = 2,
+                exDatesUtcMillis = listOf(ms(UTC, at(2025, 6, 1, 9, 0)), ms(UTC, at(2025, 6, 2, 9, 0))),
+            ),
+        )
+
+        assertThat(lastStart(event, at(2025, 7, 1, 0, 0))).isNull()
+    }
+
+    @Test
+    fun `lastOccurrenceStartBefore returns null before the series begins`() {
+        val event = recurringEvent(UTC, at(2025, 6, 1, 9, 0), 60, RecurrenceRule(RecurrenceFreq.DAILY))
+
+        assertThat(lastStart(event, at(2025, 5, 1, 0, 0))).isNull()
+    }
+
     private fun startsLocal(zone: String, occurrences: List<EventOccurrence>): List<LocalDateTime> =
         occurrences.map { Instant.ofEpochMilli(it.startUtcMillis).atZone(ZoneId.of(zone)).toLocalDateTime() }
 
     private fun nextStart(event: Event, after: LocalDateTime): Long? =
         expander.nextOccurrenceStart(event, ms(UTC, after))
+
+    private fun lastStart(event: Event, before: LocalDateTime): Long? =
+        expander.lastOccurrenceStartBefore(event, ms(UTC, before))
 }
