@@ -80,6 +80,7 @@ fun SettingsScreen(
     onOpenAbout: () -> Unit,
     onOpenCalendars: () -> Unit,
     onOpenDeviceImport: () -> Unit,
+    onOpenBackup: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
@@ -240,6 +241,11 @@ fun SettingsScreen(
 
             HorizontalDivider()
             SectionHeader(stringResource(R.string.settings_section_privacy))
+            ClickRow(
+                title = stringResource(R.string.settings_backup),
+                subtitle = stringResource(R.string.settings_backup_sub),
+                onClick = onOpenBackup,
+            )
             SwitchRow(
                 title = stringResource(R.string.settings_flag_secure),
                 subtitle = stringResource(R.string.settings_flag_secure_sub),

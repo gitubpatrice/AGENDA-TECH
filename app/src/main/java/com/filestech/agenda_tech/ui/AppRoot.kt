@@ -11,6 +11,7 @@ import com.filestech.agenda_tech.ui.navigation.CalendarView
 import com.filestech.agenda_tech.ui.navigation.Routes
 import com.filestech.agenda_tech.ui.screens.about.AboutScreen
 import com.filestech.agenda_tech.ui.screens.agenda.AgendaScreen
+import com.filestech.agenda_tech.ui.screens.backup.BackupScreen
 import com.filestech.agenda_tech.ui.deviceimport.DeviceImportScreen
 import com.filestech.agenda_tech.ui.screens.calendars.CalendarsScreen
 import com.filestech.agenda_tech.ui.screens.editor.EventEditorScreen
@@ -80,6 +81,7 @@ fun AppRoot() {
                 onOpenAbout = { navController.navigate(Routes.ABOUT) },
                 onOpenCalendars = { navController.navigate(Routes.CALENDARS) },
                 onOpenDeviceImport = { navController.navigate(Routes.DEVICE_IMPORT) },
+                onOpenBackup = { navController.navigate(Routes.BACKUP) },
             )
         }
         composable(Routes.ABOUT) {
@@ -90,6 +92,9 @@ fun AppRoot() {
         }
         composable(Routes.DEVICE_IMPORT) {
             DeviceImportScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.BACKUP) {
+            BackupScreen(onBack = { navController.popBackStack() })
         }
     }
 }

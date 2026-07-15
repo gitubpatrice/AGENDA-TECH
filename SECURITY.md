@@ -104,6 +104,33 @@ C'est la **seule** permission dangereuse de l'app, et elle **ne trahit pas** la 
   ni backup cloud ni transfert d'appareil. La clé enveloppée étant liée à l'AndroidKeyStore local,
   l'exporter serait inutile et inutilement exposant.
 
+### Sauvegarde chiffrée `.atbak` (export manuel)
+
+Comme la clé de la base est liée à l'appareil, une copie exploitable ailleurs doit être chiffrée
+par un secret que l'utilisateur connaît — d'où un mot de passe, et non la clé du KeyStore.
+
+```
+[magic:5 "ATBAK"][envVersion:1][kdfId:1][iterations:4 BE][saltLen:1][salt:16]   ← en-tête (28 o)
+[AeadCipher : version:1 | iv:12 | ciphertext+tag]                              ← corps
+```
+
+- **KDF** : PBKDF2-HMAC-SHA256, **600 000 itérations** (plancher OWASP), sel aléatoire de 16 octets,
+  clé de 256 bits. Mot de passe **12 caractères minimum**, jamais stocké : un mot de passe oublié
+  rend le fichier définitivement illisible — c'est le prix du chiffrement hors ligne.
+- **Chiffrement** : AES-256-GCM via `AeadCipher` (le même primitif que la clé de base).
+- **En-tête authentifié (AAD)** : l'en-tête n'est pas secret mais il est **authentifié**. Réécrire le
+  sel, ou abaisser `iterations` à une valeur bon marché pour rendre une attaque hors ligne triviale,
+  casse le tag GCM et le fichier refuse de s'ouvrir. À la lecture, `iterations` hors de
+  `[100 000, 10 000 000]` est refusé avant tout calcul (déni de service par fichier hostile).
+- **Évolutivité** : `kdfId` et le coût sont écrits explicitement, pas implicites — passer à Argon2id
+  plus tard n'invalidera pas les fichiers déjà écrits. Une sauvegarde doit encore s'ouvrir dans des
+  années, c'est sa seule raison d'être.
+- **Restauration atomique** : le fichier est intégralement déchiffré et validé **avant** toute
+  écriture, puis l'agenda est remplacé en une transaction. Un fichier tronqué, falsifié ou protégé
+  par un autre mot de passe laisse l'agenda existant intact.
+- Un mauvais mot de passe et un fichier corrompu sont **indistinguables** (tous deux = tag GCM
+  invalide) : l'UI dit « mot de passe incorrect **ou** fichier endommagé », sans confirmer lequel.
+
 ## Signalement
 
 Vulnérabilité ? Contact : voir les mentions du dépôt Files Tech. Merci de ne pas divulguer

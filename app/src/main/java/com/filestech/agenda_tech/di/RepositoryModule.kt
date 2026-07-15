@@ -2,10 +2,12 @@ package com.filestech.agenda_tech.di
 
 import com.filestech.agenda_tech.data.local.settings.LockRepositoryImpl
 import com.filestech.agenda_tech.data.local.settings.SettingsRepositoryImpl
+import com.filestech.agenda_tech.data.repository.BackupRepositoryImpl
 import com.filestech.agenda_tech.data.repository.CalendarRepositoryImpl
 import com.filestech.agenda_tech.data.repository.EventRepositoryImpl
 import com.filestech.agenda_tech.data.repository.ReminderRepositoryImpl
 import com.filestech.agenda_tech.data.device.DeviceCalendarRepositoryImpl
+import com.filestech.agenda_tech.domain.repository.BackupRepository
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.DeviceCalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
@@ -21,6 +23,9 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
+
+    @Binds @Singleton
+    abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
 
     @Binds @Singleton
     abstract fun bindCalendarRepository(impl: CalendarRepositoryImpl): CalendarRepository

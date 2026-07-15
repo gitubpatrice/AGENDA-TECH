@@ -257,4 +257,36 @@
     <string name="lock_use_biometric">Utiliser la biométrie</string>
     <string name="lock_biometric_title">Déverrouiller Agenda Tech</string>
     <string name="lock_use_pin">Utiliser le code PIN</string>
+
+    <!-- Sauvegarde chiffrée (.atbak) -->
+    <string name="settings_backup">Sauvegarde chiffrée</string>
+    <string name="settings_backup_sub">Exporter ou restaurer tout l\'agenda dans un fichier protégé par mot de passe</string>
+    <string name="backup_title">Sauvegarde chiffrée</string>
+    <string name="backup_intro_title">Une copie complète, chiffrée</string>
+    <string name="backup_intro_body">Le fichier contient tout : calendriers, événements, récurrences, lieux et rappels. Il est chiffré avec votre mot de passe (AES-256) — personne ne peut l\'ouvrir sans lui, pas même nous. Vous pouvez le ranger où vous voulez : clé USB, ordinateur, cloud.</string>
+    <string name="backup_warn_title">Le mot de passe n\'est pas récupérable</string>
+    <string name="backup_warn_body">Il n\'est stocké nulle part. Si vous l\'oubliez, le fichier est définitivement illisible. Notez-le dans un gestionnaire de mots de passe.</string>
+    <string name="backup_export">Exporter une sauvegarde</string>
+    <string name="backup_export_sub">Créer un fichier .atbak chiffré</string>
+    <string name="backup_restore">Restaurer une sauvegarde</string>
+    <string name="backup_restore_sub">Remplacer l\'agenda actuel par le contenu d\'un fichier .atbak</string>
+    <string name="backup_password">Mot de passe</string>
+    <string name="backup_password_confirm">Confirmer le mot de passe</string>
+    <string name="backup_password_hint">12 caractères minimum</string>
+    <string name="backup_password_mismatch">Les deux mots de passe diffèrent.</string>
+    <string name="backup_password_too_short">Mot de passe trop court : 12 caractères minimum.</string>
+    <string name="backup_password_show">Afficher le mot de passe</string>
+    <string name="backup_password_hide">Masquer le mot de passe</string>
+    <string name="backup_export_dialog_title">Choisir un mot de passe</string>
+    <string name="backup_restore_dialog_title">Mot de passe de la sauvegarde</string>
+    <string name="backup_restore_confirm_body">Vos calendriers, événements et rappels actuels seront supprimés et remplacés par le contenu du fichier. Cette action est irréversible.</string>
+    <string name="backup_restore_confirm_action">Remplacer</string>
+    <string name="backup_working">Chiffrement en cours…</string>
+    <string name="backup_working_sub">Quelques secondes : c\'est le calcul qui protège votre mot de passe.</string>
+    <string name="backup_exported">Sauvegarde créée : %1$d événement(s).</string>
+    <string name="backup_restored">Restauré : %1$d calendrier(s), %2$d événement(s), %3$d rappel(s).</string>
+    <string name="backup_bad_password">Mot de passe incorrect, ou fichier endommagé.</string>
+    <string name="backup_not_a_backup">Ce fichier n\'est pas une sauvegarde Agenda Tech.</string>
+    <string name="backup_failed">La sauvegarde a échoué. Aucune donnée n\'a été modifiée.</string>
+    <string name="backup_working_restore">Déchiffrement en cours…</string>
 </resources>

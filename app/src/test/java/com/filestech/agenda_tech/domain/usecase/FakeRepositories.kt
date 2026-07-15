@@ -4,6 +4,7 @@ import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.domain.model.DeviceEvent
 import com.filestech.agenda_tech.domain.model.Event
+import com.filestech.agenda_tech.domain.repository.BackupRepository
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.DeviceCalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
@@ -108,4 +109,30 @@ internal class FakeEventRepository : EventRepository {
             .associate { it.sourceUid!! to it.id }
 
     override suspend fun delete(id: Long) { rows.remove(id) }
+}
+
+/**
+ * In-memory backup store. [replaceAll] mirrors the real implementation's contract — it wipes before
+ * inserting, and drops reminders naming an event the file does not contain (the FK the DB enforces).
+ */
+internal class FakeBackupRepository : BackupRepository {
+    val calendars = mutableListOf<Calendar>()
+    val events = mutableListOf<Event>()
+    val reminders = mutableMapOf<Long, List<Int>>()
+    var failOnWrite = false
+
+    override suspend fun reminderMinutesByEventId(): Map<Long, List<Int>> = reminders.toMap()
+
+    override suspend fun replaceAll(
+        calendars: List<Calendar>,
+        events: List<Event>,
+        remindersByEventId: Map<Long, List<Int>>,
+    ) {
+        if (failOnWrite) error("simulated storage failure")
+        val knownEventIds = events.mapTo(HashSet()) { it.id }
+        this.calendars.clear(); this.calendars.addAll(calendars)
+        this.events.clear(); this.events.addAll(events)
+        this.reminders.clear()
+        this.reminders.putAll(remindersByEventId.filterKeys { it in knownEventIds })
+    }
 }

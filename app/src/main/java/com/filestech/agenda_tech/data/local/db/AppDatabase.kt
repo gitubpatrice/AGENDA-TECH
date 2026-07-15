@@ -3,6 +3,7 @@ package com.filestech.agenda_tech.data.local.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.filestech.agenda_tech.data.local.db.dao.BackupDao
 import com.filestech.agenda_tech.data.local.db.dao.CalendarDao
 import com.filestech.agenda_tech.data.local.db.dao.EventDao
 import com.filestech.agenda_tech.data.local.db.dao.ReminderDao
@@ -29,6 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun calendarDao(): CalendarDao
     abstract fun eventDao(): EventDao
     abstract fun reminderDao(): ReminderDao
+    abstract fun backupDao(): BackupDao
 
     companion object {
         const val DATABASE_NAME = "agendatech.db"

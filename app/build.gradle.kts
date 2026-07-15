@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 // Version lue depuis version.properties : source unique, figée, indépendante de l'historique git.
@@ -208,6 +209,9 @@ dependencies {
 
     // SQLCipher
     implementation(libs.sqlcipher.android)
+
+    // Sérialisation du format de sauvegarde (.atbak)
+    implementation(libs.kotlinx.serialization.json)
 
     // Logging
     implementation(libs.timber)

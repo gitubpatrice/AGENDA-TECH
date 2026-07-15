@@ -69,6 +69,15 @@ class ReminderScheduler @Inject constructor(
         reminderRepository.getForEvent(eventId).forEach { cancel(it.id) }
     }
 
+    /**
+     * Cancel alarms by reminder id.
+     *
+     * Exists for the restore path: [rescheduleAll] walks the reminders that *exist*, so it can never
+     * disarm an alarm whose row a restore has just deleted. The ids have to be captured before the
+     * wipe and handed back here, or a reminder from the replaced agenda keeps firing.
+     */
+    fun cancelReminders(reminderIds: Collection<Long>) = reminderIds.forEach(::cancel)
+
     private fun schedule(reminder: Reminder, event: Event, earliestOccurrenceStart: Long) {
         val fire = ReminderScheduling.computeNextFire(expander, event, reminder.minutesBefore, earliestOccurrenceStart)
         if (fire == null) {

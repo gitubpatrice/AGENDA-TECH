@@ -32,7 +32,11 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
   occurrence** (modèle iCalendar `RECURRENCE-ID`).
 - **Rappels** par alarmes exactes, avec re-programmation après redémarrage : délais prédéfinis ou
   valeur libre, et son au choix (sonnerie système ou votre propre fichier audio).
-- **Import / export `.ics`** (RFC 5545) via le sélecteur de fichiers système.
+- **Sauvegarde chiffrée `.atbak`** : export/restauration de **tout** l'agenda (calendriers,
+  événements, récurrences, lieux, rappels) dans un fichier protégé par mot de passe
+  (PBKDF2 600 000 itérations + AES-256-GCM) — à ranger où vous voulez, y compris un cloud.
+- **Import / export `.ics`** (RFC 5545) via le sélecteur de fichiers système — format d'échange,
+  qui ne remplace pas la sauvegarde (il perd rappels, couleurs et structure des calendriers).
 - **Import depuis le calendrier de l'appareil** (Google, Exchange, calendriers locaux) en
   **lecture seule** — l'app copie ce qui est déjà synchronisé sur le téléphone, **sans réseau**.
 - **Verrou optionnel** par code PIN et/ou biométrie.
@@ -44,6 +48,8 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
   ni publicité, ni SDK tiers de traçage.
 - **Chiffré au repos.** Base Room adossée à **SQLCipher** (AES-256) ; clé maître enveloppée par
   l'**AndroidKeyStore** (matériel/TEE sur les appareils compatibles).
+- **Sauvegardes chiffrées de bout en bout.** Le fichier `.atbak` est chiffré par votre mot de passe
+  seul : il reste illisible même posé sur un cloud. Format documenté dans [SECURITY.md](SECURITY.md).
 - **Confidentialité à l'écran.** `FLAG_SECURE` (pas d'aperçu dans les Récents, capture d'écran
   bloquée), sauvegardes cloud exclues (`allowBackup=false`).
 
