@@ -22,9 +22,11 @@
       Pourquoi le retrait est sûr : WorkManager ne consulte l'état du réseau que pour honorer une
       contrainte NetworkType, et l'app n'enfile AUCUN travail WorkManager (vérifié : aucune
       référence à WorkManager/Constraints/NetworkType dans app/src/main). Glance ne pose pas non
-      plus de contrainte réseau sur la mise à jour d'un widget. Si un jour du travail contraint par
-      le réseau est ajouté, ce retrait devra être reconsidéré — mais ce serait déjà une entorse à
-      la doctrine.
+      plus de contrainte réseau sur la mise à jour d'un widget.
+
+      Vérifié sur appareil (S24, 15/07/2026) : les deux widgets posés sur l'écran d'accueil se
+      lient et s'affichent, sans SecurityException. Si un jour du travail contraint par le réseau
+      est ajouté, ce retrait devra être reconsidéré — mais ce serait déjà une entorse à la doctrine.
     -->
     <uses-permission
         android:name="android.permission.ACCESS_NETWORK_STATE"

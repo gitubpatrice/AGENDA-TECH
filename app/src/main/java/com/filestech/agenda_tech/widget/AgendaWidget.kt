@@ -45,7 +45,9 @@ import java.util.Locale
 /**
  * Home-screen widget: shows today's date and the next few events, and opens the app when tapped.
  * Data is fetched through a Hilt [WidgetEntryPoint] (widgets run outside the Activity graph).
- * Colours are explicit day/night [ColorProvider]s so the widget needs no Compose theme.
+ * Colours are a fixed brand card (see [WidgetBackground]) rather than theme-following: a widget is
+ * drawn over the user's wallpaper, which the app neither controls nor can measure, so following the
+ * light/dark theme would still leave it unreadable over a busy photo.
  */
 class AgendaWidget : GlanceAppWidget() {
 
