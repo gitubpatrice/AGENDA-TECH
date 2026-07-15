@@ -1,6 +1,6 @@
 # Politique de confidentialité — Agenda Tech
 
-_Dernière mise à jour : 14 juillet 2026 — version 0.1.0_
+_Dernière mise à jour : 15 juillet 2026 — version 0.3.0_
 
 Agenda Tech (`com.filestech.agenda_tech`) est une application d'agenda **entièrement locale**.
 Elle est conçue autour d'un principe simple : **vos données ne quittent jamais votre appareil.**
@@ -44,9 +44,20 @@ ouvrez l'écran d'import, et peut être refusée.
 
 ## Partage avec des tiers
 
-**Aucun.** Aucune donnée n'est partagée, vendue ou transmise à qui que ce soit.
-Les seuls échanges de données possibles sont ceux que **vous** initiez explicitement :
-export d'un fichier `.ics` vers l'emplacement de votre choix via le sélecteur de fichiers système.
+**Aucun.** Aucune donnée n'est partagée, vendue ou transmise à qui que ce soit — l'application n'a
+aucun moyen technique de le faire (pas de permission Internet).
+
+Les seuls échanges possibles sont ceux que **vous** déclenchez explicitement, et qui restent sur
+votre appareil, d'une application à l'autre :
+
+- **Export `.ics`** : vers l'emplacement de votre choix, via le sélecteur de fichiers système.
+- **Ouvrir un lieu sur la carte** : si vous saisissez des coordonnées GPS sur un événement et que
+  vous touchez le repère, l'application transmet **ces coordonnées et le libellé de l'événement** à
+  l'application de cartes de votre téléphone. Rien d'autre n'est transmis, et rien ne part si vous
+  ne touchez pas le repère. Ce que cette application de cartes fait ensuite de ces informations
+  relève de sa propre politique de confidentialité.
+- **Son de rappel personnalisé** : si vous choisissez un fichier audio, l'application conserve
+  l'autorisation de le lire pour pouvoir le jouer au moment du rappel.
 
 ## Vos droits (RGPD)
 

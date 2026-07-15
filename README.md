@@ -7,13 +7,13 @@ l'écosystème **Files Tech**, pensée pour sortir de Google Agenda sans rien co
 [![Zéro réseau](https://img.shields.io/badge/r%C3%A9seau-z%C3%A9ro-success.svg)](#confidentialité)
 [![Plateforme](https://img.shields.io/badge/Android-8.0%2B%20(API%2026)-brightgreen.svg)](#installation)
 
-> **Version de test** `v0.1.0`. Fonctionnelle de bout en bout ; en cours de finition avant une
+> **Version de test** `v0.3.0`. Fonctionnelle de bout en bout ; en cours de finition avant une
 > première publication stable. Vos retours de bug sont les bienvenus dans les
 > [issues](https://github.com/gitubpatrice/AGENDA-TECH/issues).
 
 ## Installation
 
-1. Téléchargez le fichier **`agenda-tech-v0.1.0-universal.apk`** depuis la
+1. Téléchargez l'APK **universel** (`agenda-tech-…-universal.apk`) depuis la
    [dernière release](https://github.com/gitubpatrice/AGENDA-TECH/releases/latest).
 2. Ouvrez-le sur votre téléphone Android (8.0 ou plus). Autorisez si besoin « installer des
    applications inconnues ».
@@ -24,11 +24,14 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
 ## Fonctionnalités
 
 - **Vues** Mois (changement de mois par glissement fluide), Semaine, Jour et Agenda (liste).
-- **Événements** : création/édition, journée entière, lieu, description, couleur par événement.
+- **Événements** : création/édition, journée entière, description, couleur par événement.
+- **Lieu** : libellé, adresse postale (adresse, code postal, ville) et coordonnées GPS — un appui
+  ouvre le point dans votre application de cartes (sans aucune permission de localisation).
 - **Récurrences** (RFC 5545) : quotidienne / hebdo (jours choisis) / mensuelle / annuelle, avec
   intervalle, fin après N occurrences ou à une date, et **modification/suppression d'une seule
   occurrence** (modèle iCalendar `RECURRENCE-ID`).
-- **Rappels** par alarmes exactes, avec re-programmation après redémarrage.
+- **Rappels** par alarmes exactes, avec re-programmation après redémarrage : délais prédéfinis ou
+  valeur libre, et son au choix (sonnerie système ou votre propre fichier audio).
 - **Import / export `.ics`** (RFC 5545) via le sélecteur de fichiers système.
 - **Import depuis le calendrier de l'appareil** (Google, Exchange, calendriers locaux) en
   **lecture seule** — l'app copie ce qui est déjà synchronisé sur le téléphone, **sans réseau**.
