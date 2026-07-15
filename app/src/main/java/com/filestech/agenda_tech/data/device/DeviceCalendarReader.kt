@@ -101,7 +101,7 @@ class DeviceCalendarReader @Inject constructor(
                         val dtStart = if (c.isNull(3)) continue else c.getLong(3)
                         val deviceId = c.getLong(11)
                         // Stable per-row identity for idempotent re-import: sync id, else local row id.
-                        val uid = c.getStringOrNull(10) ?: "rowid:$deviceId"
+                        val uid = c.getStringOrNull(10) ?: rowIdUid(deviceId)
                         add(
                             DeviceEvent(
                                 uid = uid,
@@ -131,8 +131,15 @@ class DeviceCalendarReader @Inject constructor(
 
     private fun Cursor.getStringOrNull(index: Int): String? = if (isNull(index)) null else getString(index)
 
-    private companion object {
+    companion object {
         // A personal agenda is well under this; the cap bounds memory against a pathological provider.
-        const val MAX_EVENTS = 20_000
+        private const val MAX_EVENTS = 20_000
+
+        /**
+         * Fallback uid for an event with no `_SYNC_ID` (local calendar, or created while offline and
+         * not yet pushed). Shared with the import use case, which also matches on this form to catch
+         * the `rowid → sync-id` transition and avoid re-inserting the event once it finally syncs.
+         */
+        fun rowIdUid(eventRowId: Long): String = "rowid:$eventRowId"
     }
 }

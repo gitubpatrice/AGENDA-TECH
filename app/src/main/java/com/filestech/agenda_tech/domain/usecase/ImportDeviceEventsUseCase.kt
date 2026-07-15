@@ -8,9 +8,12 @@ import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Import of events from the device's own calendars (Google, Exchange, local…) read via the Calendar
@@ -22,26 +25,46 @@ import javax.inject.Inject
  * is a safe refresh. It does not delete events removed at the source (no destructive two-way sync),
  * and VALARM reminders are out of scope (mirrors the `.ics` import).
  */
+@Singleton
 class ImportDeviceEventsUseCase @Inject constructor(
     private val reader: DeviceCalendarReader,
     private val calendarRepository: CalendarRepository,
     private val eventRepository: EventRepository,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) {
-    data class Result(val calendars: Int, val events: Int)
+    /**
+     * [failedCalendars] > 0 means some selected calendars could not be imported (read or write
+     * error); the screen surfaces it instead of silently reporting "0 events".
+     */
+    data class Result(val calendars: Int, val events: Int, val failedCalendars: Int = 0)
+
+    /**
+     * Serialises imports: the get-or-create of a calendar by `source_id` is a read-then-write, so two
+     * concurrent runs could otherwise each miss the other's insert and duplicate it (audit U3).
+     */
+    private val mutex = Mutex()
 
     /** Lists the device calendars available to import from (requires READ_CALENDAR granted). */
     suspend fun listCalendars(): List<DeviceCalendar> = withContext(io) { reader.listCalendars() }
 
     /** Wipes previously imported calendars (incl. legacy ones) so a fresh import starts clean. */
-    suspend fun clearImported() = calendarRepository.deleteImported()
+    suspend fun clearImported() = mutex.withLock { calendarRepository.deleteImported() }
 
     suspend operator fun invoke(selectedCalendarIds: List<Long>): Result = withContext(io) {
+        mutex.withLock { importLocked(selectedCalendarIds) }
+    }
+
+    private suspend fun importLocked(selectedCalendarIds: List<Long>): Result {
         val byId = reader.listCalendars().associateBy { it.id }
         var calendars = 0
         var events = 0
+        var failed = 0
         for (deviceId in selectedCalendarIds.distinct()) {
-            val deviceCal = byId[deviceId] ?: continue
+            val deviceCal = byId[deviceId]
+            if (deviceCal == null) {
+                failed++
+                continue
+            }
             // Isolate each calendar: a failure on one (bad row, write error) is logged and skipped,
             // never crashes the whole import — mirrors the resilient .ics import path.
             runCatching {
@@ -76,7 +99,12 @@ class ImportDeviceEventsUseCase @Inject constructor(
                     } else {
                         ev
                     }
+                    // Match the already-imported row by source uid, falling back to the local row-id
+                    // form: an event first imported before its account synced was stored under
+                    // `rowid:<id>`, and now carries a real `_SYNC_ID` — without this second key it
+                    // would be re-inserted as a duplicate (audit U1).
                     val existingId = withEx.sourceUid?.let { existing[it] }
+                        ?: existing[DeviceCalendarReader.rowIdUid(de.deviceId)]
                     if (existingId != null) withEx.copy(id = existingId) else withEx
                 }
                 eventRepository.upsertAll(mapped) // atomic batch — all rows or none
@@ -85,10 +113,11 @@ class ImportDeviceEventsUseCase @Inject constructor(
                 calendars++
                 events += imported
             }.onFailure {
+                failed++
                 Timber.w(it, "ImportDeviceEventsUseCase: calendar %d skipped", deviceId)
             }
         }
-        Result(calendars = calendars, events = events)
+        return Result(calendars = calendars, events = events, failedCalendars = failed)
     }
 
     private companion object {

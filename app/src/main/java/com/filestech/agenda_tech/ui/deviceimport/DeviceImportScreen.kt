@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.ui.deviceimport
 
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.selection.toggleable
@@ -70,6 +71,9 @@ fun DeviceImportScreen(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> if (granted) viewModel.onPermissionGranted() else viewModel.onPermissionDenied() }
 
+    // Same guard as the disabled back arrow, for the system back gesture (audit U2).
+    BackHandler(enabled = importing) { /* swallow: an import is in flight */ }
+
     // On entry, if the permission is already granted, load straight away.
     LaunchedEffect(Unit) {
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) ==
@@ -77,14 +81,16 @@ fun DeviceImportScreen(
         if (granted) viewModel.onPermissionGranted()
     }
 
-    // Import finished → toast the count and return to Settings.
+    // Import finished → report the outcome and return to Settings. A calendar that could not be read
+    // or written is surfaced explicitly (audit C5) rather than being reported as "0 events imported".
     LaunchedEffect(result) {
         result?.let {
-            android.widget.Toast.makeText(
-                context,
-                context.getString(R.string.device_import_done, it.events, it.calendars),
-                android.widget.Toast.LENGTH_LONG,
-            ).show()
+            val message = if (it.failedCalendars > 0) {
+                context.getString(R.string.device_import_partial, it.events, it.calendars, it.failedCalendars)
+            } else {
+                context.getString(R.string.device_import_done, it.events, it.calendars)
+            }
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
             viewModel.consumeResult()
             onBack()
         }
@@ -106,7 +112,9 @@ fun DeviceImportScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.device_import_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    // Disabled while importing: leaving would destroy the ViewModel, cancel the
+                    // transaction and silently discard the work in progress (audit U2).
+                    IconButton(onClick = onBack, enabled = !importing) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.editor_back))
                     }
                 },
