@@ -8,6 +8,10 @@ import com.filestech.agenda_tech.domain.repository.BackupRepository
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.DeviceCalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
+import com.filestech.agenda_tech.domain.model.Reminder
+import com.filestech.agenda_tech.domain.repository.ReminderRepository
+import com.filestech.agenda_tech.domain.repository.SettingsRepository
+import com.filestech.agenda_tech.domain.settings.AppSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -74,9 +78,21 @@ internal class FakeEventRepository : EventRepository {
     override suspend fun getById(id: Long): Event? = rows[id]
     override suspend fun getAll(): List<Event> = rows.values.toList()
     override fun observeAll(): Flow<List<Event>> = flowOf(rows.values.sortedBy { it.startUtcMillis })
-    override suspend fun deleteOverridesForParent(parentId: Long) = Unit
-    override suspend fun deleteSeriesAtomic(parentId: Long) = Unit
-    override suspend fun upsertAndDelete(event: Event, deleteId: Long) = Unit
+    override suspend fun deleteOverridesForParent(parentId: Long) {
+        rows.values.filter { it.recurrenceParentId == parentId }.forEach { rows.remove(it.id) }
+    }
+
+    /** Mirrors the real DAO: the master AND every override of it go together. */
+    override suspend fun deleteSeriesAtomic(parentId: Long) {
+        deleteOverridesForParent(parentId)
+        rows.remove(parentId)
+    }
+
+    /** Mirrors the real DAO: writes [event] and removes [deleteId] in one go. */
+    override suspend fun upsertAndDelete(event: Event, deleteId: Long) {
+        upsert(event)
+        rows.remove(deleteId)
+    }
 
     /** Mirrors the real implementation: writes the override AND the master's new EXDATE together. */
     override suspend fun upsertOverrideAtomic(
@@ -153,5 +169,49 @@ internal class FakeBackupRepository : BackupRepository {
         this.events.clear(); this.events.addAll(events)
         this.reminders.clear()
         this.reminders.putAll(remindersByEventId.filterKeys { it in knownEventIds })
+    }
+}
+
+/** In-memory reminders, keyed by id like the DB. */
+internal class FakeReminderRepository : ReminderRepository {
+    val rows = mutableMapOf<Long, Reminder>()
+    private var nextId = 1000L
+
+    /**
+     * Ordered trace of the writes. Lets a test assert the *sequence* across this fake and the mocked
+     * scheduler — "cancel the alarms before replacing the rows they point at" is an ordering rule, and
+     * verifying each side alone would miss the very inversion it guards against.
+     */
+    val callLog = mutableListOf<String>()
+
+    override fun observeForEvent(eventId: Long): Flow<List<Reminder>> =
+        flowOf(rows.values.filter { it.eventId == eventId }.sortedBy { it.minutesBefore })
+
+    override suspend fun getForEvent(eventId: Long): List<Reminder> =
+        rows.values.filter { it.eventId == eventId }.sortedBy { it.minutesBefore }
+
+    override suspend fun getById(id: Long): Reminder? = rows[id]
+    override suspend fun getAll(): List<Reminder> = rows.values.toList()
+
+    override suspend fun upsert(reminder: Reminder): Long {
+        val id = if (reminder.id == 0L) nextId++ else reminder.id
+        rows[id] = reminder.copy(id = id)
+        return id
+    }
+
+    override suspend fun deleteForEvent(eventId: Long) {
+        callLog += "deleteRows($eventId)"
+        rows.values.filter { it.eventId == eventId }.forEach { rows.remove(it.id) }
+    }
+
+    override suspend fun delete(id: Long) { rows.remove(id) }
+}
+
+/** Settings held in memory; the editor only reads them to seed a new event's defaults. */
+internal class FakeSettingsRepository(private var current: AppSettings = AppSettings()) : SettingsRepository {
+    override val settings: Flow<AppSettings> get() = flowOf(current)
+    override suspend fun current(): AppSettings = current
+    override suspend fun update(transform: (AppSettings) -> AppSettings) {
+        current = transform(current)
     }
 }
