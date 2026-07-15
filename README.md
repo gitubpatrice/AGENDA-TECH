@@ -87,6 +87,22 @@ cd AGENDA-TECH
 La signature de release attend un fichier `keystore.properties` (non versionné) ; le build
 de debug n'en a pas besoin.
 
+### Versions
+
+`version.properties`, à la racine, est la **source unique** de `versionCode` / `versionName` :
+
+```properties
+versionCode=44
+versionName=0.3.0
+```
+
+Le `versionCode` doit **toujours augmenter** : Android refuse d'installer un APK dont le
+`versionCode` est inférieur à celui déjà installé, et l'utilisateur ne voit qu'un échec sans
+explication. Il se bumpe **à la main**, avant de builder l'APK d'une release — jamais après.
+
+Le build **échoue** si le fichier est absent ou illisible : mieux vaut ne rien produire qu'un APK
+portant une version silencieusement fausse.
+
 ## Sécurité & vie privée
 
 - Modèle de menace, chiffrement, verrou : [SECURITY.md](SECURITY.md).

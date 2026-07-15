@@ -18,7 +18,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -173,6 +177,46 @@ fun DeviceImportScreen(
     }
 }
 
+/**
+ * States plainly, at the moment the user decides, that this is a one-way copy and not a sync.
+ * Without it the divergence is only discovered months later — events created here never travel back
+ * to the source, so both calendars slowly stop being complete.
+ */
+@Composable
+private fun OneWayNotice() {
+    val cs = MaterialTheme.colorScheme
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        colors = CardDefaults.cardColors(containerColor = cs.surfaceContainerHigh),
+        border = BorderStroke(1.dp, cs.outlineVariant),
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = null,
+                    tint = cs.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = stringResource(R.string.device_import_oneway_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = cs.onSurface,
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+            }
+            Text(
+                text = stringResource(R.string.device_import_oneway_body),
+                style = MaterialTheme.typography.bodySmall,
+                color = cs.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+    }
+}
+
 @Composable
 private fun PermissionPrompt(onGrant: () -> Unit) {
     Column(
@@ -201,6 +245,7 @@ private fun ReadyContent(
     onClearImported: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
+        OneWayNotice()
         Text(
             text = stringResource(R.string.device_import_pick),
             style = MaterialTheme.typography.bodyMedium,

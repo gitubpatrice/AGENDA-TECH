@@ -9,15 +9,20 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-// versionCode = nombre de commits si dispo, sinon 1 (même convention que SMS Tech).
-val gitCommitCount: Int by lazy {
-    runCatching {
-        val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
-            .directory(rootProject.projectDir)
-            .redirectErrorStream(true)
-            .start()
-        process.inputStream.bufferedReader().readText().trim().toInt()
-    }.getOrDefault(1)
+// Version lue depuis version.properties : source unique, figée, indépendante de l'historique git.
+// Volontairement sans repli : une version fausse casse la mise à jour chez l'utilisateur (Android
+// refuse un versionCode qui baisse), donc mieux vaut un build qui échoue tout de suite et bruyamment
+// qu'un APK publié avec un versionCode silencieusement erroné.
+val versionProps = Properties().apply {
+    val f = rootProject.file("version.properties")
+    require(f.exists()) { "version.properties est introuvable à la racine du projet." }
+    f.inputStream().use { load(it) }
+}
+val appVersionCode: Int = requireNotNull(versionProps.getProperty("versionCode")?.trim()?.toIntOrNull()) {
+    "versionCode absent ou non entier dans version.properties."
+}
+val appVersionName: String = requireNotNull(versionProps.getProperty("versionName")?.trim()?.ifBlank { null }) {
+    "versionName absent ou vide dans version.properties."
 }
 
 val keystoreProps = Properties().apply {
@@ -38,10 +43,10 @@ android {
         // desugaring. Aligné sur le socle Files Tech.
         minSdk = 26
         targetSdk = 35
-        versionCode = gitCommitCount.coerceAtLeast(1)
+        versionCode = appVersionCode
         // La version affichée est lue DYNAMIQUEMENT à l'exécution via `PackageInfo`
         // (pattern Pass/RFT/AI) — pas de constante statique à bumper dans le code.
-        versionName = "0.3.0"
+        versionName = appVersionName
 
         testInstrumentationRunner = "com.filestech.agenda_tech.HiltTestRunner"
         vectorDrawables { useSupportLibrary = true }

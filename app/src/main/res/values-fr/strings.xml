@@ -222,6 +222,8 @@
     <string name="device_import_title">Import du calendrier de l\'appareil</string>
     <string name="device_import_rationale">Agenda Tech peut copier les événements déjà synchronisés sur ce téléphone (Google, Exchange, calendriers locaux). Il se contente de les lire localement — aucun accès Internet, aucune connexion à votre compte.</string>
     <string name="device_import_grant">Autoriser l\'accès au calendrier</string>
+    <string name="device_import_oneway_title">Une copie, pas une synchronisation</string>
+    <string name="device_import_oneway_body">Vos événements sont copiés ici. Rien n\'est jamais réécrit à la source : un événement que vous créez dans Agenda Tech y reste, et n\'apparaîtra pas dans Google. Revenez importer quand vous voulez — cela met à jour sans créer de doublon.</string>
     <string name="device_import_pick">Choisissez les calendriers à importer :</string>
     <string name="device_import_fallback_name">Calendrier importé</string>
     <string name="device_import_empty">Aucun calendrier trouvé sur cet appareil.</string>

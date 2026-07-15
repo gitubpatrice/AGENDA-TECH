@@ -222,6 +222,8 @@
     <string name="device_import_title">Device calendar import</string>
     <string name="device_import_rationale">Agenda Tech can copy events already synced onto this phone (Google, Exchange, local calendars). It only reads them locally — no Internet access, no connection to your account.</string>
     <string name="device_import_grant">Allow calendar access</string>
+    <string name="device_import_oneway_title">A copy, not a sync</string>
+    <string name="device_import_oneway_body">Your events are copied here. Nothing is ever written back: an event you create in Agenda Tech stays in Agenda Tech, and will not appear in Google. Come back and import again whenever you like — it refreshes without creating duplicates.</string>
     <string name="device_import_pick">Choose the calendars to import:</string>
     <string name="device_import_fallback_name">Imported calendar</string>
     <string name="device_import_empty">No calendar found on this device.</string>
