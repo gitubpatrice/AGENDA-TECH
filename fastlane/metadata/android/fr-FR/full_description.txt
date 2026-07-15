@@ -1,0 +1,32 @@
+Agenda Tech est un agenda pour Android qui garde tout sur votre appareil. Pas de cloud, pas de compte, pas de publicité, pas de traceur. Il ne déclare aucune permission Internet : il est techniquement incapable d'envoyer quoi que ce soit où que ce soit — et vous pouvez le vérifier vous-même dans les réglages Android.
+
+Il existe pour vous permettre de quitter Google Agenda sans confier vos rendez-vous à personne. Un agenda en dit long sur quelqu'un : ses médecins, ses avocats, ses entretiens d'embauche, qui il rencontre et quand.
+
+Fonctionnalités
+===============
+
+• Quatre vues — Mois (changement par glissement), Semaine, Jour et Agenda en liste
+• Événements — journée entière, description, couleur par événement, adresse postale et coordonnées GPS qui s'ouvrent dans votre app de cartes (sans aucune permission de localisation)
+• Récurrences (RFC 5545) — quotidienne, hebdomadaire aux jours choisis, mensuelle, annuelle ; fin après N occurrences ou à une date ; modification ou suppression d'une seule occurrence
+• Rappels — alarmes exactes, reprogrammées après un redémarrage, délai libre, votre propre son, et un bouton « Répéter 10 min » sur la notification
+• Sauvegarde chiffrée — exportez tout votre agenda dans un fichier .atbak protégé par mot de passe (PBKDF2 600 000 itérations + AES-256-GCM). Rangez-le où vous voulez, cloud compris : il reste illisible sans votre mot de passe
+• Recherche — par titre, description, lieu, adresse ou ville ; les accents et la casse ne comptent pas
+• Import du calendrier de l'appareil — copie ce que Google ou Exchange ont déjà synchronisé sur le téléphone, en lecture seule, sans réseau
+• Import / export .ics (RFC 5545) via le sélecteur de fichiers système
+• Verrou optionnel par code PIN et biométrie
+• Widgets écran d'accueil, thème sombre, français et anglais
+
+Confidentialité
+===============
+
+• Aucune permission INTERNET. Pas « nous promettons de ne pas le faire » — l'app ne peut pas
+• Chiffré au repos : SQLCipher (AES-256), clé maître scellée par l'Android KeyStore
+• Captures d'écran bloquées (FLAG_SECURE), exclu des sauvegardes cloud Android
+• Apache 2.0 — toutes les promesses de cette page sont vérifiables ligne par ligne
+
+Les limites, honnêtement
+========================
+
+• Ce n'est pas une synchronisation. L'import copie ce qui est sur le téléphone ; un événement créé ici ne remontera pas dans Google. C'est le prix du zéro réseau, et il est assumé
+• Pas de CalDAV, pas de partage d'agenda, pas d'invitations — tout cela demande un réseau
+• La sauvegarde chiffrée est le pont entre vos appareils, et il est manuel

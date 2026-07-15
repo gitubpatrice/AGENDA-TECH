@@ -1,0 +1,12 @@
+v0.5.0 — Snooze, restore, backup reminder
+
+• Reminder notifications now carry a
+  "Snooze 10 min" button — without touching
+  the next reminders of a recurring event.
+• An empty calendar offers to restore a
+  backup: the state of a fresh install on a
+  new phone.
+• The app now reminds you to back up — but
+  rarely: never before you have something to
+  lose, never if nothing changed since the
+  last one, and "Later" buys two weeks.

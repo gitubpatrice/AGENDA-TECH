@@ -1,0 +1,12 @@
+v0.5.0 — Répéter, restaurer, sauvegarder
+
+• Les notifications de rappel portent un
+  bouton « Répéter 10 min » — sans toucher
+  aux rappels suivants d'un récurrent.
+• Un agenda vide propose de restaurer une
+  sauvegarde : l'état exact d'une install
+  sur un nouveau téléphone.
+• L'app rappelle de sauvegarder — mais
+  rarement : jamais avant d'avoir quelque
+  chose à perdre, jamais si rien n'a changé,
+  et « Plus tard » vaut deux semaines.
