@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
+import com.filestech.agenda_tech.ui.theme.BrandDanger
 
 @Composable
 fun CalendarsScreen(
@@ -122,7 +123,7 @@ fun CalendarsScreen(
                     viewModel.delete(target.id)
                     confirmDelete = null
                 }) {
-                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.action_delete), color = BrandDanger)
                 }
             },
             dismissButton = {
@@ -214,7 +215,7 @@ private fun CalendarEditDialog(
                     ) {
                         Text(
                             stringResource(R.string.action_delete),
-                            color = MaterialTheme.colorScheme.error,
+                            color = BrandDanger,
                         )
                     }
                 }

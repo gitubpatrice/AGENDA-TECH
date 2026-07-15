@@ -124,6 +124,10 @@
     <string name="settings_notif_sound">Sound</string>
     <string name="settings_notif_ringtone">Reminder sound</string>
     <string name="settings_notif_ringtone_default">System default</string>
+    <string name="settings_notif_sound_file">Choose an audio file</string>
+    <string name="settings_notif_sound_file_sub">Any MP3 or audio file on this phone</string>
+    <string name="settings_notif_sound_reset">Back to the system sound</string>
+    <string name="settings_notif_sound_file_denied">This file can\'t be kept accessible — pick another one, or copy it into your Notifications folder.</string>
     <string name="settings_notif_vibrate">Vibrate</string>
     <string name="settings_notif_lockscreen">Show on lock screen</string>
     <string name="settings_notif_system">Open system notification settings</string>

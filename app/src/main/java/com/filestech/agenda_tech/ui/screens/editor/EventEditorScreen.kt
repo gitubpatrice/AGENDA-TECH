@@ -69,6 +69,7 @@ import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.Weekday
+import com.filestech.agenda_tech.ui.theme.BrandDanger
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -230,12 +231,20 @@ private fun EventEditorContent(
                             // choice, no extra confirm. A plain event gets an anti-mistap confirmation.
                             if (state.deleteNeedsScope) onDelete() else confirmDelete = true
                         }) {
-                            Icon(Icons.Filled.Delete, stringResource(R.string.editor_delete))
+                            // Red: deleting is destructive and must read as such at a glance.
+                            Icon(
+                                imageVector = Icons.Filled.Delete,
+                                contentDescription = stringResource(R.string.editor_delete),
+                                tint = BrandDanger,
+                            )
                         }
                     }
-                    // Spelled out rather than a bare check icon: "Enregistrer" leaves no doubt about
-                    // what the action does, which a ✓ glyph alone does not.
-                    TextButton(onClick = onSave) {
+                    // Spelled out and outlined rather than a bare check icon: "Enregistrer" leaves no
+                    // doubt about the action, and the border makes it read as the primary button.
+                    OutlinedButton(
+                        onClick = onSave,
+                        modifier = Modifier.padding(end = 8.dp),
+                    ) {
                         Text(stringResource(R.string.editor_save))
                     }
                 },

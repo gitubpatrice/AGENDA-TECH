@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioAttributes
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -62,6 +63,21 @@ class ReminderNotifier @Inject constructor(
         createChannel(settingsRepository.current())
     }
 
+    /**
+     * The picked sound, or null if it can no longer be opened. Parsing a URI proves nothing — only
+     * actually opening the stream does — so this is what separates a real fallback from a mute channel.
+     */
+    private fun readableSoundUri(raw: String): Uri? {
+        val uri = runCatching { raw.toUri() }.getOrNull() ?: return null
+        return runCatching {
+            context.contentResolver.openInputStream(uri)?.use { }
+            uri
+        }.getOrElse {
+            Timber.w("ReminderNotifier: custom reminder sound is no longer readable, using the default")
+            null
+        }
+    }
+
     private fun createChannel(settings: AppSettings) {
         val channel = NotificationChannel(
             CHANNEL_ID,
@@ -70,13 +86,13 @@ class ReminderNotifier @Inject constructor(
         ).apply {
             description = context.getString(R.string.reminder_channel_desc)
             enableVibration(settings.notifVibrate)
-            // Sound off > custom ringtone > system default. A ringtone the user picked can become
-            // unreadable later (SD card pulled, permission revoked): fall back to the default rather
-            // than creating a silent channel by accident.
+            // Sound off > custom sound (only if still readable) > system default. A picked sound can
+            // die later (file deleted, SD card pulled, permission lost): silently keeping a dead URI
+            // would make the channel mute and the user would miss reminders without ever knowing.
             if (!settings.notifSound) {
                 setSound(null, null)
             } else {
-                val picked = settings.notifSoundUri?.let { runCatching { it.toUri() }.getOrNull() }
+                val picked = settings.notifSoundUri?.let(::readableSoundUri)
                 if (picked != null) {
                     val attributes = AudioAttributes.Builder()
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -84,6 +100,7 @@ class ReminderNotifier @Inject constructor(
                         .build()
                     setSound(picked, attributes)
                 }
+                // else: leave the channel's default sound — an audible fallback beats silence.
             }
             lockscreenVisibility = if (settings.notifLockScreen) {
                 Notification.VISIBILITY_PRIVATE
