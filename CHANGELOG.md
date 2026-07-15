@@ -3,6 +3,19 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [0.4.1] — 2026-07-15
+
+### Corrigé
+
+- **L'application ne plante plus quand vous enregistrez un événement modifié qui a un rappel.**
+  C'était un plantage systématique, présent depuis les toutes premières versions et jusqu'à la
+  v0.4.0 incluse. Il ne se déclenchait que si l'événement portait au moins un rappel — d'où le fait
+  qu'il ait pu passer inaperçu si longtemps.
+  En interne : Room signale une mise à jour par `-1` au lieu de l'identifiant de la ligne, et cette
+  valeur servait ensuite à rattacher les rappels — aucun événement ne porte l'identifiant `-1`, donc
+  la base refusait l'écriture. Corrigé à la source : les repositories tiennent désormais la promesse
+  de leur contrat (« renvoie l'identifiant de l'événement »), et cette valeur ne peut plus s'échapper.
+
 ## [0.4.0] — 2026-07-15
 
 ### Ajouté
@@ -51,5 +64,6 @@ Première version publique. Agenda local chiffré : vues Mois/Semaine/Jour/Agend
 RFC 5545 avec modification par occurrence, rappels par alarmes exactes, import/export `.ics`,
 import du calendrier de l'appareil (lecture seule), verrou PIN/biométrie, widgets, thème sombre.
 
+[0.4.1]: https://github.com/gitubpatrice/AGENDA-TECH/releases/tag/v0.4.1
 [0.4.0]: https://github.com/gitubpatrice/AGENDA-TECH/releases/tag/v0.4.0
 [0.3.0]: https://github.com/gitubpatrice/AGENDA-TECH/releases/tag/v0.3.0

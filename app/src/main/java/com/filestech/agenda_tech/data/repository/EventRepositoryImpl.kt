@@ -89,7 +89,16 @@ class EventRepositoryImpl @Inject constructor(
         } else {
             now
         }
-        dao.upsert(event.toEntity(createdAt = createdAt, updatedAt = now))
+        val rowId = dao.upsert(event.toEntity(createdAt = createdAt, updatedAt = now))
+        // Room's @Upsert returns the new rowid on INSERT but **-1 on UPDATE**. The contract above
+        // promises "the event's id", so answer that — never hand a caller the raw DAO value.
+        //
+        // This is not hypothetical: leaking the -1 crashed the editor on every save of an existing
+        // event that had a reminder (`Reminder(eventId = -1)` → FOREIGN KEY constraint failed). The
+        // DAO carried a comment telling callers not to use its return this way; a warning that has to
+        // be remembered at each call site is a bug waiting for a new caller. Fixed here instead, once,
+        // where the -1 can no longer escape.
+        if (event.id != 0L) event.id else rowId
     }
 
     override suspend fun upsertAll(events: List<Event>) = withContext(io) {

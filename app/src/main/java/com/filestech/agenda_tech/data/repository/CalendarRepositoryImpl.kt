@@ -41,7 +41,11 @@ class CalendarRepositoryImpl @Inject constructor(
         } else {
             System.currentTimeMillis()
         }
-        dao.upsert(calendar.toEntity(createdAt))
+        val rowId = dao.upsert(calendar.toEntity(createdAt))
+        // Same trap as EventRepositoryImpl.upsert: @Upsert returns -1 on UPDATE, and the contract
+        // promises the calendar's id. Latent today (the only caller that links to this id, the device
+        // import, hits the INSERT path) — closed here rather than left for the next caller.
+        if (calendar.id != 0L) calendar.id else rowId
     }
 
     override suspend fun setVisibility(id: Long, visible: Boolean) = withContext(io) {

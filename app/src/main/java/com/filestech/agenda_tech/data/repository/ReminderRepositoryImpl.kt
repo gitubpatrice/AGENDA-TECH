@@ -36,7 +36,10 @@ class ReminderRepositoryImpl @Inject constructor(
     }
 
     override suspend fun upsert(reminder: Reminder): Long = withContext(io) {
-        dao.upsert(reminder.toEntity())
+        val rowId = dao.upsert(reminder.toEntity())
+        // Same trap as EventRepositoryImpl.upsert: -1 on UPDATE. Nothing links to a reminder id today,
+        // but the three repositories make the same promise and must keep it the same way.
+        if (reminder.id != 0L) reminder.id else rowId
     }
 
     override suspend fun deleteForEvent(eventId: Long) = withContext(io) {

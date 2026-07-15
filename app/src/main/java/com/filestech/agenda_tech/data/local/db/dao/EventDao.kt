@@ -90,9 +90,12 @@ interface EventDao {
     fun observeAll(): Flow<List<EventEntity>>
 
     /**
-     * ⚠️ Audit SEC-1 — the returned `Long` is the rowid only on the INSERT path; on UPDATE Room may
-     * return `-1`. NEVER use it to link a child (e.g. a reminder's `event_id`) after an edit; use
-     * the caller's known `entity.id` instead.
+     * ⚠️ The returned `Long` is the rowid only on the INSERT path; on UPDATE Room returns `-1`.
+     *
+     * Do not use this value directly — go through `EventRepository.upsert`, which resolves it to the
+     * event's real id. This comment used to ask every caller to remember the quirk; one forgot, and
+     * saving an edited event with a reminder crashed on `Reminder(eventId = -1)` (FOREIGN KEY
+     * constraint failed) in every release up to v0.4.0.
      */
     @Upsert
     suspend fun upsert(entity: EventEntity): Long
