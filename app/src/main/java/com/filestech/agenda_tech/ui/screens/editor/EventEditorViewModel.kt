@@ -346,7 +346,16 @@ class EventEditorViewModel @Inject constructor(
         )
         val reminderMinutes = current.reminderMinutes
         viewModelScope.launch {
-            when (val result = upsertEvent(event)) {
+            // FIAB-NEW-3 — an override and its master's EXDATE are one fact ("this occurrence moved"),
+            // so they are written in one transaction. Two separate writes could be interrupted between
+            // them, leaving the master producing an occurrence its override already replaced — and the
+            // master's EXDATEs are exported verbatim to .ics and read by the reminder scheduler.
+            val result = if (asOverride) {
+                upsertEvent.asOverride(event, masterId = eventId, originalStartUtcMillis = occurrenceStart)
+            } else {
+                upsertEvent(event)
+            }
+            when (result) {
                 is Outcome.Success -> {
                     val savedId = result.value
                     // Audit SEC-1 — cancel armed alarms BEFORE replacing reminder rows (fresh ids
@@ -358,24 +367,16 @@ class EventEditorViewModel @Inject constructor(
                     }
                     reminderScheduler.rescheduleEvent(savedId)
                     if (asOverride) {
-                        // FIAB-NEW-3 — exclude the overridden date from the master (iCalendar
-                        // RECURRENCE-ID model) so the master's default occurrence AND its reminder no
-                        // longer fire at that instant next to the moved override.
-                        excludeFromMaster(eventId, occurrenceStart)
+                        // The master's rule just gained an EXDATE, so its own alarm must move off the
+                        // instant the override now owns. Not part of the transaction: alarms are an OS
+                        // concern, not a database one.
+                        reminderScheduler.rescheduleEvent(eventId)
                     }
                     _state.update { it.copy(isSaved = true) }
                 }
                 is Outcome.Failure -> _state.update { it.copy(error = EditorError.SAVE_FAILED) }
             }
         }
-    }
-
-    private suspend fun excludeFromMaster(masterId: Long, originalStart: Long) {
-        val master = eventRepository.getById(masterId)
-        val rule = master?.recurrence ?: return
-        if (originalStart in rule.exDatesUtcMillis) return
-        eventRepository.upsert(master.copy(recurrence = rule.copy(exDatesUtcMillis = rule.exDatesUtcMillis + originalStart)))
-        reminderScheduler.rescheduleEvent(masterId)
     }
 
     private fun deleteDirect() {
@@ -403,8 +404,7 @@ class EventEditorViewModel @Inject constructor(
                 deleteDirect()
                 return@launch
             }
-            val updatedRule = rule.copy(exDatesUtcMillis = rule.exDatesUtcMillis + occurrenceStart)
-            eventRepository.upsert(master.copy(recurrence = updatedRule))
+            eventRepository.upsert(master.copy(recurrence = rule.excluding(occurrenceStart)))
             reminderScheduler.rescheduleEvent(eventId)
             _state.update { it.copy(isDeleted = true) }
         }

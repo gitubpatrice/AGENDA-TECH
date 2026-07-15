@@ -58,6 +58,29 @@ class EventRepositoryImpl @Inject constructor(
         dao.upsertAndDelete(event.toEntity(createdAt = createdAt, updatedAt = now), deleteId)
     }
 
+    override suspend fun upsertOverrideAtomic(
+        override: Event,
+        masterId: Long,
+        originalStartUtcMillis: Long,
+    ): Long = withContext(io) {
+        val now = System.currentTimeMillis()
+        val masterRow = dao.getById(masterId)
+        val master = masterRow?.toDomain()
+        val rule = master?.recurrence
+        // Null when there is nothing to rewrite: the master is gone, is not recurring, or already
+        // excludes this instant (a re-save of the same override — `excluding` is idempotent).
+        val excluded = rule?.excluding(originalStartUtcMillis)
+        val updatedMaster = if (excluded != null && excluded != rule) {
+            master.copy(recurrence = excluded).toEntity(createdAt = masterRow.createdAt, updatedAt = now)
+        } else {
+            null
+        }
+        dao.upsertOverrideAndMaster(
+            override = override.toEntity(createdAt = now, updatedAt = now),
+            master = updatedMaster,
+        )
+    }
+
     override suspend fun upsert(event: Event): Long = withContext(io) {
         val now = System.currentTimeMillis()
         // Preserve the original createdAt on edit; stamp a fresh one on insert.

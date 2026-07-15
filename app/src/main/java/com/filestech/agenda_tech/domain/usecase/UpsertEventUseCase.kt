@@ -18,10 +18,24 @@ class UpsertEventUseCase @Inject constructor(
     private val repository: EventRepository,
 ) {
     suspend operator fun invoke(event: Event): Outcome<Long> {
-        val title = event.title.trim()
-        if (title.isEmpty()) {
-            return Outcome.Failure(AppError.Validation("blank title"))
-        }
-        return Outcome.Success(repository.upsert(event.copy(title = title)))
+        val validated = validate(event) ?: return Outcome.Failure(AppError.Validation("blank title"))
+        return Outcome.Success(repository.upsert(validated))
     }
+
+    /**
+     * Saves a per-occurrence override, excluding the instant it replaces from its master **in the same
+     * transaction**. Same validation as [invoke] — the rule lives in one place.
+     *
+     * Separate entry point rather than a flag: the two differ in what they write, not in how they
+     * validate, and an override that saved without excluding its own instant would leave the master
+     * generating an occurrence it no longer owns.
+     */
+    suspend fun asOverride(event: Event, masterId: Long, originalStartUtcMillis: Long): Outcome<Long> {
+        val validated = validate(event) ?: return Outcome.Failure(AppError.Validation("blank title"))
+        return Outcome.Success(repository.upsertOverrideAtomic(validated, masterId, originalStartUtcMillis))
+    }
+
+    /** The trimmed event, or null when its title is blank. */
+    private fun validate(event: Event): Event? =
+        event.title.trim().takeIf { it.isNotEmpty() }?.let { event.copy(title = it) }
 }

@@ -47,6 +47,17 @@ interface EventRepository {
     /** Atomically upserts [event] and deletes the event with [deleteId] (exclude-from-master + drop override). */
     suspend fun upsertAndDelete(event: Event, deleteId: Long)
 
+    /**
+     * Atomically saves a per-occurrence [override] and excludes [originalStartUtcMillis] — the instant
+     * it replaces — from the rule of its master ([masterId]). Returns the override's id.
+     *
+     * One operation, because it is one fact: this occurrence moved. Split in two writes, an
+     * interruption between them leaves the master still producing an occurrence that has already been
+     * replaced — and the master's EXDATEs are exported verbatim to `.ics` and read by the reminder
+     * scheduler, so a stale list is not a detail.
+     */
+    suspend fun upsertOverrideAtomic(override: Event, masterId: Long, originalStartUtcMillis: Long): Long
+
     /** Inserts or updates; returns the event's id (freshly generated on insert). */
     suspend fun upsert(event: Event): Long
 

@@ -60,6 +60,24 @@ interface EventDao {
         delete(deleteId)
     }
 
+    /**
+     * Writes a per-occurrence override and its master's updated rule in one transaction, returning
+     * the override's rowid.
+     *
+     * The two belong together: an override exists *because* the master no longer produces that
+     * instant. Written separately, an interruption between them would leave the master still
+     * generating the occurrence its override already replaced — and the master's EXDATEs are not
+     * internal bookkeeping, they are exported verbatim to `.ics` and read by the reminder scheduler.
+     *
+     * [master] is null when the exclusion is already recorded (nothing to rewrite).
+     */
+    @Transaction
+    suspend fun upsertOverrideAndMaster(override: EventEntity, master: EventEntity?): Long {
+        val id = upsert(override)
+        master?.let { upsert(it) }
+        return id
+    }
+
     @Query("SELECT * FROM events WHERE id = :id")
     suspend fun getById(id: Long): EventEntity?
 

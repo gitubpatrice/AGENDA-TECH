@@ -35,4 +35,18 @@ data class RecurrenceRule(
 
     /** True when the rule is open-ended (neither a COUNT nor an UNTIL bound). */
     val isInfinite: Boolean get() = count == null && untilUtcMillis == null
+
+    /**
+     * The same rule with [instantUtcMillis] cancelled (RFC 5545 `EXDATE`) — what "delete this one
+     * occurrence" and "move this one occurrence" both do to the master.
+     *
+     * Idempotent: excluding an already-excluded instant returns the rule unchanged, so a re-save
+     * cannot grow a list of duplicates — and that list is exported verbatim to `.ics`.
+     */
+    fun excluding(instantUtcMillis: Long): RecurrenceRule =
+        if (instantUtcMillis in exDatesUtcMillis) {
+            this
+        } else {
+            copy(exDatesUtcMillis = exDatesUtcMillis + instantUtcMillis)
+        }
 }

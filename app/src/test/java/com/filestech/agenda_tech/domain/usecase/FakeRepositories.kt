@@ -78,6 +78,23 @@ internal class FakeEventRepository : EventRepository {
     override suspend fun deleteSeriesAtomic(parentId: Long) = Unit
     override suspend fun upsertAndDelete(event: Event, deleteId: Long) = Unit
 
+    /** Mirrors the real implementation: writes the override AND the master's new EXDATE together. */
+    override suspend fun upsertOverrideAtomic(
+        override: Event,
+        masterId: Long,
+        originalStartUtcMillis: Long,
+    ): Long {
+        val id = upsert(override)
+        val master = rows[masterId]
+        val rule = master?.recurrence
+        if (rule != null && originalStartUtcMillis !in rule.exDatesUtcMillis) {
+            rows[masterId] = master.copy(
+                recurrence = rule.copy(exDatesUtcMillis = rule.exDatesUtcMillis + originalStartUtcMillis),
+            )
+        }
+        return id
+    }
+
     override suspend fun upsert(event: Event): Long {
         val id = if (event.id == 0L) nextId++ else event.id
         rows[id] = event.copy(id = id)
