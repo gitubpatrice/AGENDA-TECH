@@ -76,11 +76,10 @@ fun BackupScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Held between the two steps of each flow (password → picker, or picker → password).
+    // Export asks for the password first, so it has to be parked until the picker returns a target.
+    // Restore is the mirror image and is driven by the ViewModel, which holds the vetted file.
     var pendingExportPassword by remember { mutableStateOf<CharArray?>(null) }
-    var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
     var showExportPasswordDialog by remember { mutableStateOf(false) }
-    var showRestorePasswordDialog by remember { mutableStateOf(false) }
 
     val createFile = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(ExportBackupUseCase.MIME_TYPE),
@@ -94,10 +93,9 @@ fun BackupScreen(
     }
 
     val openFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            pendingRestoreUri = uri
-            showRestorePasswordDialog = true
-        }
+        // Hands the file straight to the ViewModel, which rejects a wrong pick on its magic bytes
+        // before the password dialog is ever shown.
+        if (uri != null) viewModel.onRestoreFilePicked(uri)
     }
 
     val messages = backupMessages(state.message)
@@ -170,7 +168,7 @@ fun BackupScreen(
         )
     }
 
-    if (showRestorePasswordDialog) {
+    if (state.awaitingRestorePassword) {
         PasswordDialog(
             title = stringResource(R.string.backup_restore_dialog_title),
             requireConfirmation = false,
@@ -178,16 +176,8 @@ fun BackupScreen(
             // own action rather than a second dialog the user would click through on autopilot.
             destructiveWarning = stringResource(R.string.backup_restore_confirm_body),
             confirmLabel = stringResource(R.string.backup_restore_confirm_action),
-            onDismiss = {
-                showRestorePasswordDialog = false
-                pendingRestoreUri = null
-            },
-            onConfirm = { password ->
-                showRestorePasswordDialog = false
-                val uri = pendingRestoreUri
-                pendingRestoreUri = null
-                if (uri != null) viewModel.restore(uri, password) else password.wipe()
-            },
+            onDismiss = viewModel::cancelRestore,
+            onConfirm = viewModel::restore,
         )
     }
 }
@@ -289,8 +279,13 @@ private fun BusyOverlay(op: BackupOp) {
 }
 
 /**
- * Collects the password. Hands the caller a [CharArray] — a String would linger in the interned pool
- * beyond any reach to scrub it.
+ * Collects the password and hands the caller a [CharArray], which every consumer wipes.
+ *
+ * The typed text itself is an immutable [String] in Compose state until then — one unscrubbable
+ * instance per keystroke. That residual is accepted and documented in `SECURITY.md` (same trade-off
+ * as the PIN, LOCK-8): `OutlinedTextField` is String-backed, so scrubbing the Compose path would
+ * mean rewriting the field, and reaching those instances needs a memory dump of a non-debuggable
+ * release build. The [CharArray] boundary is where scrubbing starts, not where the secret begins.
  */
 @Composable
 private fun PasswordDialog(

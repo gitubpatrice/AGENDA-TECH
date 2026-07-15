@@ -27,7 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -37,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.ui.navigation.CalendarView
+import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -49,7 +49,7 @@ fun WeekScreen(
     viewModel: WeekViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
+    val locale = rememberAppLocale()
     val addTargetDate = state.days.firstOrNull { it.isToday }?.date ?: state.weekStart
 
     CalendarScaffold(

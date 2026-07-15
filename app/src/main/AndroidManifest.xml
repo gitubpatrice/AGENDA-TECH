@@ -10,6 +10,27 @@
     -->
 
     <!--
+      androidx.work (tiré transitivement par Glance, pour les widgets) déclare
+      ACCESS_NETWORK_STATE afin de servir ses contraintes réseau (NetworkType). Agenda Tech
+      n'enfile aucun travail contraint par le réseau, donc la permission n'a rien à couvrir
+      ici — mais sans ce retrait elle apparaissait bel et bien dans le manifeste fusionné, et
+      donc dans la liste des permissions visible par l'utilisateur : la promesse « zéro réseau »
+      affichée dans le README et sur files-tech.com était contredite par l'APK lui-même.
+      Elle ne donne pas l'accès réseau (c'est INTERNET, absente) — le retrait est une question
+      de cohérence vérifiable, pas de fuite.
+
+      Pourquoi le retrait est sûr : WorkManager ne consulte l'état du réseau que pour honorer une
+      contrainte NetworkType, et l'app n'enfile AUCUN travail WorkManager (vérifié : aucune
+      référence à WorkManager/Constraints/NetworkType dans app/src/main). Glance ne pose pas non
+      plus de contrainte réseau sur la mise à jour d'un widget. Si un jour du travail contraint par
+      le réseau est ajouté, ce retrait devra être reconsidéré — mais ce serait déjà une entorse à
+      la doctrine.
+    -->
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
+
+    <!--
       Import ponctuel des événements déjà synchronisés localement sur l'appareil
       (agenda Google, Exchange, etc.) via le Calendar Provider Android (CalendarContract).
       LECTURE SEULE, 100 % LOCALE : Agenda Tech ne fait que lire ce que le système a déjà

@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.system.notifications
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -111,6 +112,11 @@ class ReminderNotifier @Inject constructor(
         platformManager.createNotificationChannel(channel)
     }
 
+    // Guarded by the hasNotificationPermission() early-return below (which also covers pre-Tiramisu,
+    // where the permission does not exist). Lint cannot follow the check into a helper, so it reports
+    // the notify() call as unguarded — suppressed here rather than duplicating the check inline,
+    // which would leave two copies of the same rule to keep in sync.
+    @SuppressLint("MissingPermission")
     suspend fun postReminder(event: Event, occurrenceStartUtcMillis: Long) {
         if (!hasNotificationPermission()) {
             Timber.w("ReminderNotifier: POST_NOTIFICATIONS not granted — skipping reminder for event %d", event.id)

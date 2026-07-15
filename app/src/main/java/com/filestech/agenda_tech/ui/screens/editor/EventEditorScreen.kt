@@ -65,7 +65,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -80,6 +79,7 @@ import com.filestech.agenda_tech.domain.location.GeoLink
 import com.filestech.agenda_tech.domain.model.Weekday
 import com.filestech.agenda_tech.ui.theme.BrandDanger
 import com.filestech.agenda_tech.ui.theme.BrandSuccess
+import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import timber.log.Timber
 import java.time.DayOfWeek
 import java.time.Instant
@@ -204,7 +204,7 @@ private fun EventEditorContent(
     onCityChange: (String) -> Unit,
     onGpsCoordinatesChange: (String) -> Unit,
 ) {
-    val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
+    val locale = rememberAppLocale()
     var datePickerTarget by remember { mutableStateOf<EditTarget?>(null) }
     var timePickerTarget by remember { mutableStateOf<EditTarget?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }

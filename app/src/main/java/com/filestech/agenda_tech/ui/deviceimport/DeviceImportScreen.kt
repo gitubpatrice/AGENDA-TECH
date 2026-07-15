@@ -43,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -92,12 +93,15 @@ fun DeviceImportScreen(
 
     // Import finished → report the outcome and return to Settings. A calendar that could not be read
     // or written is surfaced explicitly (audit C5) rather than being reported as "0 events imported".
-    LaunchedEffect(result) {
+    // Resources rather than LocalContext: a context read does not observe a configuration change,
+    // so after a language switch the toast would still be in the old one.
+    val resources = LocalResources.current
+    LaunchedEffect(result, resources) {
         result?.let {
             val message = if (it.failedCalendars > 0) {
-                context.getString(R.string.device_import_partial, it.events, it.calendars, it.failedCalendars)
+                resources.getString(R.string.device_import_partial, it.events, it.calendars, it.failedCalendars)
             } else {
-                context.getString(R.string.device_import_done, it.events, it.calendars)
+                resources.getString(R.string.device_import_done, it.events, it.calendars)
             }
             android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
             viewModel.consumeResult()
@@ -105,11 +109,11 @@ fun DeviceImportScreen(
         }
     }
 
-    LaunchedEffect(cleared) {
+    LaunchedEffect(cleared, resources) {
         if (cleared) {
             android.widget.Toast.makeText(
                 context,
-                context.getString(R.string.device_import_cleared),
+                resources.getString(R.string.device_import_cleared),
                 android.widget.Toast.LENGTH_SHORT,
             ).show()
             viewModel.consumeCleared()

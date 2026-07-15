@@ -51,12 +51,9 @@ class RestoreBackupUseCase @Inject constructor(
         val payload = BackupCodec.decodeFromJson(plaintext.toString(Charsets.UTF_8))
         val calendars = payload.calendars.map { it.toDomain() }
         val events = payload.events.map { it.toDomain() }
-        val knownCalendarIds = calendars.mapTo(HashSet()) { it.id }
-        // An event whose calendar is missing would violate the FK and abort the restore. A file this
-        // inconsistent is not one we wrote, so refuse it outright rather than quietly shed events.
-        val orphan = events.firstOrNull { it.calendarId !in knownCalendarIds }
-        if (orphan != null) {
-            Outcome.Failure(AppError.Validation("event ${orphan.id} references unknown calendar ${orphan.calendarId}"))
+        val problem = validate(calendars, events)
+        if (problem != null) {
+            Outcome.Failure(AppError.Validation(problem))
         } else {
             Outcome.Success(
                 Decoded(
@@ -72,6 +69,42 @@ class RestoreBackupUseCase @Inject constructor(
         // Covers malformed JSON, an unknown format version, and domain invariants rejected in
         // Event's init (e.g. end before start) — all "this file is not usable", none of them a crash.
         Outcome.Failure(AppError.Validation("backup file is not readable"))
+    }
+
+    /**
+     * Checks the file is internally consistent, returning the first problem or null.
+     *
+     * Runs before any write, and refuses the file **whole** rather than dropping the bad rows:
+     * quietly shedding half an agenda would look exactly like a successful restore, which is the one
+     * thing a backup must never do.
+     *
+     * None of this is reachable by a file the app itself wrote — it guards against a corrupted,
+     * truncated or hand-edited one.
+     */
+    private fun validate(calendars: List<Calendar>, events: List<Event>): String? {
+        // Room treats id 0 on an autoGenerate primary key as "unset" and silently assigns a fresh
+        // rowid — every calendarId/parentId pointing at 0 would then dangle, with no error raised.
+        calendars.firstOrNull { it.id <= 0 }?.let { return "calendar has a non-positive id (${it.id})" }
+        events.firstOrNull { it.id <= 0 }?.let { return "event has a non-positive id (${it.id})" }
+
+        // Ids are reinserted verbatim, so a duplicate would abort the transaction mid-way. Caught
+        // here it is a clean refusal instead of a rollback we have to explain.
+        val calendarIds = calendars.mapTo(HashSet()) { it.id }
+        if (calendarIds.size != calendars.size) return "duplicate calendar id"
+        val eventIds = events.mapTo(HashSet()) { it.id }
+        if (eventIds.size != events.size) return "duplicate event id"
+
+        // Would violate the events → calendars foreign key.
+        events.firstOrNull { it.calendarId !in calendarIds }
+            ?.let { return "event ${it.id} references unknown calendar ${it.calendarId}" }
+
+        // No foreign key backs recurrence_parent_id, so nothing downstream would complain: a parent
+        // id that happens to match an unrelated recurring event would silently hide one of *its*
+        // occurrences (the expander groups overrides by this id alone).
+        events.firstOrNull { it.recurrenceParentId != null && it.recurrenceParentId !in eventIds }
+            ?.let { return "event ${it.id} overrides unknown parent ${it.recurrenceParentId}" }
+
+        return null
     }
 
     private suspend fun write(decoded: Decoded): Outcome<Result> = try {

@@ -32,6 +32,8 @@ data class BackupUiState(
     /** Non-null while working; names the operation so the overlay can say what is actually happening. */
     val busy: BackupOp? = null,
     val message: BackupMessage? = null,
+    /** True once a picked file has been recognised as an `.atbak` and only its password is missing. */
+    val awaitingRestorePassword: Boolean = false,
 )
 
 enum class BackupOp { EXPORT, RESTORE }
@@ -59,6 +61,13 @@ class BackupViewModel @Inject constructor(
     private val _state = MutableStateFlow(BackupUiState())
     val state: StateFlow<BackupUiState> = _state.asStateFlow()
 
+    /**
+     * The picked file, held between "recognised as a backup" and "password entered". Kept here rather
+     * than re-read on confirm so the bytes that were vetted are the bytes that get decrypted; it is
+     * ciphertext, so holding it is not itself a disclosure.
+     */
+    private var pendingRestoreFile: ByteArray? = null
+
     fun suggestedFileName(): String = exportBackup.fileName(LocalDate.now().toString())
 
     fun export(uri: Uri, password: CharArray) = viewModelScope.launch {
@@ -73,20 +82,42 @@ class BackupViewModel @Inject constructor(
         _state.value = BackupUiState(busy = null, message = message)
     }
 
-    fun restore(uri: Uri, password: CharArray) = viewModelScope.launch {
-        _state.update { it.copy(busy = BackupOp.RESTORE, message = null) }
+    /**
+     * Reads the picked file and decides whether it is even a backup, **before** the password is
+     * asked for. A wrong pick (a photo, a PDF) is answered on its magic bytes alone, so the user is
+     * never made to type a password only to be told the file was never openable.
+     *
+     * Safe to answer honestly: the magic bytes are checked before any key is derived, so "not a
+     * backup" reveals nothing about the password.
+     */
+    fun onRestoreFilePicked(uri: Uri) = viewModelScope.launch {
         val file = readFile(uri)
-        if (file == null) {
-            password.wipe()
-            _state.value = BackupUiState(busy = null, message = BackupMessage.Failed)
-            return@launch
+        _state.value = when {
+            file == null -> BackupUiState(message = BackupMessage.Failed)
+            !restoreBackup.isRecognised(file) -> BackupUiState(message = BackupMessage.NotABackup)
+            else -> {
+                pendingRestoreFile = file
+                BackupUiState(awaitingRestorePassword = true)
+            }
         }
+    }
 
-        if (!restoreBackup.isRecognised(file)) {
+    /** The user backed out of the password dialog — drop the file we were holding. */
+    fun cancelRestore() {
+        pendingRestoreFile = null
+        _state.update { it.copy(awaitingRestorePassword = false) }
+    }
+
+    fun restore(password: CharArray) = viewModelScope.launch {
+        val file = pendingRestoreFile
+        if (file == null) {
+            // No file in hand (process death between the pick and the password): nothing to restore.
             password.wipe()
-            _state.value = BackupUiState(busy = null, message = BackupMessage.NotABackup)
+            _state.value = BackupUiState(message = BackupMessage.Failed)
             return@launch
         }
+        pendingRestoreFile = null
+        _state.update { it.copy(busy = BackupOp.RESTORE, awaitingRestorePassword = false, message = null) }
 
         // Captured before the wipe: once the rows are gone their alarms can no longer be enumerated,
         // and a reminder from the replaced agenda would keep firing.

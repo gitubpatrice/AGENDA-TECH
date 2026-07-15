@@ -21,13 +21,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.ui.navigation.CalendarView
+import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -41,7 +41,7 @@ fun DayScreen(
     viewModel: DayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
+    val locale = rememberAppLocale()
 
     CalendarScaffold(
         currentView = CalendarView.DAY,

@@ -51,8 +51,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -65,6 +65,7 @@ import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.ui.ics.IcsResult
 import com.filestech.agenda_tech.ui.ics.IcsViewModel
 import com.filestech.agenda_tech.ui.navigation.CalendarView
+import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -101,11 +102,14 @@ fun MonthScreen(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let(icsViewModel::import) }
 
-    LaunchedEffect(icsResult) {
+    // Resources rather than LocalContext: reading through the context does not observe a
+    // configuration change, so after a language switch the toast would still be in the old one.
+    val resources = LocalResources.current
+    LaunchedEffect(icsResult, resources) {
         val message = when (val result = icsResult) {
-            is IcsResult.Exported -> context.getString(R.string.ics_export_ok, result.count)
-            is IcsResult.Imported -> context.getString(R.string.ics_import_ok, result.count)
-            IcsResult.Failed -> context.getString(R.string.ics_error)
+            is IcsResult.Exported -> resources.getString(R.string.ics_export_ok, result.count)
+            is IcsResult.Imported -> resources.getString(R.string.ics_import_ok, result.count)
+            IcsResult.Failed -> resources.getString(R.string.ics_error)
             null -> null
         }
         if (message != null) {
@@ -147,7 +151,7 @@ private fun MonthScreenContent(
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
 ) {
-    val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
+    val locale = rememberAppLocale()
 
     CalendarScaffold(
         currentView = CalendarView.MONTH,

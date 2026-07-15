@@ -178,6 +178,54 @@ class BackupRoundTripTest {
     }
 
     @Test
+    fun `a file whose override names a missing parent is refused`() = runTest {
+        seedAgenda()
+        val file = exportBytes()
+        // No foreign key backs recurrence_parent_id, so the DB would accept this happily and the
+        // expander would then hide an occurrence of whatever event id 999 collides with.
+        val tampered = reseal(file) { payload ->
+            payload.copy(events = payload.events.map { it.copy(recurrenceParentId = 999) })
+        }
+
+        val result = restore(password(), tampered)
+
+        assertThat(result).isInstanceOf(Outcome.Failure::class.java)
+        assertThat((result as Outcome.Failure).error).isInstanceOf(AppError.Validation::class.java)
+        assertThat(backupRepo.events).containsExactly(weekly, meeting)
+    }
+
+    @Test
+    fun `a file carrying id 0 is refused — Room would silently renumber it`() = runTest {
+        seedAgenda()
+        val file = exportBytes()
+        // Room reads 0 on an autoGenerate key as "unset" and assigns a fresh rowid, so every
+        // reference to 0 would dangle without a single error being raised.
+        val tampered = reseal(file) { payload ->
+            payload.copy(events = payload.events.map { it.copy(id = 0) })
+        }
+
+        val result = restore(password(), tampered)
+
+        assertThat(result).isInstanceOf(Outcome.Failure::class.java)
+        assertThat((result as Outcome.Failure).error).isInstanceOf(AppError.Validation::class.java)
+    }
+
+    @Test
+    fun `a file with duplicate ids is refused cleanly instead of aborting mid-transaction`() = runTest {
+        seedAgenda()
+        val file = exportBytes()
+        val tampered = reseal(file) { payload ->
+            payload.copy(events = payload.events.map { it.copy(id = 10) })
+        }
+
+        val result = restore(password(), tampered)
+
+        assertThat(result).isInstanceOf(Outcome.Failure::class.java)
+        assertThat((result as Outcome.Failure).error).isInstanceOf(AppError.Validation::class.java)
+        assertThat(backupRepo.events).containsExactly(weekly, meeting)
+    }
+
+    @Test
     fun `a file violating a domain invariant is refused rather than crashing`() = runTest {
         seedAgenda()
         val file = exportBytes()

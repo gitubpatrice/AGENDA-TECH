@@ -128,6 +128,15 @@ par un secret que l'utilisateur connaît — d'où un mot de passe, et non la cl
 - **Restauration atomique** : le fichier est intégralement déchiffré et validé **avant** toute
   écriture, puis l'agenda est remplacé en une transaction. Un fichier tronqué, falsifié ou protégé
   par un autre mot de passe laisse l'agenda existant intact.
+- **Résiduel accepté (identique à LOCK-8).** Le mot de passe de sauvegarde transite lui aussi en
+  `String` immuable dans l'état Compose avant conversion en `CharArray` (wipé après dérivation, sur
+  tous les chemins — y compris annulation et échec). Même raison, même arbitrage :
+  `OutlinedTextField` est nativement `String`-backed, et l'exploitation exigerait un dump mémoire
+  d'un build release non-debuggable.
+- **Validation avant écriture.** Le fichier est refusé en bloc (jamais partiellement appliqué) s'il
+  porte un id ≤ 0 (Room renumérote silencieusement un id 0 sur une clé `autoGenerate`, ce qui ferait
+  pendre toutes les références), un id dupliqué, un événement rattaché à un calendrier absent, ou un
+  override pointant vers un parent absent (aucune FK ne couvre `recurrence_parent_id`).
 - Un mauvais mot de passe et un fichier corrompu sont **indistinguables** (tous deux = tag GCM
   invalide) : l'UI dit « mot de passe incorrect **ou** fichier endommagé », sans confirmer lequel.
 
