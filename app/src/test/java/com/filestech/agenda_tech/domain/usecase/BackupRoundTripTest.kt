@@ -195,6 +195,23 @@ class BackupRoundTripTest {
     }
 
     @Test
+    fun `a file with half an override is refused`() = runTest {
+        seedAgenda()
+        val file = exportBytes()
+        // A parent with no replaced instant: the master would keep producing the occurrence, and the
+        // override would show next to it. Nothing downstream enforces the pair — no FK covers it.
+        val tampered = reseal(file) { payload ->
+            payload.copy(events = payload.events.map { it.copy(recurrenceParentId = 10, originalStartUtcMillis = null) })
+        }
+
+        val result = restore(password(), tampered)
+
+        assertThat(result).isInstanceOf(Outcome.Failure::class.java)
+        assertThat((result as Outcome.Failure).error).isInstanceOf(AppError.Validation::class.java)
+        assertThat(backupRepo.events).containsExactly(weekly, meeting)
+    }
+
+    @Test
     fun `a file carrying id 0 is refused — Room would silently renumber it`() = runTest {
         seedAgenda()
         val file = exportBytes()

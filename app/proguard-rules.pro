@@ -18,6 +18,14 @@
 -dontwarn kotlinx.coroutines.**
 
 # --- Modèles de domaine -------------------------------------------------------
-# Les data class du domaine peuvent être sérialisées (export ICS à venir) — on
-# conserve leurs membres pour éviter toute surprise à l'introspection.
+# On conserve les membres des data class du domaine pour éviter toute surprise à
+# l'introspection. L'export ICS existe (IcsCodec) et écrit ces modèles.
 -keep class com.filestech.agenda_tech.domain.model.** { *; }
+
+# --- Format de sauvegarde .atbak ----------------------------------------------
+# domain.backup est le SEUL package réellement sérialisé (kotlinx.serialization).
+# kotlinx.serialization embarque ses propres règles R8, donc aucun -keep explicite
+# n'est ajouté ici : une règle redondante masquerait le jour où elles cesseraient de
+# suffire. Ce qui garantit le format, c'est le test d'un export/restauration réel sur
+# l'APK release minifié — un .atbak illisible ne se découvrirait sinon que le jour où
+# quelqu'un en a besoin.

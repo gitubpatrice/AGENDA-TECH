@@ -104,6 +104,12 @@ class RestoreBackupUseCase @Inject constructor(
         events.firstOrNull { it.recurrenceParentId != null && it.recurrenceParentId !in eventIds }
             ?.let { return "event ${it.id} overrides unknown parent ${it.recurrenceParentId}" }
 
+        // The two halves of the RECURRENCE-ID model are meaningless apart: an override that names no
+        // replaced instant would leave its master still producing the occurrence, showing both — and
+        // one that names an instant but no parent replaces nothing at all.
+        events.firstOrNull { (it.recurrenceParentId == null) != (it.originalStartUtcMillis == null) }
+            ?.let { return "event ${it.id} is half an override (parent and original start must agree)" }
+
         return null
     }
 

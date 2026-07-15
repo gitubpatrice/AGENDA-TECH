@@ -51,6 +51,16 @@ Les seuls échanges possibles sont ceux que **vous** déclenchez explicitement, 
 votre appareil, d'une application à l'autre :
 
 - **Export `.ics`** : vers l'emplacement de votre choix, via le sélecteur de fichiers système.
+- **Sauvegarde chiffrée `.atbak`** : c'est l'échange le plus large, il mérite d'être décrit
+  précisément. Le fichier contient **tout votre agenda** (calendriers, événements, descriptions,
+  lieux, adresses, coordonnées GPS, rappels), et vous choisissez où il est écrit — y compris un
+  dossier synchronisé vers un cloud, si c'est votre choix. **L'application ne l'envoie nulle part
+  elle-même** : elle écrit à l'emplacement que vous désignez dans le sélecteur de fichiers système,
+  et n'a de toute façon aucun moyen d'accéder au réseau. Le contenu est chiffré (AES-256) par une
+  clé dérivée de **votre mot de passe seul** : ni nous, ni le service qui hébergerait ce fichier ne
+  peuvent le lire. Ce mot de passe n'est stocké nulle part — si vous l'oubliez, le fichier est
+  définitivement illisible, y compris pour nous. Ce que devient ensuite le fichier, une fois hors
+  de l'application, ne dépend plus que de vous.
 - **Ouvrir un lieu sur la carte** : si vous saisissez des coordonnées GPS sur un événement et que
   vous touchez le repère, l'application transmet **ces coordonnées et le libellé de l'événement** à
   l'application de cartes de votre téléphone. Rien d'autre n'est transmis, et rien ne part si vous
