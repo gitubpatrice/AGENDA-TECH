@@ -44,6 +44,7 @@ android {
         // desugaring. Aligné sur le socle Files Tech.
         minSdk = 26
         targetSdk = 35
+        manifestPlaceholders["appLabel"] = "Agenda Tech"
         versionCode = appVersionCode
         // La version affichée est lue DYNAMIQUEMENT à l'exécution via `PackageInfo`
         // (pattern Pass/RFT/AI) — pas de constante statique à bumper dans le code.
@@ -82,6 +83,12 @@ android {
             isMinifyEnabled = false
             isDebuggable = true
             buildConfigField("boolean", "LOG_ENABLED", "true")
+            // The suffix already lets debug and release coexist, but they would then show up under
+            // the same name everywhere — two identical "Agenda Tech" entries in the launcher and in
+            // the widget picker, with no way to tell which build a test actually exercised.
+            // A manifest placeholder rather than a resValue: app_name is localised, so a generated
+            // values/ string loses to values-fr/ on a French device and the rename silently does nothing.
+            manifestPlaceholders["appLabel"] = "Agenda Tech (debug)"
         }
         release {
             isMinifyEnabled = true
