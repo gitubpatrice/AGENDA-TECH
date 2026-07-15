@@ -12,6 +12,13 @@ internal val BrandBlueDark = Color(0xFFA9C7FF)
 internal val BrandDanger = Color(0xFFC62828)
 
 /**
+ * "Confirm intent" green (save an event). As light as white text allows: this clears 4.7:1, whereas
+ * the usual mid greens (#388E3C → 4.1:1, #43A047 → 3.3:1) fall under the 4.5:1 readability floor.
+ * Going brighter would mean switching the label to a dark colour.
+ */
+internal val BrandSuccess = Color(0xFF2F8434)
+
+/**
  * Light blue-grey for every popup surface (menus, dialogs, sheets) in the light theme. Deliberately
  * a soft wash rather than the logo's saturated blue, which reads far too dark behind text.
  */

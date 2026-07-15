@@ -10,14 +10,17 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -27,6 +30,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -74,6 +79,7 @@ import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.location.GeoLink
 import com.filestech.agenda_tech.domain.model.Weekday
 import com.filestech.agenda_tech.ui.theme.BrandDanger
+import com.filestech.agenda_tech.ui.theme.BrandSuccess
 import timber.log.Timber
 import java.time.DayOfWeek
 import java.time.Instant
@@ -252,11 +258,23 @@ private fun EventEditorContent(
                             )
                         }
                     }
-                    // Spelled out and outlined rather than a bare check icon: "Enregistrer" leaves no
-                    // doubt about the action, and the border makes it read as the primary button.
-                    OutlinedButton(
+                    // Spelled out and filled rather than a bare check icon: "Enregistrer" leaves no
+                    // doubt about the action, and the solid green marks it as THE primary button.
+                    Button(
                         onClick = onSave,
-                        modifier = Modifier.padding(end = 8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = BrandSuccess,
+                            contentColor = Color.White,
+                        ),
+                        // Compact on purpose: in an app bar the button sits next to icons, and the
+                        // Material default (24dp/8dp) makes it bulge out of that rhythm. The height is
+                        // set explicitly because Button enforces a 40dp minimum — trimming the
+                        // vertical padding alone would change nothing.
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        shape = RoundedCornerShape(SAVE_BUTTON_RADIUS),
+                        modifier = Modifier
+                            .padding(end = 4.dp)
+                            .height(SAVE_BUTTON_HEIGHT),
                     ) {
                         Text(stringResource(R.string.editor_save))
                     }
@@ -890,6 +908,16 @@ private const val MAX_REMINDER_MINUTES = 28 * 24 * 60
 // A postal code is short; the city gets the rest of the row.
 private const val POSTAL_CODE_WEIGHT = 1f
 private const val CITY_WEIGHT = 2f
+
+/** Softer than the Material pill, squarer than a card — the shape asked for on the save button. */
+private val SAVE_BUTTON_RADIUS = 13.dp
+
+/**
+ * Overrides Button's 40dp floor to sit flush with the app-bar icons. Kept at 36dp: the surrounding
+ * icon buttons still carry their own 48dp touch targets, and going lower would make this one awkward
+ * to hit.
+ */
+private val SAVE_BUTTON_HEIGHT = 36.dp
 
 // --- helpers ----------------------------------------------------------------
 

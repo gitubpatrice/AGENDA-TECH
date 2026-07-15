@@ -41,7 +41,7 @@ android {
         versionCode = gitCommitCount.coerceAtLeast(1)
         // La version affichée est lue DYNAMIQUEMENT à l'exécution via `PackageInfo`
         // (pattern Pass/RFT/AI) — pas de constante statique à bumper dans le code.
-        versionName = "0.2.0"
+        versionName = "0.3.0"
 
         testInstrumentationRunner = "com.filestech.agenda_tech.HiltTestRunner"
         vectorDrawables { useSupportLibrary = true }
