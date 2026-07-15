@@ -72,6 +72,7 @@ internal class FakeEventRepository : EventRepository {
     override fun observeOverrides(): Flow<List<Event>> = flowOf(emptyList())
     override suspend fun getById(id: Long): Event? = rows[id]
     override suspend fun getAll(): List<Event> = rows.values.toList()
+    override fun observeAll(): Flow<List<Event>> = flowOf(rows.values.sortedBy { it.startUtcMillis })
     override suspend fun deleteOverridesForParent(parentId: Long) = Unit
     override suspend fun deleteSeriesAtomic(parentId: Long) = Unit
     override suspend fun upsertAndDelete(event: Event, deleteId: Long) = Unit

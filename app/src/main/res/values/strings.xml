@@ -289,4 +289,15 @@
     <string name="backup_not_a_backup">This file is not an Agenda Tech backup.</string>
     <string name="backup_failed">The backup failed. No data was changed.</string>
     <string name="backup_working_restore">Decrypting…</string>
+
+    <!-- Search -->
+    <string name="search_open">Search an event</string>
+    <string name="search_field_hint">Title, description, place, city…</string>
+    <string name="search_clear">Clear search</string>
+    <string name="search_prompt">Search an event by title, description, place or city. Accents and case don’t matter.</string>
+    <string name="search_no_results">No result for “%1$s”.</string>
+    <string name="search_no_results_hint">Check the spelling, or try a shorter word.</string>
+    <string name="search_section_upcoming">Upcoming</string>
+    <string name="search_section_past">Past</string>
+    <string name="search_hidden_calendar">hidden calendar</string>
 </resources>

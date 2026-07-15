@@ -23,6 +23,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
@@ -88,6 +89,7 @@ fun MonthScreen(
     onOccurrenceClick: (Long, Long) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenSearch: () -> Unit,
     viewModel: MonthViewModel = hiltViewModel(),
     icsViewModel: IcsViewModel = hiltViewModel(),
 ) {
@@ -132,6 +134,7 @@ fun MonthScreen(
         onImportIcs = { importLauncher.launch(arrayOf("text/calendar", "*/*")) },
         onOpenSettings = onOpenSettings,
         onOpenAbout = onOpenAbout,
+        onOpenSearch = onOpenSearch,
     )
 }
 
@@ -150,6 +153,7 @@ private fun MonthScreenContent(
     onImportIcs: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenSearch: () -> Unit,
 ) {
     val locale = rememberAppLocale()
 
@@ -173,6 +177,12 @@ private fun MonthScreenContent(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenSearch) {
+                        Icon(
+                            imageVector = Icons.Outlined.Search,
+                            contentDescription = stringResource(R.string.search_open),
+                        )
+                    }
                     MonthOverflowMenu(
                         onExportIcs = onExportIcs,
                         onImportIcs = onImportIcs,

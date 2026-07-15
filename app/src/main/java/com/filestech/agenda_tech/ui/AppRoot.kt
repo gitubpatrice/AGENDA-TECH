@@ -16,6 +16,7 @@ import com.filestech.agenda_tech.ui.deviceimport.DeviceImportScreen
 import com.filestech.agenda_tech.ui.screens.calendars.CalendarsScreen
 import com.filestech.agenda_tech.ui.screens.editor.EventEditorScreen
 import com.filestech.agenda_tech.ui.screens.month.MonthScreen
+import com.filestech.agenda_tech.ui.screens.search.SearchScreen
 import com.filestech.agenda_tech.ui.screens.settings.SettingsScreen
 import com.filestech.agenda_tech.ui.screens.timeline.DayScreen
 import com.filestech.agenda_tech.ui.screens.timeline.WeekScreen
@@ -45,6 +46,7 @@ fun AppRoot() {
                 onOccurrenceClick = onOccurrenceClick,
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 onOpenAbout = { navController.navigate(Routes.ABOUT) },
+                onOpenSearch = { navController.navigate(Routes.SEARCH) },
             )
         }
         composable(Routes.WEEK) {
@@ -95,6 +97,12 @@ fun AppRoot() {
         }
         composable(Routes.BACKUP) {
             BackupScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.SEARCH) {
+            SearchScreen(
+                onBack = { navController.popBackStack() },
+                onOccurrenceClick = onOccurrenceClick,
+            )
         }
     }
 }

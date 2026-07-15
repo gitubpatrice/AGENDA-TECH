@@ -289,4 +289,15 @@
     <string name="backup_not_a_backup">Ce fichier n\'est pas une sauvegarde Agenda Tech.</string>
     <string name="backup_failed">La sauvegarde a échoué. Aucune donnée n\'a été modifiée.</string>
     <string name="backup_working_restore">Déchiffrement en cours…</string>
+
+    <!-- Recherche -->
+    <string name="search_open">Rechercher un événement</string>
+    <string name="search_field_hint">Titre, description, lieu, ville…</string>
+    <string name="search_clear">Effacer la recherche</string>
+    <string name="search_prompt">Cherchez un événement par titre, description, lieu ou ville. Les accents et la casse n’ont pas d’importance.</string>
+    <string name="search_no_results">Aucun résultat pour « %1$s ».</string>
+    <string name="search_no_results_hint">Vérifiez l’orthographe, ou essayez un mot plus court.</string>
+    <string name="search_section_upcoming">À venir</string>
+    <string name="search_section_past">Passés</string>
+    <string name="search_hidden_calendar">calendrier masqué</string>
 </resources>

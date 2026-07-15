@@ -32,6 +32,9 @@ class EventRepositoryImpl @Inject constructor(
         dao.getById(id)?.toDomain()
     }
 
+    override fun observeAll(): Flow<List<Event>> =
+        dao.observeAll().map { rows -> rows.map { it.toDomain() } }.flowOn(io)
+
     override suspend fun getAll(): List<Event> = withContext(io) {
         dao.getAll().map { it.toDomain() }
     }

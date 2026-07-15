@@ -81,6 +81,25 @@ class RecurrenceExpander @Inject constructor() {
         return occurrenceStarts(event, rule, zone).firstOrNull { it >= afterUtcMillis }
     }
 
+    /**
+     * The start instant of the last occurrence of [event] strictly before [beforeUtcMillis], or null
+     * if the series had not begun yet. The mirror of [nextOccurrenceStart], and what dates a search
+     * hit whose series is over — a finished weekly meeting has to show its last date, not the day the
+     * series was created years ago.
+     *
+     * Walks the sequence rather than calling [expand]: it keeps only one instant instead of
+     * materialising the whole past series. Terminates on an open-ended rule too, since the starts are
+     * ascending and stop being taken once they reach [beforeUtcMillis].
+     */
+    fun lastOccurrenceStartBefore(event: Event, beforeUtcMillis: Long): Long? {
+        val rule = event.recurrence
+            ?: return event.startUtcMillis.takeIf { it < beforeUtcMillis }
+        val zone = resolveZone(event.timeZoneId)
+        return occurrenceStarts(event, rule, zone)
+            .takeWhile { it < beforeUtcMillis }
+            .lastOrNull()
+    }
+
     private fun singleOccurrenceIfOverlaps(
         event: Event,
         windowStartUtcMillis: Long,

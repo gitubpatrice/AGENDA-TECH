@@ -28,6 +28,13 @@ interface EventRepository {
     /** All events — used to export the whole agenda to `.ics`. */
     suspend fun getAll(): List<Event>
 
+    /**
+     * Streams every event, regardless of calendar visibility. Backs search, which deliberately spans
+     * hidden calendars: answering "no results" for an event the user typed the exact title of would
+     * read as "it does not exist" — in an agenda, that is how a double-booking happens.
+     */
+    fun observeAll(): Flow<List<Event>>
+
     /** Streams every per-occurrence override (used to expand recurring series correctly). */
     fun observeOverrides(): Flow<List<Event>>
 
