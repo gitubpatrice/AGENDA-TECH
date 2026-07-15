@@ -11,6 +11,12 @@ internal val BrandBlueDark = Color(0xFFA9C7FF)
 /** Single source of truth for the "destructive intent" red (delete event / calendar). */
 internal val BrandDanger = Color(0xFFC62828)
 
+/**
+ * Light blue-grey for every popup surface (menus, dialogs, sheets) in the light theme. Deliberately
+ * a soft wash rather than the logo's saturated blue, which reads far too dark behind text.
+ */
+private val MenuSurface = Color(0xFFF0F5FB)
+
 internal val LightPalette = lightColorScheme(
     primary = BrandBlue,
     onPrimary = Color.White,
@@ -32,14 +38,15 @@ internal val LightPalette = lightColorScheme(
     onSurface = Color(0xFF1B1B1F),
     surfaceVariant = Color(0xFFE0E2EC),
     onSurfaceVariant = Color(0xFF44464F),
-    // Menus, dialogs and sheets draw on the surfaceContainer roles. Material 3 derives them as tinted
-    // greys by default, which reads as a dull grey panel; pin them to white so every popup surface is
-    // clean white in the light theme (the dark theme keeps its GitHub slate palette below).
+    // Menus, dialogs and sheets draw on the surfaceContainer roles. Material 3 derives them as dull
+    // tinted greys by default; pin them to a light blue-grey that matches the brand blue, so every
+    // popup surface is clean and cohesive in the light theme (the dark theme keeps its GitHub slate
+    // palette below). Kept a touch off the page background so a menu still reads as a raised panel.
     surfaceContainerLowest = Color.White,
-    surfaceContainerLow = Color.White,
-    surfaceContainer = Color.White,
-    surfaceContainerHigh = Color.White,
-    surfaceContainerHighest = Color.White,
+    surfaceContainerLow = MenuSurface,
+    surfaceContainer = MenuSurface,
+    surfaceContainerHigh = MenuSurface,
+    surfaceContainerHighest = MenuSurface,
     outline = Color(0xFF74777F),
     outlineVariant = Color(0xFFC4C6D0),
     scrim = Color.Black,

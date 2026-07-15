@@ -27,6 +27,10 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -459,8 +463,10 @@ private fun MonthOverflowMenu(
             Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.menu_more))
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            // Leading icons make each entry identifiable at a glance (Files Tech convention).
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.menu_settings)) },
+                leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
                 onClick = {
                     expanded = false
                     onOpenSettings()
@@ -468,6 +474,7 @@ private fun MonthOverflowMenu(
             )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.menu_import_ics)) },
+                leadingIcon = { Icon(Icons.Outlined.FileDownload, contentDescription = null) },
                 onClick = {
                     expanded = false
                     onImportIcs()
@@ -475,6 +482,7 @@ private fun MonthOverflowMenu(
             )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.menu_export_ics)) },
+                leadingIcon = { Icon(Icons.Outlined.FileUpload, contentDescription = null) },
                 onClick = {
                     expanded = false
                     onExportIcs()
@@ -483,6 +491,7 @@ private fun MonthOverflowMenu(
             HorizontalDivider()
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.settings_about)) },
+                leadingIcon = { Icon(Icons.Outlined.Info, contentDescription = null) },
                 onClick = {
                     expanded = false
                     onOpenAbout()

@@ -3,6 +3,7 @@ package com.filestech.agenda_tech.ui.screens.about
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -158,7 +159,7 @@ fun AboutScreen(onBack: () -> Unit) {
             LinkItem(
                 icon = Icons.Outlined.Gavel,
                 label = stringResource(R.string.about_license),
-                supporting = "Apache License 2.0",
+                supporting = stringResource(R.string.about_license_name),
                 onClick = { openUrl(context, URL_LICENSE) },
             )
             LinkItem(
@@ -246,7 +247,10 @@ private fun PrivacyCard() {
     val cs = MaterialTheme.colorScheme
     Card(
         modifier = Modifier.fillMaxWidth(),
+        // Same light blue-grey as every other panel; the coloured icon and bold title carry the
+        // emphasis, and the hairline outline keeps the card readable against the near-white page.
         colors = CardDefaults.cardColors(containerColor = cs.surfaceContainerHigh),
+        border = BorderStroke(1.dp, cs.outlineVariant),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -313,6 +317,8 @@ private fun FeatureRow(icon: ImageVector, label: String, desc: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 6.dp),
+        // Outlined: the default card container is white in the light theme, same as the page.
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         ListItem(
             leadingContent = {
@@ -345,7 +351,10 @@ private fun SecurityCard() {
     val cs = MaterialTheme.colorScheme
     Card(
         modifier = Modifier.fillMaxWidth(),
+        // Same light blue-grey as every other panel; the coloured icon and bold title carry the
+        // emphasis, and the hairline outline keeps the card readable against the near-white page.
         colors = CardDefaults.cardColors(containerColor = cs.surfaceContainerHigh),
+        border = BorderStroke(1.dp, cs.outlineVariant),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -391,7 +400,10 @@ private fun PermissionLine(name: String, why: String) {
 @Composable
 private fun AuthorCard() {
     val cs = MaterialTheme.colorScheme
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        border = BorderStroke(1.dp, cs.outlineVariant),
+    ) {
         ListItem(
             leadingContent = {
                 Box(
@@ -452,7 +464,10 @@ private fun versionName(context: Context): String {
 
 private fun reportIssue(context: Context) {
     val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$CONTACT_EMAIL")).apply {
-        putExtra(Intent.EXTRA_SUBJECT, "Agenda Tech ${versionName(context)}")
+        putExtra(
+            Intent.EXTRA_SUBJECT,
+            "${context.getString(R.string.app_name)} ${versionName(context)}",
+        )
     }
     safeStartActivity(context, intent)
 }

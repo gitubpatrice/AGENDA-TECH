@@ -201,6 +201,7 @@
     <string name="about_author_role">Developer</string>
     <string name="about_links_title">Links</string>
     <string name="about_report_issue">Report an issue</string>
+    <string name="about_license_name">Apache License 2.0</string>
     <string name="about_privacy_policy">Privacy policy</string>
     <string name="about_credits_body">Made with care by %1$s. Free and open-source software — the code is public and auditable.</string>
     <string name="about_legal_body">© %1$s %2$s — Apache License 2.0</string>

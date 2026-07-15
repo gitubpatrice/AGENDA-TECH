@@ -233,8 +233,10 @@ private fun EventEditorContent(
                             Icon(Icons.Filled.Delete, stringResource(R.string.editor_delete))
                         }
                     }
-                    IconButton(onClick = onSave) {
-                        Icon(Icons.Filled.Check, stringResource(R.string.editor_save))
+                    // Spelled out rather than a bare check icon: "Enregistrer" leaves no doubt about
+                    // what the action does, which a ✓ glyph alone does not.
+                    TextButton(onClick = onSave) {
+                        Text(stringResource(R.string.editor_save))
                     }
                 },
             )

@@ -45,6 +45,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -62,7 +63,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.ui.lock.MIN_PIN_LENGTH
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.filestech.agenda_tech.domain.settings.AppSettings
 import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.domain.settings.WeekStart
@@ -560,18 +563,21 @@ private fun ringtonePickerIntent(context: Context, currentUri: String?): Intent 
     }
 }
 
-/** Human-readable name of the chosen ringtone; falls back to "default" when unset/unreadable. */
+/**
+ * Human-readable name of the chosen ringtone; falls back to "default" when unset/unreadable.
+ * Resolving a title queries the media provider over IPC, so it runs off the composition thread.
+ */
 @Composable
 private fun ringtoneTitle(uri: String?): String {
     val context = LocalContext.current
     val default = stringResource(R.string.settings_notif_ringtone_default)
-    return remember(uri) {
-        uri?.let { raw ->
-            runCatching {
-                RingtoneManager.getRingtone(context, raw.toUri())?.getTitle(context)
-            }.getOrNull()
+    return produceState(initialValue = default, uri, default) {
+        value = uri?.let { raw ->
+            withContext(Dispatchers.IO) {
+                runCatching { RingtoneManager.getRingtone(context, raw.toUri())?.getTitle(context) }.getOrNull()
+            }
         } ?: default
-    }
+    }.value
 }
 
 private fun openAppNotificationSettings(context: Context) {
