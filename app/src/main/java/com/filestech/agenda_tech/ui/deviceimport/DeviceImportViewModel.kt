@@ -2,7 +2,7 @@ package com.filestech.agenda_tech.ui.deviceimport
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.filestech.agenda_tech.data.device.DeviceCalendar
+import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.domain.usecase.ImportDeviceEventsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -47,6 +47,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.domain.model.DeviceCalendar
 
 /**
  * "Import from the device calendar" — one-shot, read-only, no network. Requests READ_CALENDAR,
@@ -188,7 +189,7 @@ private fun PermissionPrompt(onGrant: () -> Unit) {
 
 @Composable
 private fun ReadyContent(
-    calendars: List<com.filestech.agenda_tech.data.device.DeviceCalendar>,
+    calendars: List<DeviceCalendar>,
     selected: Set<Long>,
     importing: Boolean,
     onToggle: (Long) -> Unit,

@@ -1,7 +1,8 @@
-package com.filestech.agenda_tech.data.device
+package com.filestech.agenda_tech.domain.device
 
 import com.filestech.agenda_tech.core.text.BidiSanitizer
 import com.filestech.agenda_tech.domain.model.CalendarColor
+import com.filestech.agenda_tech.domain.model.DeviceEvent
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
@@ -14,7 +15,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 /**
- * Pure mapper: a raw [DeviceEvent] (from the Calendar Provider) → a domain [Event]. No Android
+ * Pure mapper: a [DeviceEvent] read from the device calendar → a domain [Event]. No Android
  * dependency, so every branch (duration fallback, RRULE/EXDATE parsing, all-day, colour matching,
  * Bidi stripping) is unit-testable with plain values.
  *
@@ -84,6 +85,13 @@ object DeviceEventMapper {
             sourceUid = device.uid,
         )
     }
+
+    /**
+     * Fallback uid for an event with no sync id (local calendar, or created while offline and not yet
+     * pushed). The import matches on this form too, to catch the `rowid → sync-id` transition and
+     * avoid re-inserting the event once it finally syncs.
+     */
+    fun rowIdUid(eventRowId: Long): String = "rowid:$eventRowId"
 
     /** Nearest colour in the closed palette to a device ARGB (Euclidean in RGB); DEFAULT if null. */
     fun nearestColor(argb: Int?): CalendarColor {

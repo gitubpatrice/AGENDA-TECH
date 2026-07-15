@@ -3,7 +3,14 @@ package com.filestech.agenda_tech.data.device
 import android.content.Context
 import android.database.Cursor
 import android.provider.CalendarContract
+import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.domain.device.DeviceEventMapper
+import com.filestech.agenda_tech.domain.model.DeviceCalendar
+import com.filestech.agenda_tech.domain.model.DeviceEvent
+import com.filestech.agenda_tech.domain.repository.DeviceCalendarRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,22 +23,24 @@ import javax.inject.Singleton
  * Requires the `READ_CALENDAR` runtime permission (the caller gates on it). Recurring masters,
  * standalone events **and moved single occurrences** (`ORIGINAL_ID` set) are returned — only the
  * provider's deleted tombstones are skipped, so nothing the user can see in their calendar is lost.
- * The pure [DeviceEventMapper] turns each row into a domain event.
+ *
+ * Cursor work is IPC to another process: it runs on the IO dispatcher here, so callers never have to
+ * think about threading (same contract as the other repositories).
  */
 @Singleton
-class DeviceCalendarReader @Inject constructor(
+class DeviceCalendarRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+    @IoDispatcher private val io: CoroutineDispatcher,
+) : DeviceCalendarRepository {
 
-    /** Lists the device calendars available to import from. Empty on permission/query failure. */
-    fun listCalendars(): List<DeviceCalendar> {
+    override suspend fun listCalendars(): List<DeviceCalendar> = withContext(io) {
         val projection = arrayOf(
             CalendarContract.Calendars._ID,
             CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
             CalendarContract.Calendars.ACCOUNT_NAME,
             CalendarContract.Calendars.CALENDAR_COLOR,
         )
-        return runCatching {
+        runCatching {
             context.contentResolver.query(
                 CalendarContract.Calendars.CONTENT_URI,
                 projection,
@@ -53,16 +62,13 @@ class DeviceCalendarReader @Inject constructor(
                 }
             }.orEmpty()
         }.getOrElse {
-            Timber.w(it, "DeviceCalendarReader: listCalendars failed")
+            Timber.w(it, "DeviceCalendarRepository: listCalendars failed")
             emptyList()
         }
     }
 
-    /**
-     * Reads up to [MAX_EVENTS] master / standalone events of a device calendar. The heavy Cursor work
-     * runs on whatever dispatcher the caller provides (the use case wraps it in IO).
-     */
-    fun readEvents(calendarId: Long): List<DeviceEvent> {
+    /** Reads up to [MAX_EVENTS] events of a device calendar (masters, standalone and moved ones). */
+    override suspend fun readEvents(deviceCalendarId: Long): List<DeviceEvent> = withContext(io) {
         val projection = arrayOf(
             CalendarContract.Events.TITLE,
             CalendarContract.Events.DESCRIPTION,
@@ -88,12 +94,12 @@ class DeviceCalendarReader @Inject constructor(
         val selection = "${CalendarContract.Events.CALENDAR_ID} = ? " +
             "AND (${CalendarContract.Events.DELETED} IS NULL OR ${CalendarContract.Events.DELETED} != 1) " +
             "AND ${CalendarContract.Events.DTSTART} IS NOT NULL"
-        return runCatching {
+        runCatching {
             context.contentResolver.query(
                 CalendarContract.Events.CONTENT_URI,
                 projection,
                 selection,
-                arrayOf(calendarId.toString()),
+                arrayOf(deviceCalendarId.toString()),
                 "${CalendarContract.Events.DTSTART} ASC",
             )?.use { c ->
                 buildList {
@@ -101,7 +107,7 @@ class DeviceCalendarReader @Inject constructor(
                         val dtStart = if (c.isNull(3)) continue else c.getLong(3)
                         val deviceId = c.getLong(11)
                         // Stable per-row identity for idempotent re-import: sync id, else local row id.
-                        val uid = c.getStringOrNull(10) ?: rowIdUid(deviceId)
+                        val uid = c.getStringOrNull(10) ?: DeviceEventMapper.rowIdUid(deviceId)
                         add(
                             DeviceEvent(
                                 uid = uid,
@@ -124,22 +130,15 @@ class DeviceCalendarReader @Inject constructor(
                 }
             }.orEmpty()
         }.getOrElse {
-            Timber.w(it, "DeviceCalendarReader: readEvents(%d) failed", calendarId)
+            Timber.w(it, "DeviceCalendarRepository: readEvents(%d) failed", deviceCalendarId)
             emptyList()
         }
     }
 
     private fun Cursor.getStringOrNull(index: Int): String? = if (isNull(index)) null else getString(index)
 
-    companion object {
+    private companion object {
         // A personal agenda is well under this; the cap bounds memory against a pathological provider.
-        private const val MAX_EVENTS = 20_000
-
-        /**
-         * Fallback uid for an event with no `_SYNC_ID` (local calendar, or created while offline and
-         * not yet pushed). Shared with the import use case, which also matches on this form to catch
-         * the `rowid → sync-id` transition and avoid re-inserting the event once it finally syncs.
-         */
-        fun rowIdUid(eventRowId: Long): String = "rowid:$eventRowId"
+        const val MAX_EVENTS = 20_000
     }
 }

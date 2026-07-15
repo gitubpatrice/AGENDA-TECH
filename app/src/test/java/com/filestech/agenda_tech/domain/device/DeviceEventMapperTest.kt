@@ -1,6 +1,7 @@
-package com.filestech.agenda_tech.data.device
+package com.filestech.agenda_tech.domain.device
 
 import com.filestech.agenda_tech.domain.model.CalendarColor
+import com.filestech.agenda_tech.domain.model.DeviceEvent
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.Weekday
 import com.google.common.truth.Truth.assertThat
@@ -22,6 +23,9 @@ private fun deviceEvent(
     description: String? = null,
     location: String? = null,
     uid: String = "uid-1",
+    deviceId: Long = 1L,
+    originalId: Long? = null,
+    originalInstanceTime: Long? = null,
 ) = DeviceEvent(
     uid = uid,
     title = title,
@@ -34,6 +38,9 @@ private fun deviceEvent(
     allDay = allDay,
     rrule = rrule,
     exDate = exDate,
+    deviceId = deviceId,
+    originalId = originalId,
+    originalInstanceTime = originalInstanceTime,
 )
 
 class DeviceEventMapperTest {

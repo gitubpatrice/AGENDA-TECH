@@ -1,11 +1,11 @@
 package com.filestech.agenda_tech.domain.usecase
 
-import com.filestech.agenda_tech.data.device.DeviceCalendar
-import com.filestech.agenda_tech.data.device.DeviceCalendarReader
-import com.filestech.agenda_tech.data.device.DeviceEventMapper
 import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.domain.device.DeviceEventMapper
 import com.filestech.agenda_tech.domain.model.Calendar
+import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
+import com.filestech.agenda_tech.domain.repository.DeviceCalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
@@ -27,7 +27,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class ImportDeviceEventsUseCase @Inject constructor(
-    private val reader: DeviceCalendarReader,
+    private val deviceCalendars: DeviceCalendarRepository,
     private val calendarRepository: CalendarRepository,
     private val eventRepository: EventRepository,
     @IoDispatcher private val io: CoroutineDispatcher,
@@ -45,7 +45,7 @@ class ImportDeviceEventsUseCase @Inject constructor(
     private val mutex = Mutex()
 
     /** Lists the device calendars available to import from (requires READ_CALENDAR granted). */
-    suspend fun listCalendars(): List<DeviceCalendar> = withContext(io) { reader.listCalendars() }
+    suspend fun listCalendars(): List<DeviceCalendar> = withContext(io) { deviceCalendars.listCalendars() }
 
     /** Wipes previously imported calendars (incl. legacy ones) so a fresh import starts clean. */
     suspend fun clearImported() = mutex.withLock { calendarRepository.deleteImported() }
@@ -55,7 +55,7 @@ class ImportDeviceEventsUseCase @Inject constructor(
     }
 
     private suspend fun importLocked(selectedCalendarIds: List<Long>): Result {
-        val byId = reader.listCalendars().associateBy { it.id }
+        val byId = deviceCalendars.listCalendars().associateBy { it.id }
         var calendars = 0
         var events = 0
         var failed = 0
@@ -80,7 +80,7 @@ class ImportDeviceEventsUseCase @Inject constructor(
                             sourceId = sourceId,
                         ),
                     )
-                val deviceEvents = reader.readEvents(deviceId)
+                val deviceEvents = deviceCalendars.readEvents(deviceId)
                 // FIAB-3 — fold each moved occurrence's original instant into its master's EXDATE, so
                 // a provider that omits EXDATE on the master can't leave a ghost at the original time
                 // next to the moved one.
@@ -104,7 +104,7 @@ class ImportDeviceEventsUseCase @Inject constructor(
                     // `rowid:<id>`, and now carries a real `_SYNC_ID` — without this second key it
                     // would be re-inserted as a duplicate (audit U1).
                     val existingId = withEx.sourceUid?.let { existing[it] }
-                        ?: existing[DeviceCalendarReader.rowIdUid(de.deviceId)]
+                        ?: existing[DeviceEventMapper.rowIdUid(de.deviceId)]
                     if (existingId != null) withEx.copy(id = existingId) else withEx
                 }
                 eventRepository.upsertAll(mapped) // atomic batch — all rows or none
