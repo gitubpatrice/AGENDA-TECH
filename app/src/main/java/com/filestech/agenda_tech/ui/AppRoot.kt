@@ -47,6 +47,7 @@ fun AppRoot() {
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 onOpenAbout = { navController.navigate(Routes.ABOUT) },
                 onOpenSearch = { navController.navigate(Routes.SEARCH) },
+                onOpenBackup = { navController.navigate(Routes.BACKUP) },
             )
         }
         composable(Routes.WEEK) {

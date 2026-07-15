@@ -303,4 +303,11 @@
 
     <!-- URL de la politique de confidentialité, localisée : voir values/strings.xml. -->
     <string name="about_privacy_policy_url" translatable="false">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/PRIVACY.fr.md</string>
+    <!-- %1$d = minutes de report -->
+    <string name="reminder_snooze">Répéter %1$d min</string>
+    <!-- Proposition de restauration, sur un agenda vide (1er lancement / nouveau téléphone) -->
+    <string name="restore_prompt_title">Vous avez une sauvegarde ?</string>
+    <string name="restore_prompt_body">Votre agenda est vide. Si vous changez de téléphone, vous pouvez y remettre tous vos calendriers, événements et rappels depuis un fichier .atbak.</string>
+    <string name="restore_prompt_action">Restaurer une sauvegarde</string>
+    <string name="restore_prompt_dismiss">Non merci</string>
 </resources>

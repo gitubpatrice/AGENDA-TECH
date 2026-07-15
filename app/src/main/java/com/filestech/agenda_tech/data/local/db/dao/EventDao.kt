@@ -90,6 +90,14 @@ interface EventDao {
     fun observeAll(): Flow<List<EventEntity>>
 
     /**
+     * Streams whether the agenda holds no event at all. A dedicated query rather than
+     * `observeAll().map { it.isEmpty() }`: the answer is one boolean, and loading every row to
+     * discover it would grow with the very agendas that least need asking.
+     */
+    @Query("SELECT NOT EXISTS(SELECT 1 FROM events)")
+    fun observeIsEmpty(): Flow<Boolean>
+
+    /**
      * ⚠️ The returned `Long` is the rowid only on the INSERT path; on UPDATE Room returns `-1`.
      *
      * Do not use this value directly — go through `EventRepository.upsert`, which resolves it to the

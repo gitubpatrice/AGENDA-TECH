@@ -35,6 +35,9 @@ interface EventRepository {
      */
     fun observeAll(): Flow<List<Event>>
 
+    /** Streams true while the agenda holds no event — drives the first-run offer to restore a backup. */
+    fun observeIsEmpty(): Flow<Boolean>
+
     /** Streams every per-occurrence override (used to expand recurring series correctly). */
     fun observeOverrides(): Flow<List<Event>>
 

@@ -304,4 +304,11 @@
     <!-- Privacy policy URL, localised: a French user must not land on the English page. Android
          picks values-fr/ automatically, so the choice needs no code. -->
     <string name="about_privacy_policy_url" translatable="false">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/PRIVACY.md</string>
+    <!-- %1$d = snooze minutes -->
+    <string name="reminder_snooze">Snooze %1$d min</string>
+    <!-- Restore offer, on an empty agenda (first run / new phone) -->
+    <string name="restore_prompt_title">Do you have a backup?</string>
+    <string name="restore_prompt_body">Your calendar is empty. Coming from another phone? You can put all your calendars, events and reminders back from an .atbak file.</string>
+    <string name="restore_prompt_action">Restore a backup</string>
+    <string name="restore_prompt_dismiss">No thanks</string>
 </resources>

@@ -78,6 +78,7 @@ internal class FakeEventRepository : EventRepository {
     override suspend fun getById(id: Long): Event? = rows[id]
     override suspend fun getAll(): List<Event> = rows.values.toList()
     override fun observeAll(): Flow<List<Event>> = flowOf(rows.values.sortedBy { it.startUtcMillis })
+    override fun observeIsEmpty(): Flow<Boolean> = flowOf(rows.isEmpty())
     override suspend fun deleteOverridesForParent(parentId: Long) {
         rows.values.filter { it.recurrenceParentId == parentId }.forEach { rows.remove(it.id) }
     }

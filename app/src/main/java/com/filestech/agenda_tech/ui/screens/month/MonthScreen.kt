@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -31,11 +32,14 @@ import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -90,10 +94,12 @@ fun MonthScreen(
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenSearch: () -> Unit,
+    onOpenBackup: () -> Unit,
     viewModel: MonthViewModel = hiltViewModel(),
     icsViewModel: IcsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val showRestorePrompt by viewModel.showRestorePrompt.collectAsStateWithLifecycle()
     val icsResult by icsViewModel.result.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -135,6 +141,13 @@ fun MonthScreen(
         onOpenSettings = onOpenSettings,
         onOpenAbout = onOpenAbout,
         onOpenSearch = onOpenSearch,
+        showRestorePrompt = showRestorePrompt,
+        onRestoreBackup = {
+            // Answered either way — restoring or declining. Don't ask again.
+            viewModel.dismissRestorePrompt()
+            onOpenBackup()
+        },
+        onDismissRestorePrompt = viewModel::dismissRestorePrompt,
     )
 }
 
@@ -154,6 +167,9 @@ private fun MonthScreenContent(
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenSearch: () -> Unit,
+    showRestorePrompt: Boolean,
+    onRestoreBackup: () -> Unit,
+    onDismissRestorePrompt: () -> Unit,
 ) {
     val locale = rememberAppLocale()
 
@@ -223,6 +239,10 @@ private fun MonthScreenContent(
                 .padding(innerPadding)
                 .fillMaxSize(),
         ) {
+            if (showRestorePrompt) {
+                RestorePromptCard(onRestore = onRestoreBackup, onDismiss = onDismissRestorePrompt)
+            }
+
             // Month navigation row (moved out of the crowded app bar).
             Row(
                 modifier = Modifier
@@ -532,4 +552,57 @@ private fun timeLabel(occurrence: OccurrenceData, zone: ZoneId, locale: Locale):
     val start = Instant.ofEpochMilli(occurrence.startUtcMillis).atZone(zone).format(formatter)
     val end = Instant.ofEpochMilli(occurrence.endUtcMillis).atZone(zone).format(formatter)
     return "$start – $end"
+}
+
+/**
+ * Offers to restore a backup, on an agenda that holds nothing.
+ *
+ * Shown here rather than in Settings because this is where someone lands after installing the app on
+ * a new phone — the one moment the backup exists for. Buried in Settings → Privacy, the feature only
+ * helps people who already know it is there.
+ *
+ * Dismissible, and asked only once: a deliberately empty calendar must not be nagged.
+ */
+@Composable
+private fun RestorePromptCard(onRestore: () -> Unit, onDismiss: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = cs.surfaceContainerHigh),
+        border = BorderStroke(1.dp, cs.outlineVariant),
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.SettingsBackupRestore,
+                    contentDescription = null,
+                    tint = cs.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = stringResource(R.string.restore_prompt_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = cs.onSurface,
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+            }
+            Text(
+                text = stringResource(R.string.restore_prompt_body),
+                style = MaterialTheme.typography.bodySmall,
+                color = cs.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.restore_prompt_dismiss)) }
+                TextButton(onClick = onRestore) { Text(stringResource(R.string.restore_prompt_action)) }
+            }
+        }
+    }
 }

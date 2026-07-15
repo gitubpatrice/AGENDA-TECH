@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.recurrence.EventOccurrence
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
+import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.settings.toDayOfWeek
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -36,6 +38,7 @@ import javax.inject.Inject
 class MonthViewModel @Inject constructor(
     private val observeOccurrences: ObserveOccurrencesInRangeUseCase,
     private val calendarRepository: CalendarRepository,
+    private val eventRepository: EventRepository,
     private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
@@ -91,6 +94,35 @@ class MonthViewModel @Inject constructor(
             isLoading = true,
         ),
     )
+
+    /**
+     * Whether to offer restoring a backup.
+     *
+     * Shown only on an agenda that holds nothing at all — which is exactly the state of a fresh
+     * install after a new phone, the one moment the backup exists for. Without this, the user has to
+     * already know the feature exists and go looking for it in Settings → Privacy.
+     *
+     * Kept out of [MonthUiState]: that flow already combines five sources (the typed limit), and this
+     * one has nothing to do with drawing the grid.
+     */
+    val showRestorePrompt: StateFlow<Boolean> = combine(
+        eventRepository.observeIsEmpty(),
+        settingsRepository.settings.map { it.restorePromptDismissed }.distinctUntilChanged(),
+    ) { isEmpty, dismissed -> isEmpty && !dismissed }
+        .distinctUntilChanged()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+            initialValue = false,
+        )
+
+    /**
+     * The user answered the offer — restored, or waved it away. Either way it must not come back:
+     * a deliberately empty agenda would otherwise be nagged on every single launch.
+     */
+    fun dismissRestorePrompt() = viewModelScope.launch {
+        settingsRepository.update { it.copy(restorePromptDismissed = true) }
+    }
 
     fun onPreviousMonth() {
         displayedMonth.value = displayedMonth.value.minusMonths(1)

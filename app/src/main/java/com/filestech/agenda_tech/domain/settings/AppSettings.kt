@@ -45,6 +45,12 @@ data class AppSettings(
     val flagSecure: Boolean = true,
     /** SEC-W1 — when true the widget hides event titles (shows only times). */
     val widgetHideTitles: Boolean = false,
+    /**
+     * True once the user has answered the "restore a backup?" offer shown on an empty agenda —
+     * whether they restored or waved it away. Without it the offer would come back on every launch
+     * of a deliberately empty calendar, which is nagging, not helping.
+     */
+    val restorePromptDismissed: Boolean = false,
     val notifSound: Boolean = true,
     /**
      * Ringtone to play for reminders, as a content URI string. Null (the default) means the system

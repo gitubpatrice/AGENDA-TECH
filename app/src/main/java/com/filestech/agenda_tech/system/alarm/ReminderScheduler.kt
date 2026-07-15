@@ -70,6 +70,36 @@ class ReminderScheduler @Inject constructor(
     }
 
     /**
+     * Re-arm a reminder [SNOOZE_MINUTES] from now, for the same occurrence.
+     *
+     * Deliberately kept off the series' own alarm: it uses its own action and its own request-code
+     * space. Re-using [ReminderReceiver.ACTION_FIRE] would make the snoozed alarm roll the series
+     * forward a second time, and re-using the reminder's request code would overwrite the alarm that
+     * [onReminderFired] has just armed for the next occurrence — the reminder after this one would
+     * silently never fire.
+     */
+    fun snooze(eventId: Long, occurrenceStartUtcMillis: Long) {
+        val intent = Intent(context, ReminderReceiver::class.java).apply {
+            action = ReminderReceiver.ACTION_SNOOZE_FIRE
+            putExtra(ReminderReceiver.EXTRA_EVENT_ID, eventId)
+            putExtra(ReminderReceiver.EXTRA_OCCURRENCE_START, occurrenceStartUtcMillis)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            snoozeRequestCode(eventId, occurrenceStartUtcMillis),
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val fireAt = System.currentTimeMillis() + SNOOZE_MINUTES * 60_000L
+        if (canScheduleExact()) {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAt, pendingIntent)
+        } else {
+            Timber.i("ReminderScheduler: exact alarms unavailable — snoozing event %d inexactly", eventId)
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAt, pendingIntent)
+        }
+    }
+
+    /**
      * Cancel alarms by reminder id.
      *
      * Exists for the restore path: [rescheduleAll] walks the reminders that *exist*, so it can never
@@ -126,5 +156,19 @@ class ReminderScheduler @Inject constructor(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE
         }
         return PendingIntent.getBroadcast(context, reminderId.toInt(), intent, flags)
+    }
+
+    companion object {
+        /** How long "snooze" defers a reminder. Ten minutes: long enough to finish what you were doing. */
+        const val SNOOZE_MINUTES = 10
+
+        /**
+         * Request code for a snoozed alarm — keyed by the occurrence, not by the reminder, so two
+         * reminders on the same occurrence share one snooze instead of stacking notifications.
+         * Separate from the reminder-id space [buildPendingIntent] uses; the differing action keeps the
+         * two PendingIntents distinct even if the ints ever collided.
+         */
+        private fun snoozeRequestCode(eventId: Long, occurrenceStartUtcMillis: Long): Int =
+            (eventId * 31 + occurrenceStartUtcMillis).hashCode()
     }
 }

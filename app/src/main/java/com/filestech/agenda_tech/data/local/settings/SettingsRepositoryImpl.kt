@@ -42,6 +42,7 @@ class SettingsRepositoryImpl @Inject constructor(
         defaultReminderMinutes = this[Keys.DEFAULT_REMINDER] ?: AppSettings.NO_DEFAULT_REMINDER,
         flagSecure = this[Keys.FLAG_SECURE] ?: true,
         widgetHideTitles = this[Keys.WIDGET_HIDE_TITLES] ?: false,
+        restorePromptDismissed = this[Keys.RESTORE_PROMPT_DISMISSED] ?: false,
         notifSound = this[Keys.NOTIF_SOUND] ?: true,
         notifSoundUri = this[Keys.NOTIF_SOUND_URI],
         notifVibrate = this[Keys.NOTIF_VIBRATE] ?: true,
@@ -57,6 +58,7 @@ class SettingsRepositoryImpl @Inject constructor(
         this[Keys.DEFAULT_REMINDER] = settings.defaultReminderMinutes
         this[Keys.FLAG_SECURE] = settings.flagSecure
         this[Keys.WIDGET_HIDE_TITLES] = settings.widgetHideTitles
+        this[Keys.RESTORE_PROMPT_DISMISSED] = settings.restorePromptDismissed
         this[Keys.NOTIF_SOUND] = settings.notifSound
         // Absent key = system default ringtone, so clear it rather than storing a sentinel.
         settings.notifSoundUri
@@ -75,6 +77,7 @@ class SettingsRepositoryImpl @Inject constructor(
         val DEFAULT_REMINDER = intPreferencesKey("default_reminder")
         val FLAG_SECURE = booleanPreferencesKey("flag_secure")
         val WIDGET_HIDE_TITLES = booleanPreferencesKey("widget_hide_titles")
+        val RESTORE_PROMPT_DISMISSED = booleanPreferencesKey("restore_prompt_dismissed")
         val NOTIF_SOUND = booleanPreferencesKey("notif_sound")
         val NOTIF_SOUND_URI = stringPreferencesKey("notif_sound_uri")
         val NOTIF_VIBRATE = booleanPreferencesKey("notif_vibrate")

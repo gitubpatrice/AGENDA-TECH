@@ -21,6 +21,8 @@ import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.settings.AppSettings
+import com.filestech.agenda_tech.system.alarm.ReminderReceiver
+import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -141,6 +143,20 @@ class ReminderNotifier @Inject constructor(
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .build()
 
+        // "Snooze" — the moment a reminder fires is exactly the moment you are busy. Without this the
+        // choice is act now or lose the reminder.
+        val snoozeIntent = Intent(context, ReminderReceiver::class.java).apply {
+            action = ReminderReceiver.ACTION_SNOOZE
+            putExtra(ReminderReceiver.EXTRA_EVENT_ID, event.id)
+            putExtra(ReminderReceiver.EXTRA_OCCURRENCE_START, occurrenceStartUtcMillis)
+        }
+        val snoozePendingIntent = PendingIntent.getBroadcast(
+            context,
+            notificationId(event.id, occurrenceStartUtcMillis),
+            snoozeIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(event.title)
@@ -153,9 +169,22 @@ class ReminderNotifier @Inject constructor(
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(publicVersion)
             .setContentIntent(contentIntent)
+            .addAction(
+                0,
+                context.getString(R.string.reminder_snooze, ReminderScheduler.SNOOZE_MINUTES),
+                snoozePendingIntent,
+            )
             .build()
 
         compatManager.notify(notificationId(event.id, occurrenceStartUtcMillis), notification)
+    }
+
+    /**
+     * Dismisses a posted reminder. Used by the snooze path: the notification must go before the new
+     * alarm is armed, or the same reminder would sit on screen twice.
+     */
+    fun cancelReminder(eventId: Long, occurrenceStartUtcMillis: Long) {
+        compatManager.cancel(notificationId(eventId, occurrenceStartUtcMillis))
     }
 
     private fun contentText(event: Event, occurrenceStartUtcMillis: Long): String {
