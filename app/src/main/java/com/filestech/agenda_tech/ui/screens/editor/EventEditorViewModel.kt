@@ -153,6 +153,10 @@ class EventEditorViewModel @Inject constructor(
                 reminderMinutes = reminderMinutes,
                 description = event.description.orEmpty(),
                 location = event.location.orEmpty(),
+                address = event.address.orEmpty(),
+                postalCode = event.postalCode.orEmpty(),
+                city = event.city.orEmpty(),
+                gpsCoordinates = event.gpsCoordinates.orEmpty(),
                 deleteNeedsScope = editingOccurrence,
             )
         }
@@ -228,6 +232,14 @@ class EventEditorViewModel @Inject constructor(
     fun onDescriptionChange(value: String) = _state.update { it.copy(description = value) }
 
     fun onLocationChange(value: String) = _state.update { it.copy(location = value) }
+
+    fun onAddressChange(value: String) = _state.update { it.copy(address = value) }
+
+    fun onPostalCodeChange(value: String) = _state.update { it.copy(postalCode = value) }
+
+    fun onCityChange(value: String) = _state.update { it.copy(city = value) }
+
+    fun onGpsCoordinatesChange(value: String) = _state.update { it.copy(gpsCoordinates = value) }
 
     fun onSave() {
         val current = _state.value
@@ -305,6 +317,10 @@ class EventEditorViewModel @Inject constructor(
             title = current.title,
             description = current.description.ifBlank { null },
             location = current.location.ifBlank { null },
+            address = current.address.ifBlank { null },
+            postalCode = current.postalCode.ifBlank { null },
+            city = current.city.ifBlank { null },
+            gpsCoordinates = current.gpsCoordinates.ifBlank { null },
             startUtcMillis = startMillis,
             endUtcMillis = endMillis,
             timeZoneId = zone.id,

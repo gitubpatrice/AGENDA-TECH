@@ -1,5 +1,7 @@
 package com.filestech.agenda_tech.ui.screens.editor
 
+import android.content.Intent
+import android.net.Uri
 import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,6 +25,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -68,8 +71,10 @@ import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
+import com.filestech.agenda_tech.domain.location.GeoLink
 import com.filestech.agenda_tech.domain.model.Weekday
 import com.filestech.agenda_tech.ui.theme.BrandDanger
+import timber.log.Timber
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -125,6 +130,10 @@ fun EventEditorScreen(
         onRemoveReminder = viewModel::onRemoveReminder,
         onDescriptionChange = viewModel::onDescriptionChange,
         onLocationChange = viewModel::onLocationChange,
+        onAddressChange = viewModel::onAddressChange,
+        onPostalCodeChange = viewModel::onPostalCodeChange,
+        onCityChange = viewModel::onCityChange,
+        onGpsCoordinatesChange = viewModel::onGpsCoordinatesChange,
     )
 }
 
@@ -184,6 +193,10 @@ private fun EventEditorContent(
     onRemoveReminder: (Int) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onLocationChange: (String) -> Unit,
+    onAddressChange: (String) -> Unit,
+    onPostalCodeChange: (String) -> Unit,
+    onCityChange: (String) -> Unit,
+    onGpsCoordinatesChange: (String) -> Unit,
 ) {
     val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
     var datePickerTarget by remember { mutableStateOf<EditTarget?>(null) }
@@ -350,11 +363,43 @@ private fun EventEditorContent(
             )
 
             OutlinedTextField(
+                value = state.address,
+                onValueChange = onAddressChange,
+                label = { Text(stringResource(R.string.editor_address)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            // Postal code and city share a row: the code is short, and they are always read together.
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = state.postalCode,
+                    onValueChange = onPostalCodeChange,
+                    label = { Text(stringResource(R.string.editor_postal_code)) },
+                    singleLine = true,
+                    modifier = Modifier.weight(POSTAL_CODE_WEIGHT),
+                )
+                OutlinedTextField(
+                    value = state.city,
+                    onValueChange = onCityChange,
+                    label = { Text(stringResource(R.string.editor_city)) },
+                    singleLine = true,
+                    modifier = Modifier.weight(CITY_WEIGHT),
+                )
+            }
+
+            OutlinedTextField(
                 value = state.location,
                 onValueChange = onLocationChange,
                 label = { Text(stringResource(R.string.editor_location)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
+            )
+
+            GpsField(
+                value = state.gpsCoordinates,
+                onValueChange = onGpsCoordinatesChange,
+                label = state.location.ifBlank { state.title },
             )
 
             if (state.error == EditorError.SAVE_FAILED) {
@@ -663,6 +708,47 @@ private fun AdvancedRecurrenceSection(
     }
 }
 
+/**
+ * GPS coordinates + a button handing them to the phone's maps app via a `geo:` link. The button only
+ * appears once the text is actually usable, so it can never fire an intent that goes nowhere — and
+ * the app itself needs no location nor network permission for this.
+ */
+@Composable
+private fun GpsField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+) {
+    val context = LocalContext.current
+    val usable = remember(value) { GeoLink.isUsable(value) }
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(stringResource(R.string.editor_gps)) },
+        placeholder = { Text(stringResource(R.string.editor_gps_hint)) },
+        supportingText = { Text(stringResource(R.string.editor_gps_help)) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+        singleLine = true,
+        trailingIcon = {
+            if (usable) {
+                IconButton(onClick = { openOnMap(context, value, label) }) {
+                    Icon(Icons.Filled.Place, stringResource(R.string.editor_gps_open))
+                }
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/** Hands the coordinates to whatever maps app is installed; silently no-ops if there is none. */
+private fun openOnMap(context: android.content.Context, coordinates: String, label: String) {
+    val uri = GeoLink.fromCoordinates(coordinates, label) ?: return
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
+    runCatching { context.startActivity(intent) }
+        .onFailure { Timber.w(it, "EventEditor: no maps app to open a geo: link") }
+}
+
 @Composable
 private fun RemindersSection(
     reminderMinutes: List<Int>,
@@ -800,6 +886,10 @@ private enum class ReminderUnit(val minutes: Int, val labelRes: Int) {
 
 /** A reminder can't sensibly fire more than ~4 weeks before the event. */
 private const val MAX_REMINDER_MINUTES = 28 * 24 * 60
+
+// A postal code is short; the city gets the rest of the row.
+private const val POSTAL_CODE_WEIGHT = 1f
+private const val CITY_WEIGHT = 2f
 
 // --- helpers ----------------------------------------------------------------
 

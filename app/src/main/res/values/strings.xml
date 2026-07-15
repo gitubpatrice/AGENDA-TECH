@@ -51,6 +51,13 @@
     <string name="scope_whole_series">All events in the series</string>
     <string name="editor_description">Description</string>
     <string name="editor_location">Location</string>
+    <string name="editor_address">Address</string>
+    <string name="editor_postal_code">Postcode</string>
+    <string name="editor_city">City</string>
+    <string name="editor_gps">GPS coordinates</string>
+    <string name="editor_gps_hint">44.0512, 5.0489</string>
+    <string name="editor_gps_help">Latitude, longitude — tap the pin to open your maps app</string>
+    <string name="editor_gps_open">Open on the map</string>
     <string name="editor_error_blank_title">Title is required</string>
     <string name="editor_error_end_before_start">End must be after start</string>
     <string name="editor_error_save_failed">Couldn\'t save the event</string>

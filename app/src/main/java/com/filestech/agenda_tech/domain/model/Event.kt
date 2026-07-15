@@ -28,7 +28,18 @@ data class Event(
     val calendarId: Long,
     val title: String,
     val description: String? = null,
+    /** Free label of the place (e.g. "Cabinet du Dr Martin"), independent of the postal address. */
     val location: String? = null,
+    val address: String? = null,
+    val postalCode: String? = null,
+    val city: String? = null,
+    /**
+     * Free-form geographic coordinates as typed by the user (e.g. `44.0512, 5.0489`). Stored as text
+     * rather than a parsed lat/lng pair: the app only ever hands them to a maps app, so rejecting a
+     * slightly unusual format would help nobody.
+     * [com.filestech.agenda_tech.domain.location.GeoLink] turns them into a `geo:` link when usable.
+     */
+    val gpsCoordinates: String? = null,
     val startUtcMillis: Long,
     val endUtcMillis: Long,
     val timeZoneId: String,

@@ -36,6 +36,7 @@ abstract class AppDatabase : RoomDatabase() {
         // v2 (per-occurrence overrides): events.recurrence_parent_id + events.original_start.
         // v3 (idempotent device import): calendars.source_id + events.source_uid.
         // v4 (import lookup index): index on calendars.source_id.
-        const val SCHEMA_VERSION = 4
+        // v5 (place details): events.address + postal_code + city + gps_coordinates.
+        const val SCHEMA_VERSION = 5
     }
 }

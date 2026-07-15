@@ -45,6 +45,10 @@ data class EventEditorUiState(
     val reminderMinutes: List<Int> = emptyList(),
     val description: String = "",
     val location: String = "",
+    val address: String = "",
+    val postalCode: String = "",
+    val city: String = "",
+    val gpsCoordinates: String = "",
     val error: EditorError? = null,
     /** Non-null when the editor is asking whether to apply to this occurrence or the whole series. */
     val scopePrompt: ScopePrompt? = null,

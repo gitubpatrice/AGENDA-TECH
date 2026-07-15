@@ -46,6 +46,12 @@ data class EventEntity(
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "description") val description: String?,
     @ColumnInfo(name = "location") val location: String?,
+    // Postal address, kept in separate columns rather than crammed into `location`, which stays the
+    // free label of the place. All nullable: an event rarely needs any of them.
+    @ColumnInfo(name = "address") val address: String? = null,
+    @ColumnInfo(name = "postal_code") val postalCode: String? = null,
+    @ColumnInfo(name = "city") val city: String? = null,
+    @ColumnInfo(name = "gps_coordinates") val gpsCoordinates: String? = null,
     @ColumnInfo(name = "start_utc_millis") val startUtcMillis: Long,
     @ColumnInfo(name = "end_utc_millis") val endUtcMillis: Long,
     @ColumnInfo(name = "time_zone") val timeZoneId: String,

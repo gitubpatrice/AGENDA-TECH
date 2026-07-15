@@ -54,5 +54,18 @@ object Migrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+    /**
+     * v5 (2026-07): postal address + GPS coordinates on an event. Four nullable text columns, no
+     * index (never queried on). Purely additive: existing events keep their `location` untouched.
+     */
+    private val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE events ADD COLUMN address TEXT")
+            db.execSQL("ALTER TABLE events ADD COLUMN postal_code TEXT")
+            db.execSQL("ALTER TABLE events ADD COLUMN city TEXT")
+            db.execSQL("ALTER TABLE events ADD COLUMN gps_coordinates TEXT")
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 }

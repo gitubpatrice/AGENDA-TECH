@@ -51,6 +51,13 @@
     <string name="scope_whole_series">Toute la série</string>
     <string name="editor_description">Description</string>
     <string name="editor_location">Lieu</string>
+    <string name="editor_address">Adresse</string>
+    <string name="editor_postal_code">Code postal</string>
+    <string name="editor_city">Ville</string>
+    <string name="editor_gps">Coordonnées GPS</string>
+    <string name="editor_gps_hint">44.0512, 5.0489</string>
+    <string name="editor_gps_help">Latitude, longitude — touchez le repère pour ouvrir votre app de cartes</string>
+    <string name="editor_gps_open">Ouvrir sur la carte</string>
     <string name="editor_error_blank_title">Le titre est obligatoire</string>
     <string name="editor_error_end_before_start">La fin doit être après le début</string>
     <string name="editor_error_save_failed">Échec de l\'enregistrement</string>
