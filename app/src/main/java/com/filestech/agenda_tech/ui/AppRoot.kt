@@ -43,6 +43,7 @@ fun AppRoot() {
                 onAddEvent = onAddEvent,
                 onOccurrenceClick = onOccurrenceClick,
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onOpenAbout = { navController.navigate(Routes.ABOUT) },
             )
         }
         composable(Routes.WEEK) {

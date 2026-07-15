@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -31,6 +32,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -241,6 +243,11 @@ private fun EventEditorContent(
         Column(
             modifier = Modifier
                 .padding(innerPadding)
+                // The app draws edge-to-edge, so the IME inset isn't applied for us: without this the
+                // scroll viewport extends under the keyboard and the focused field (description,
+                // location…) stays hidden. Padding the scroll container above the IME lets Compose
+                // scroll the focused field into view.
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -670,6 +677,7 @@ private fun RemindersSection(
             }
         }
         var expanded by remember { mutableStateOf(false) }
+        var showCustomDialog by remember { mutableStateOf(false) }
         Box {
             TextButton(onClick = { expanded = true }) {
                 Icon(Icons.Filled.Add, contentDescription = null)
@@ -688,10 +696,99 @@ private fun RemindersSection(
                         },
                     )
                 }
+                HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.reminder_custom)) },
+                    onClick = {
+                        expanded = false
+                        showCustomDialog = true
+                    },
+                )
             }
+        }
+        if (showCustomDialog) {
+            CustomReminderDialog(
+                existing = reminderMinutes,
+                onConfirm = {
+                    onAdd(it)
+                    showCustomDialog = false
+                },
+                onDismiss = { showCustomDialog = false },
+            )
         }
     }
 }
+
+/** Free-form reminder: any value, in minutes / hours / days before the event start. */
+@Composable
+private fun CustomReminderDialog(
+    existing: List<Int>,
+    onConfirm: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var amount by remember { mutableStateOf("10") }
+    var unit by remember { mutableStateOf(ReminderUnit.MINUTES) }
+    val value = amount.toIntOrNull()
+    val minutes = value?.let { it * unit.minutes }
+    val duplicate = minutes != null && minutes in existing
+    val valid = value != null && value >= 0 && minutes != null && minutes <= MAX_REMINDER_MINUTES && !duplicate
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.reminder_custom)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { input ->
+                        if (input.length <= 4 && input.all { it.isDigit() }) amount = input
+                    },
+                    label = { Text(stringResource(R.string.reminder_custom_amount)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = amount.isNotEmpty() && !valid,
+                    supportingText = when {
+                        duplicate -> { { Text(stringResource(R.string.reminder_custom_duplicate)) } }
+                        minutes != null && minutes > MAX_REMINDER_MINUTES -> {
+                            { Text(stringResource(R.string.reminder_custom_too_far)) }
+                        }
+                        else -> null
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    modifier = Modifier.padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ReminderUnit.entries.forEach { entry ->
+                        FilterChip(
+                            selected = unit == entry,
+                            onClick = { unit = entry },
+                            label = { Text(stringResource(entry.labelRes)) },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { minutes?.let(onConfirm) }, enabled = valid) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+private enum class ReminderUnit(val minutes: Int, val labelRes: Int) {
+    MINUTES(1, R.string.reminder_unit_minutes),
+    HOURS(60, R.string.reminder_unit_hours),
+    DAYS(24 * 60, R.string.reminder_unit_days),
+}
+
+/** A reminder can't sensibly fire more than ~4 weeks before the event. */
+private const val MAX_REMINDER_MINUTES = 28 * 24 * 60
 
 // --- helpers ----------------------------------------------------------------
 

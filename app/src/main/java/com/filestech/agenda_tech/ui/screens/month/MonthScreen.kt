@@ -82,6 +82,7 @@ fun MonthScreen(
     onAddEvent: (LocalDate) -> Unit,
     onOccurrenceClick: (Long, Long) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenAbout: () -> Unit,
     viewModel: MonthViewModel = hiltViewModel(),
     icsViewModel: IcsViewModel = hiltViewModel(),
 ) {
@@ -122,6 +123,7 @@ fun MonthScreen(
         onExportIcs = { exportLauncher.launch("agenda-tech.ics") },
         onImportIcs = { importLauncher.launch(arrayOf("text/calendar", "*/*")) },
         onOpenSettings = onOpenSettings,
+        onOpenAbout = onOpenAbout,
     )
 }
 
@@ -139,6 +141,7 @@ private fun MonthScreenContent(
     onExportIcs: () -> Unit,
     onImportIcs: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenAbout: () -> Unit,
 ) {
     val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
 
@@ -166,6 +169,7 @@ private fun MonthScreenContent(
                         onExportIcs = onExportIcs,
                         onImportIcs = onImportIcs,
                         onOpenSettings = onOpenSettings,
+                        onOpenAbout = onOpenAbout,
                     )
                 },
             )
@@ -445,6 +449,7 @@ private fun MonthOverflowMenu(
     onExportIcs: () -> Unit,
     onImportIcs: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenAbout: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     // Wrap the button + menu in a Box so the DropdownMenu anchors to the icon (top-right) instead of
@@ -473,6 +478,14 @@ private fun MonthOverflowMenu(
                 onClick = {
                     expanded = false
                     onExportIcs()
+                },
+            )
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.settings_about)) },
+                onClick = {
+                    expanded = false
+                    onOpenAbout()
                 },
             )
         }

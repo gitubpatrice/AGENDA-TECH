@@ -1,8 +1,15 @@
 package com.filestech.agenda_tech.ui.screens.settings
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.media.RingtoneManager
+import android.net.Uri
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.IntentCompat
+import androidx.core.net.toUri
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
@@ -78,6 +85,20 @@ fun SettingsScreen(
         BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG or BIOMETRIC_WEAK) ==
             BiometricManager.BIOMETRIC_SUCCESS
     }
+    // System ringtone picker: returns the picked URI (null = "Silent"/none → keep the system default).
+    val ringtonePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val uri: Uri? = IntentCompat.getParcelableExtra(
+                result.data ?: Intent(),
+                RingtoneManager.EXTRA_RINGTONE_PICKED_URI,
+                Uri::class.java,
+            )
+            viewModel.setNotifSoundUri(uri?.toString())
+        }
+    }
+
     var showPinDialog by remember { mutableStateOf(false) }
     // LOCK-6 — when a lock already exists, disabling it or changing the PIN first re-auths the user.
     var verifyPurpose by remember { mutableStateOf<VerifyPurpose?>(null) }
@@ -151,6 +172,13 @@ fun SettingsScreen(
                 checked = settings.notifSound,
                 onCheckedChange = viewModel::setNotifSound,
             )
+            if (settings.notifSound) {
+                ClickRow(
+                    title = stringResource(R.string.settings_notif_ringtone),
+                    subtitle = ringtoneTitle(settings.notifSoundUri),
+                    onClick = { ringtonePicker.launch(ringtonePickerIntent(context, settings.notifSoundUri)) },
+                )
+            }
             SwitchRow(
                 title = stringResource(R.string.settings_notif_vibrate),
                 checked = settings.notifVibrate,
@@ -513,6 +541,37 @@ private fun reminderLabel(context: Context, minutes: Int): String = when {
     minutes % (24 * 60) == 0 -> context.getString(R.string.reminder_days, minutes / (24 * 60))
     minutes % 60 == 0 -> context.getString(R.string.reminder_hours, minutes / 60)
     else -> context.getString(R.string.reminder_minutes, minutes)
+}
+
+/** Intent for the system ringtone picker, pre-selecting the currently chosen sound. */
+private fun ringtonePickerIntent(context: Context, currentUri: String?): Intent {
+    val existing = currentUri?.let { runCatching { it.toUri() }.getOrNull() }
+        ?: RingtoneManager.getActualDefaultRingtoneUri(context, RingtoneManager.TYPE_NOTIFICATION)
+    return Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+        putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+        putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, context.getString(R.string.settings_notif_ringtone))
+        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+        putExtra(
+            RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI,
+            RingtoneManager.getActualDefaultRingtoneUri(context, RingtoneManager.TYPE_NOTIFICATION),
+        )
+        putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, existing)
+    }
+}
+
+/** Human-readable name of the chosen ringtone; falls back to "default" when unset/unreadable. */
+@Composable
+private fun ringtoneTitle(uri: String?): String {
+    val context = LocalContext.current
+    val default = stringResource(R.string.settings_notif_ringtone_default)
+    return remember(uri) {
+        uri?.let { raw ->
+            runCatching {
+                RingtoneManager.getRingtone(context, raw.toUri())?.getTitle(context)
+            }.getOrNull()
+        } ?: default
+    }
 }
 
 private fun openAppNotificationSettings(context: Context) {

@@ -32,6 +32,14 @@ internal val LightPalette = lightColorScheme(
     onSurface = Color(0xFF1B1B1F),
     surfaceVariant = Color(0xFFE0E2EC),
     onSurfaceVariant = Color(0xFF44464F),
+    // Menus, dialogs and sheets draw on the surfaceContainer roles. Material 3 derives them as tinted
+    // greys by default, which reads as a dull grey panel; pin them to white so every popup surface is
+    // clean white in the light theme (the dark theme keeps its GitHub slate palette below).
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color.White,
+    surfaceContainer = Color.White,
+    surfaceContainerHigh = Color.White,
+    surfaceContainerHighest = Color.White,
     outline = Color(0xFF74777F),
     outlineVariant = Color(0xFFC4C6D0),
     scrim = Color.Black,

@@ -8,10 +8,12 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import com.filestech.agenda_tech.MainActivity
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.Event
@@ -68,7 +70,21 @@ class ReminderNotifier @Inject constructor(
         ).apply {
             description = context.getString(R.string.reminder_channel_desc)
             enableVibration(settings.notifVibrate)
-            if (!settings.notifSound) setSound(null, null)
+            // Sound off > custom ringtone > system default. A ringtone the user picked can become
+            // unreadable later (SD card pulled, permission revoked): fall back to the default rather
+            // than creating a silent channel by accident.
+            if (!settings.notifSound) {
+                setSound(null, null)
+            } else {
+                val picked = settings.notifSoundUri?.let { runCatching { it.toUri() }.getOrNull() }
+                if (picked != null) {
+                    val attributes = AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                        .build()
+                    setSound(picked, attributes)
+                }
+            }
             lockscreenVisibility = if (settings.notifLockScreen) {
                 Notification.VISIBILITY_PRIVATE
             } else {

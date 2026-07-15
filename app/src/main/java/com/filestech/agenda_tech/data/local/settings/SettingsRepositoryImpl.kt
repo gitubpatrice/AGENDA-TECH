@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.settings.AppSettings
@@ -42,6 +43,7 @@ class SettingsRepositoryImpl @Inject constructor(
         flagSecure = this[Keys.FLAG_SECURE] ?: true,
         widgetHideTitles = this[Keys.WIDGET_HIDE_TITLES] ?: false,
         notifSound = this[Keys.NOTIF_SOUND] ?: true,
+        notifSoundUri = this[Keys.NOTIF_SOUND_URI],
         notifVibrate = this[Keys.NOTIF_VIBRATE] ?: true,
         notifLockScreen = this[Keys.NOTIF_LOCKSCREEN] ?: true,
     )
@@ -56,6 +58,10 @@ class SettingsRepositoryImpl @Inject constructor(
         this[Keys.FLAG_SECURE] = settings.flagSecure
         this[Keys.WIDGET_HIDE_TITLES] = settings.widgetHideTitles
         this[Keys.NOTIF_SOUND] = settings.notifSound
+        // Absent key = system default ringtone, so clear it rather than storing a sentinel.
+        settings.notifSoundUri
+            ?.let { this[Keys.NOTIF_SOUND_URI] = it }
+            ?: remove(Keys.NOTIF_SOUND_URI)
         this[Keys.NOTIF_VIBRATE] = settings.notifVibrate
         this[Keys.NOTIF_LOCKSCREEN] = settings.notifLockScreen
     }
@@ -70,6 +76,7 @@ class SettingsRepositoryImpl @Inject constructor(
         val FLAG_SECURE = booleanPreferencesKey("flag_secure")
         val WIDGET_HIDE_TITLES = booleanPreferencesKey("widget_hide_titles")
         val NOTIF_SOUND = booleanPreferencesKey("notif_sound")
+        val NOTIF_SOUND_URI = stringPreferencesKey("notif_sound_uri")
         val NOTIF_VIBRATE = booleanPreferencesKey("notif_vibrate")
         val NOTIF_LOCKSCREEN = booleanPreferencesKey("notif_lockscreen")
     }

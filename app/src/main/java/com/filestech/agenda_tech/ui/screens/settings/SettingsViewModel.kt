@@ -106,6 +106,9 @@ class SettingsViewModel @Inject constructor(
     fun setFlagSecure(value: Boolean) = update { it.copy(flagSecure = value) }
     fun setWidgetHideTitles(value: Boolean) = update { it.copy(widgetHideTitles = value) }
     fun setNotifSound(value: Boolean) = updateThenRebuildChannel { it.copy(notifSound = value) }
+
+    /** [uri] null restores the system default notification sound. */
+    fun setNotifSoundUri(uri: String?) = updateThenRebuildChannel { it.copy(notifSoundUri = uri) }
     fun setNotifVibrate(value: Boolean) = updateThenRebuildChannel { it.copy(notifVibrate = value) }
     fun setNotifLockScreen(value: Boolean) = updateThenRebuildChannel { it.copy(notifLockScreen = value) }
 

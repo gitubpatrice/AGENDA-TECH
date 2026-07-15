@@ -46,6 +46,11 @@ data class AppSettings(
     /** SEC-W1 — when true the widget hides event titles (shows only times). */
     val widgetHideTitles: Boolean = false,
     val notifSound: Boolean = true,
+    /**
+     * Ringtone to play for reminders, as a content URI string. Null (the default) means the system
+     * default notification sound. Ignored when [notifSound] is false.
+     */
+    val notifSoundUri: String? = null,
     val notifVibrate: Boolean = true,
     val notifLockScreen: Boolean = true,
 ) {

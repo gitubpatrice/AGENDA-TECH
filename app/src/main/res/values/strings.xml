@@ -84,6 +84,13 @@
     <string name="reminder_minutes">%1$d min before</string>
     <string name="reminder_hours">%1$d h before</string>
     <string name="reminder_days">%1$d day before</string>
+    <string name="reminder_custom">Custom…</string>
+    <string name="reminder_custom_amount">Time before the event</string>
+    <string name="reminder_custom_duplicate">This reminder already exists</string>
+    <string name="reminder_custom_too_far">28 days before the event at most</string>
+    <string name="reminder_unit_minutes">Minutes</string>
+    <string name="reminder_unit_hours">Hours</string>
+    <string name="reminder_unit_days">Days</string>
     <string name="reminder_channel_name">Event reminders</string>
     <string name="reminder_channel_desc">Agenda reminder notifications</string>
 
@@ -115,6 +122,8 @@
     <string name="duration_hours">%1$d h</string>
     <string name="settings_section_notifications">Reminder notifications</string>
     <string name="settings_notif_sound">Sound</string>
+    <string name="settings_notif_ringtone">Reminder sound</string>
+    <string name="settings_notif_ringtone_default">System default</string>
     <string name="settings_notif_vibrate">Vibrate</string>
     <string name="settings_notif_lockscreen">Show on lock screen</string>
     <string name="settings_notif_system">Open system notification settings</string>
@@ -141,8 +150,60 @@
     <string name="about_version">Version %1$s (build %2$d)</string>
     <string name="about_website">files-tech.com</string>
     <string name="about_source">Source code (GitHub)</string>
-    <string name="about_license">Licensed under Apache 2.0</string>
-    <string name="about_privacy">All your data stays on this device, encrypted. No Internet permission.</string>
+    <string name="about_license">Licence</string>
+    <string name="about_check_update">See updates</string>
+
+    <!-- About · Privacy -->
+    <string name="about_privacy_title">Privacy</string>
+    <string name="about_privacy_card_title">100% private — zero surveillance</string>
+    <string name="about_privacy_body">Your agenda never leaves this phone. The app declares no Internet permission at all — it is technically unable to send anything anywhere.</string>
+    <string name="about_badge_no_network">No network</string>
+    <string name="about_badge_no_ads">No ads</string>
+    <string name="about_badge_no_tracker">No tracker</string>
+    <string name="about_badge_no_account">No account</string>
+
+    <!-- About · Features -->
+    <string name="about_features_title">Features</string>
+    <string name="about_feat_views_label">Month, Week, Day and Agenda views</string>
+    <string name="about_feat_views_desc">Swipe between months, jump to today, multiple calendars.</string>
+    <string name="about_feat_recurrence_label">Recurring events</string>
+    <string name="about_feat_recurrence_desc">Daily to yearly, custom intervals, end date — edit a single occurrence or the whole series.</string>
+    <string name="about_feat_reminders_label">Reminders</string>
+    <string name="about_feat_reminders_desc">Exact alarms, custom time, your own ringtone. Re-armed after a reboot.</string>
+    <string name="about_feat_import_label">Import / export</string>
+    <string name="about_feat_import_desc">Copy the events already on this phone (Google, Exchange…) or exchange .ics files — all offline.</string>
+    <string name="about_feat_widgets_label">Home-screen widgets</string>
+    <string name="about_feat_widgets_desc">Upcoming events, and a compact date icon.</string>
+    <string name="about_feat_lock_label">PIN / biometric lock</string>
+    <string name="about_feat_lock_desc">Optional lock on the whole app, with brute-force protection.</string>
+    <string name="about_feat_encryption_label">Encrypted storage</string>
+    <string name="about_feat_encryption_desc">The whole database is AES-256 encrypted; the key never leaves the device\'s secure hardware.</string>
+    <string name="about_feat_theme_label">Light and dark themes</string>
+    <string name="about_feat_theme_desc">Follows the system, or force one. Week numbers, first day of week, default colour.</string>
+
+    <!-- About · Security -->
+    <string name="about_security_title">Security</string>
+    <string name="about_security_card_title">Encrypted at rest</string>
+    <string name="about_security_body">The database (SQLCipher, AES-256) is encrypted with a random key wrapped by the Android Keystore — hardware-backed and non-exportable on devices with a secure element. Without your phone, the file is unreadable. Screenshots and the Recents preview are blocked by default, and cloud backups are disabled so your agenda is never copied off the device.</string>
+
+    <!-- About · Permissions -->
+    <string name="about_permissions_title">Permissions and why</string>
+    <string name="about_perm_read_calendar">Read-only. Used solely to copy, when you ask for it, the events already stored on this phone. Never written to, never sent anywhere.</string>
+    <string name="about_perm_notifications">Show your reminders.</string>
+    <string name="about_perm_exact_alarm">Fire a reminder at the exact minute — a calendar reminder is useless if it is late.</string>
+    <string name="about_perm_boot">Re-arm your reminders after a restart (alarms do not survive a reboot).</string>
+    <string name="about_perm_vibrate">Vibrate on a reminder, if you enable it.</string>
+    <string name="about_perm_no_internet_name">INTERNET — not requested</string>
+    <string name="about_perm_no_internet">The app has no network permission whatsoever. Links on this page open in your browser, outside the app.</string>
+
+    <!-- About · Author and links -->
+    <string name="about_author_title">Author</string>
+    <string name="about_author_role">Developer</string>
+    <string name="about_links_title">Links</string>
+    <string name="about_report_issue">Report an issue</string>
+    <string name="about_privacy_policy">Privacy policy</string>
+    <string name="about_credits_body">Made with care by %1$s. Free and open-source software — the code is public and auditable.</string>
+    <string name="about_legal_body">© %1$s %2$s — Apache License 2.0</string>
 
     <string name="settings_device_import">Import from the device calendar</string>
     <string name="settings_device_import_sub">Copy events already on this phone (Google, etc.) — no Internet</string>
