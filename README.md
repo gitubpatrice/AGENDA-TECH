@@ -7,7 +7,7 @@ l'écosystème **Files Tech**, pensée pour sortir de Google Agenda sans rien co
 [![Zéro réseau](https://img.shields.io/badge/r%C3%A9seau-z%C3%A9ro-success.svg)](#confidentialité)
 [![Plateforme](https://img.shields.io/badge/Android-8.0%2B%20(API%2026)-brightgreen.svg)](#installation)
 
-> **Version de test** `v0.3.0`. Fonctionnelle de bout en bout ; en cours de finition avant une
+> **Version de test** `v0.4.0`. Fonctionnelle de bout en bout ; en cours de finition avant une
 > première publication stable. Vos retours de bug sont les bienvenus dans les
 > [issues](https://github.com/gitubpatrice/AGENDA-TECH/issues).
 
@@ -39,6 +39,8 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
   qui ne remplace pas la sauvegarde (il perd rappels, couleurs et structure des calendriers).
 - **Import depuis le calendrier de l'appareil** (Google, Exchange, calendriers locaux) en
   **lecture seule** — l'app copie ce qui est déjà synchronisé sur le téléphone, **sans réseau**.
+- **Recherche** dans tout l'agenda (titre, description, lieu, adresse, ville) — insensible aux
+  accents et à la casse : « reunion » trouve « Réunion ».
 - **Verrou optionnel** par code PIN et/ou biométrie.
 - **Thème sombre** (style GitHub), **widgets** écran d'accueil, français / anglais.
 
@@ -98,8 +100,8 @@ de debug n'en a pas besoin.
 `version.properties`, à la racine, est la **source unique** de `versionCode` / `versionName` :
 
 ```properties
-versionCode=44
-versionName=0.3.0
+versionCode=45
+versionName=0.4.0
 ```
 
 Le `versionCode` doit **toujours augmenter** : Android refuse d'installer un APK dont le

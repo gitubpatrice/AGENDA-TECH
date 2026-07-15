@@ -1,6 +1,6 @@
 # Politique de confidentialité — Agenda Tech
 
-_Dernière mise à jour : 15 juillet 2026 — version 0.3.0_
+_Dernière mise à jour : 15 juillet 2026 — version 0.4.0_
 
 Agenda Tech (`com.filestech.agenda_tech`) est une application d'agenda **entièrement locale**.
 Elle est conçue autour d'un principe simple : **vos données ne quittent jamais votre appareil.**
