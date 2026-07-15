@@ -57,10 +57,11 @@ Kotlin natif · Jetpack Compose (Material 3) · Hilt · Room + SQLCipher · Coro
 
 ```
 core/      Outcome, AppError, crypto (AeadCipher, KeystoreManager, PinHasher), texte, logging
-domain/    modèles purs (Calendar, Event, RecurrenceRule, Reminder + enums), interfaces de
-           repository, use cases, moteur de récurrence (DST-correct)   ← aucune dépendance Android
-data/      entités Room, DAOs, AppDatabase (SQLCipher), mappers, repository impls, lecture
-           du Calendar Provider (import appareil)
+domain/    modèles purs (Calendar, Event, RecurrenceRule, Reminder, DeviceCalendar/DeviceEvent
+           + enums), interfaces de repository, use cases, moteur de récurrence (DST-correct),
+           device/ mapper pur ligne calendrier → Event      ← aucune dépendance Android
+data/      entités Room, DAOs, AppDatabase (SQLCipher), mappers, repository impls — dont
+           l'accès au Calendar Provider (import appareil), caché derrière une interface domaine
 di/        modules Hilt
 ui/        thème, navigation, écrans (Mois/Semaine/Jour/Agenda, éditeur, réglages, verrou…)
 system/    alarmes exactes des rappels · notifications

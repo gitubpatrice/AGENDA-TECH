@@ -89,6 +89,13 @@ fun SettingsScreen(
         BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG or BIOMETRIC_WEAK) ==
             BiometricManager.BIOMETRIC_SUCCESS
     }
+    // Replacing the sound: hand back the grant we no longer need, so picking files repeatedly doesn't
+    // pile up persisted permissions against the per-app cap.
+    val replaceSound = { newUri: String? ->
+        releasePersistedGrant(context, settings.notifSoundUri, keeping = newUri)
+        viewModel.setNotifSoundUri(newUri)
+    }
+
     // System ringtone picker: returns the picked URI (null = "Silent"/none → keep the system default).
     val ringtonePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -99,7 +106,7 @@ fun SettingsScreen(
                 RingtoneManager.EXTRA_RINGTONE_PICKED_URI,
                 Uri::class.java,
             )
-            viewModel.setNotifSoundUri(uri?.toString())
+            replaceSound(uri?.toString())
         }
     }
 
@@ -117,7 +124,7 @@ fun SettingsScreen(
                 )
             }.isSuccess
             if (kept) {
-                viewModel.setNotifSoundUri(uri.toString())
+                replaceSound(uri.toString())
             } else {
                 // No lasting access = a reminder that would fall silent later. Refuse rather than lie.
                 Toast.makeText(context, R.string.settings_notif_sound_file_denied, Toast.LENGTH_LONG).show()
@@ -212,7 +219,7 @@ fun SettingsScreen(
                 if (settings.notifSoundUri != null) {
                     ClickRow(
                         title = stringResource(R.string.settings_notif_sound_reset),
-                        onClick = { viewModel.setNotifSoundUri(null) },
+                        onClick = { replaceSound(null) },
                     )
                 }
             }
@@ -578,6 +585,20 @@ private fun reminderLabel(context: Context, minutes: Int): String = when {
     minutes % (24 * 60) == 0 -> context.getString(R.string.reminder_days, minutes / (24 * 60))
     minutes % 60 == 0 -> context.getString(R.string.reminder_hours, minutes / 60)
     else -> context.getString(R.string.reminder_minutes, minutes)
+}
+
+/**
+ * Releases the persistable read grant we hold on [previousUri], unless it is the one we are [keeping].
+ * Only document URIs we actually persisted are affected — system ringtones never took a grant.
+ */
+private fun releasePersistedGrant(context: Context, previousUri: String?, keeping: String?) {
+    if (previousUri == null || previousUri == keeping) return
+    val uri = runCatching { previousUri.toUri() }.getOrNull() ?: return
+    val held = context.contentResolver.persistedUriPermissions.any { it.uri == uri }
+    if (!held) return
+    runCatching {
+        context.contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
 }
 
 // Audio files offerable as a reminder sound; the audio wildcard covers MP3/OGG/WAV/M4A alike.

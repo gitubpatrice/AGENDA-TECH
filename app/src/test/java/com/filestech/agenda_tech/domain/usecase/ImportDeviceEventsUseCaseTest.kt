@@ -4,13 +4,7 @@ import com.filestech.agenda_tech.domain.device.DeviceEventMapper
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.domain.model.DeviceEvent
-import com.filestech.agenda_tech.domain.model.Event
-import com.filestech.agenda_tech.domain.repository.CalendarRepository
-import com.filestech.agenda_tech.domain.repository.DeviceCalendarRepository
-import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.google.common.truth.Truth.assertThat
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 
@@ -39,78 +33,13 @@ private fun deviceEvent(
     originalInstanceTime = null,
 )
 
-/** In-memory device calendar source — the whole point of the domain interface (no Android needed). */
-private class FakeDeviceCalendars(
-    private val calendars: List<DeviceCalendar> = listOf(
-        DeviceCalendar(id = DEVICE_CAL_ID, displayName = "Google", accountName = "a@b.c", colorArgb = null),
-    ),
-    var events: List<DeviceEvent> = emptyList(),
-) : DeviceCalendarRepository {
-    override suspend fun listCalendars(): List<DeviceCalendar> = calendars
-    override suspend fun readEvents(deviceCalendarId: Long): List<DeviceEvent> = events
-}
-
-private class FakeCalendarRepository : CalendarRepository {
-    val stored = mutableListOf<Calendar>()
-    private var nextId = 1L
-
-    override fun observeAll(): Flow<List<Calendar>> = flowOf(stored)
-    override fun observeVisible(): Flow<List<Calendar>> = flowOf(stored.filter { it.isVisible })
-    override suspend fun getById(id: Long): Calendar? = stored.firstOrNull { it.id == id }
-    override suspend fun findBySourceId(sourceId: String): Calendar? = stored.firstOrNull { it.sourceId == sourceId }
-    override suspend fun count(): Int = stored.size
-    override suspend fun upsert(calendar: Calendar): Long {
-        val id = if (calendar.id == 0L) nextId++ else calendar.id
-        stored.removeAll { it.id == id }
-        stored += calendar.copy(id = id)
-        return id
-    }
-    override suspend fun setVisibility(id: Long, visible: Boolean) = Unit
-    override suspend fun delete(id: Long) { stored.removeAll { it.id == id } }
-    override suspend fun promoteDefaultAndDelete(promoteId: Long?, deleteId: Long) {
-        promoteId?.let { id ->
-            val i = stored.indexOfFirst { it.id == id }
-            if (i >= 0) stored[i] = stored[i].copy(isDefault = true)
-        }
-        stored.removeAll { it.id == deleteId }
-    }
-    // Mirrors the DAO: only rows that carry a source_id, never a hand-made calendar.
-    override suspend fun deleteImported() { stored.removeAll { !it.isDefault && it.sourceId != null } }
-}
-
-private class FakeEventRepository : EventRepository {
-    /** Rows keyed by id, mimicking the DB's insert-or-update semantics. */
-    val rows = mutableMapOf<Long, Event>()
-    private var nextId = 100L
-
-    override fun observeForExpansion(windowStartUtcMillis: Long, windowEndUtcMillis: Long): Flow<List<Event>> =
-        flowOf(rows.values.toList())
-    override fun observeByCalendar(calendarId: Long): Flow<List<Event>> =
-        flowOf(rows.values.filter { it.calendarId == calendarId })
-    override fun observeOverrides(): Flow<List<Event>> = flowOf(emptyList())
-    override suspend fun getById(id: Long): Event? = rows[id]
-    override suspend fun getAll(): List<Event> = rows.values.toList()
-    override suspend fun deleteOverridesForParent(parentId: Long) = Unit
-    override suspend fun deleteSeriesAtomic(parentId: Long) = Unit
-    override suspend fun upsertAndDelete(event: Event, deleteId: Long) = Unit
-    override suspend fun upsert(event: Event): Long {
-        val id = if (event.id == 0L) nextId++ else event.id
-        rows[id] = event.copy(id = id)
-        return id
-    }
-    override suspend fun upsertAll(events: List<Event>) {
-        events.forEach { upsert(it) }
-    }
-    override suspend fun sourceUidMap(calendarId: Long): Map<String, Long> =
-        rows.values
-            .filter { it.calendarId == calendarId && it.sourceUid != null }
-            .associate { it.sourceUid!! to it.id }
-    override suspend fun delete(id: Long) { rows.remove(id) }
-}
-
 class ImportDeviceEventsUseCaseTest {
 
-    private val devices = FakeDeviceCalendars()
+    private val devices = FakeDeviceCalendars(
+        calendars = listOf(
+            DeviceCalendar(id = DEVICE_CAL_ID, displayName = "Google", accountName = "a@b.c", colorArgb = null),
+        ),
+    )
     private val calendars = FakeCalendarRepository()
     private val events = FakeEventRepository()
     private val useCase = ImportDeviceEventsUseCase(
