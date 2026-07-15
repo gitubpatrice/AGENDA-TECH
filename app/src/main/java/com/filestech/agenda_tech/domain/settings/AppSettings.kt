@@ -51,6 +51,16 @@ data class AppSettings(
      * of a deliberately empty calendar, which is nagging, not helping.
      */
     val restorePromptDismissed: Boolean = false,
+    /**
+     * When the user last exported a backup **from this app**, or 0 if never.
+     *
+     * Deliberately named for what it can know. The app cannot tell whether a backup *exists*: the
+     * file may have been deleted, or the agenda kept safe some other way. So nothing here ever claims
+     * "you are protected" — only "this is the last time you exported".
+     */
+    val lastBackupAtUtcMillis: Long = 0L,
+    /** Until when the backup reminder stays quiet after a "later". 0 = not snoozed. */
+    val backupPromptSnoozedUntilUtcMillis: Long = 0L,
     val notifSound: Boolean = true,
     /**
      * Ringtone to play for reminders, as a content URI string. Null (the default) means the system

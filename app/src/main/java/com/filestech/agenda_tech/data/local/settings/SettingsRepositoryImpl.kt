@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -43,6 +44,8 @@ class SettingsRepositoryImpl @Inject constructor(
         flagSecure = this[Keys.FLAG_SECURE] ?: true,
         widgetHideTitles = this[Keys.WIDGET_HIDE_TITLES] ?: false,
         restorePromptDismissed = this[Keys.RESTORE_PROMPT_DISMISSED] ?: false,
+        lastBackupAtUtcMillis = this[Keys.LAST_BACKUP_AT] ?: 0L,
+        backupPromptSnoozedUntilUtcMillis = this[Keys.BACKUP_PROMPT_SNOOZED_UNTIL] ?: 0L,
         notifSound = this[Keys.NOTIF_SOUND] ?: true,
         notifSoundUri = this[Keys.NOTIF_SOUND_URI],
         notifVibrate = this[Keys.NOTIF_VIBRATE] ?: true,
@@ -59,6 +62,8 @@ class SettingsRepositoryImpl @Inject constructor(
         this[Keys.FLAG_SECURE] = settings.flagSecure
         this[Keys.WIDGET_HIDE_TITLES] = settings.widgetHideTitles
         this[Keys.RESTORE_PROMPT_DISMISSED] = settings.restorePromptDismissed
+        this[Keys.LAST_BACKUP_AT] = settings.lastBackupAtUtcMillis
+        this[Keys.BACKUP_PROMPT_SNOOZED_UNTIL] = settings.backupPromptSnoozedUntilUtcMillis
         this[Keys.NOTIF_SOUND] = settings.notifSound
         // Absent key = system default ringtone, so clear it rather than storing a sentinel.
         settings.notifSoundUri
@@ -78,6 +83,8 @@ class SettingsRepositoryImpl @Inject constructor(
         val FLAG_SECURE = booleanPreferencesKey("flag_secure")
         val WIDGET_HIDE_TITLES = booleanPreferencesKey("widget_hide_titles")
         val RESTORE_PROMPT_DISMISSED = booleanPreferencesKey("restore_prompt_dismissed")
+        val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
+        val BACKUP_PROMPT_SNOOZED_UNTIL = longPreferencesKey("backup_prompt_snoozed_until")
         val NOTIF_SOUND = booleanPreferencesKey("notif_sound")
         val NOTIF_SOUND_URI = stringPreferencesKey("notif_sound_uri")
         val NOTIF_VIBRATE = booleanPreferencesKey("notif_vibrate")

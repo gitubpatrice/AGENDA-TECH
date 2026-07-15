@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Info
@@ -70,6 +71,7 @@ import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.ui.ics.IcsResult
 import com.filestech.agenda_tech.ui.ics.IcsViewModel
 import com.filestech.agenda_tech.ui.navigation.CalendarView
+import com.filestech.agenda_tech.ui.theme.BrandDanger
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import java.time.DayOfWeek
 import java.time.Instant
@@ -100,6 +102,7 @@ fun MonthScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val showRestorePrompt by viewModel.showRestorePrompt.collectAsStateWithLifecycle()
+    val backupPrompt by viewModel.backupPrompt.collectAsStateWithLifecycle()
     val icsResult by icsViewModel.result.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -148,6 +151,9 @@ fun MonthScreen(
             onOpenBackup()
         },
         onDismissRestorePrompt = viewModel::dismissRestorePrompt,
+        backupPrompt = backupPrompt,
+        onBackupNow = onOpenBackup,
+        onSnoozeBackupPrompt = viewModel::snoozeBackupPrompt,
     )
 }
 
@@ -170,6 +176,9 @@ private fun MonthScreenContent(
     showRestorePrompt: Boolean,
     onRestoreBackup: () -> Unit,
     onDismissRestorePrompt: () -> Unit,
+    backupPrompt: BackupPromptReason?,
+    onBackupNow: () -> Unit,
+    onSnoozeBackupPrompt: () -> Unit,
 ) {
     val locale = rememberAppLocale()
 
@@ -239,8 +248,34 @@ private fun MonthScreenContent(
                 .padding(innerPadding)
                 .fillMaxSize(),
         ) {
+            // Mutually exclusive by construction: one needs an empty agenda, the other a full one.
             if (showRestorePrompt) {
-                RestorePromptCard(onRestore = onRestoreBackup, onDismiss = onDismissRestorePrompt)
+                PromptCard(
+                    icon = Icons.Outlined.SettingsBackupRestore,
+                    title = stringResource(R.string.restore_prompt_title),
+                    body = stringResource(R.string.restore_prompt_body),
+                    dismissLabel = stringResource(R.string.restore_prompt_dismiss),
+                    actionLabel = stringResource(R.string.restore_prompt_action),
+                    onDismiss = onDismissRestorePrompt,
+                    onAction = onRestoreBackup,
+                )
+            }
+            backupPrompt?.let { reason ->
+                PromptCard(
+                    icon = Icons.Outlined.CloudOff,
+                    title = stringResource(R.string.backup_prompt_title),
+                    body = stringResource(
+                        when (reason) {
+                            BackupPromptReason.NEVER -> R.string.backup_prompt_body
+                            BackupPromptReason.STALE -> R.string.backup_prompt_stale_body
+                        },
+                    ),
+                    dismissLabel = stringResource(R.string.backup_prompt_later),
+                    actionLabel = stringResource(R.string.backup_prompt_action),
+                    onDismiss = onSnoozeBackupPrompt,
+                    onAction = onBackupNow,
+                    tint = BrandDanger,
+                )
             }
 
             // Month navigation row (moved out of the crowded app bar).
@@ -555,16 +590,23 @@ private fun timeLabel(occurrence: OccurrenceData, zone: ZoneId, locale: Locale):
 }
 
 /**
- * Offers to restore a backup, on an agenda that holds nothing.
+ * The banner the Month screen uses to say something that matters about the user's data — offering a
+ * restore on an empty agenda, or a backup on a full one.
  *
- * Shown here rather than in Settings because this is where someone lands after installing the app on
- * a new phone — the one moment the backup exists for. Buried in Settings → Privacy, the feature only
- * helps people who already know it is there.
- *
- * Dismissible, and asked only once: a deliberately empty calendar must not be nagged.
+ * One composable for both: they are the same object with different words, and two copies of a card
+ * drift into two slightly different cards.
  */
 @Composable
-private fun RestorePromptCard(onRestore: () -> Unit, onDismiss: () -> Unit) {
+private fun PromptCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    body: String,
+    dismissLabel: String,
+    actionLabel: String,
+    onDismiss: () -> Unit,
+    onAction: () -> Unit,
+    tint: androidx.compose.ui.graphics.Color? = null,
+) {
     val cs = MaterialTheme.colorScheme
     Card(
         modifier = Modifier
@@ -576,20 +618,20 @@ private fun RestorePromptCard(onRestore: () -> Unit, onDismiss: () -> Unit) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Outlined.SettingsBackupRestore,
+                    imageVector = icon,
                     contentDescription = null,
-                    tint = cs.primary,
+                    tint = tint ?: cs.primary,
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = stringResource(R.string.restore_prompt_title),
+                    text = title,
                     style = MaterialTheme.typography.titleSmall,
                     color = cs.onSurface,
                     modifier = Modifier.padding(start = 6.dp),
                 )
             }
             Text(
-                text = stringResource(R.string.restore_prompt_body),
+                text = body,
                 style = MaterialTheme.typography.bodySmall,
                 color = cs.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),
@@ -600,8 +642,8 @@ private fun RestorePromptCard(onRestore: () -> Unit, onDismiss: () -> Unit) {
                     .padding(top = 4.dp),
                 horizontalArrangement = Arrangement.End,
             ) {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.restore_prompt_dismiss)) }
-                TextButton(onClick = onRestore) { Text(stringResource(R.string.restore_prompt_action)) }
+                TextButton(onClick = onDismiss) { Text(dismissLabel) }
+                TextButton(onClick = onAction) { Text(actionLabel) }
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.usecase
 
+import com.filestech.agenda_tech.domain.model.AgendaStats
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.domain.model.DeviceEvent
@@ -78,7 +79,16 @@ internal class FakeEventRepository : EventRepository {
     override suspend fun getById(id: Long): Event? = rows[id]
     override suspend fun getAll(): List<Event> = rows.values.toList()
     override fun observeAll(): Flow<List<Event>> = flowOf(rows.values.sortedBy { it.startUtcMillis })
-    override fun observeIsEmpty(): Flow<Boolean> = flowOf(rows.isEmpty())
+    /** Mirrors the real query: count, and the most recent change (0 when empty). */
+    override fun observeStats(): Flow<AgendaStats> = flowOf(
+        AgendaStats(
+            eventCount = rows.size,
+            lastChangeAtUtcMillis = lastChangeAtUtcMillis,
+        ),
+    )
+
+    /** Stands in for `MAX(updated_at)`, which a fake holding domain models cannot compute. */
+    var lastChangeAtUtcMillis: Long = 0L
     override suspend fun deleteOverridesForParent(parentId: Long) {
         rows.values.filter { it.recurrenceParentId == parentId }.forEach { rows.remove(it.id) }
     }

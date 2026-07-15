@@ -9,7 +9,7 @@ l'écosystème **Files Tech**, pensée pour sortir de Google Agenda sans rien co
 
 🇬🇧 [English version](README.md)
 
-> **Version de test** `v0.4.1`. Fonctionnelle de bout en bout ; en cours de finition avant une
+> **Version de test** `v0.5.0`. Fonctionnelle de bout en bout ; en cours de finition avant une
 > première publication stable. Vos retours de bug sont les bienvenus dans les
 > [issues](https://github.com/gitubpatrice/AGENDA-TECH/issues).
 
@@ -102,8 +102,8 @@ de debug n'en a pas besoin.
 `version.properties`, à la racine, est la **source unique** de `versionCode` / `versionName` :
 
 ```properties
-versionCode=46
-versionName=0.4.1
+versionCode=47
+versionName=0.5.0
 ```
 
 Le `versionCode` doit **toujours augmenter** : Android refuse d'installer un APK dont le

@@ -1,6 +1,6 @@
 # Privacy Policy — Agenda Tech
 
-_Last updated: 15 July 2026 — version 0.4.1_ · 🇫🇷 [Version française](PRIVACY.fr.md)
+_Last updated: 15 July 2026 — version 0.5.0_ · 🇫🇷 [Version française](PRIVACY.fr.md)
 
 Agenda Tech (`com.filestech.agenda_tech`) is a **fully local** calendar app, built on one principle:
 **your data never leaves your device.**

@@ -10,6 +10,7 @@ import com.filestech.agenda_tech.core.result.AppError
 import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.di.IoDispatcher
 import com.filestech.agenda_tech.domain.repository.ReminderRepository
+import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.ExportBackupUseCase
 import com.filestech.agenda_tech.domain.usecase.RestoreBackupUseCase
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
@@ -56,6 +57,7 @@ class BackupViewModel @Inject constructor(
     private val restoreBackup: RestoreBackupUseCase,
     private val reminderRepository: ReminderRepository,
     private val reminderScheduler: ReminderScheduler,
+    private val settingsRepository: SettingsRepository,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -74,7 +76,14 @@ class BackupViewModel @Inject constructor(
     fun export(uri: Uri, password: CharArray) = viewModelScope.launch {
         _state.update { it.copy(busy = BackupOp.EXPORT, message = null) }
         val message = when (val out = exportBackup(password, System.currentTimeMillis())) {
-            is Outcome.Success -> writeFile(uri, out.value.bytes, out.value.events)
+            is Outcome.Success -> writeFile(uri, out.value.bytes, out.value.events).also { result ->
+                // Recorded only once the bytes are actually on disk. Stamping it on a failed write
+                // would silence the backup reminder about a backup that does not exist — the one
+                // outcome worse than not reminding at all.
+                if (result is BackupMessage.Exported) {
+                    settingsRepository.update { it.copy(lastBackupAtUtcMillis = System.currentTimeMillis()) }
+                }
+            }
             is Outcome.Failure -> {
                 Timber.w("Backup export failed: %s", out.error)
                 if (out.error is AppError.Validation) BackupMessage.PasswordTooShort else BackupMessage.Failed

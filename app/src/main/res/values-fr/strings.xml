@@ -310,4 +310,10 @@
     <string name="restore_prompt_body">Votre agenda est vide. Si vous changez de téléphone, vous pouvez y remettre tous vos calendriers, événements et rappels depuis un fichier .atbak.</string>
     <string name="restore_prompt_action">Restaurer une sauvegarde</string>
     <string name="restore_prompt_dismiss">Non merci</string>
+    <!-- Rappel de sauvegarde, sur un agenda fourni jamais sauvegardé -->
+    <string name="backup_prompt_title">Aucune sauvegarde</string>
+    <string name="backup_prompt_body">Vos événements ne sont que sur ce téléphone. S’il est perdu, volé ou cassé, ils le sont aussi. Une sauvegarde chiffrée prend quelques secondes.</string>
+    <string name="backup_prompt_stale_body">Votre agenda a changé depuis votre dernière sauvegarde. Ces modifications ne sont que sur ce téléphone.</string>
+    <string name="backup_prompt_action">Sauvegarder</string>
+    <string name="backup_prompt_later">Plus tard</string>
 </resources>

@@ -3,6 +3,32 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [0.5.0] — 2026-07-15
+
+### Ajouté
+
+- **Bouton « Répéter 10 min » sur les rappels.** Le moment où un rappel sonne est précisément
+  celui où vous êtes occupé : sans ce bouton, le choix était d'agir tout de suite ou de perdre le
+  rappel. Un appui ferme la notification et la représente dix minutes plus tard — sans toucher aux
+  rappels suivants de la série.
+- **Proposition de restauration sur un agenda vide.** La sauvegarde chiffrée n'aidait que ceux qui
+  savaient déjà qu'elle existe : après un changement de téléphone, il fallait la deviner et aller la
+  chercher dans les réglages. Elle est désormais proposée là où vous atterrissez — et une seule
+  fois : répondre non est une réponse.
+- **Rappel de sauvegarde.** Vos événements ne vivent que sur ce téléphone : c'est le principe de
+  l'app, et cela veut dire qu'un téléphone perdu sans sauvegarde perd tout. L'app vous le rappelle
+  désormais — mais rarement, et seulement quand c'est mérité : jamais avant que vous ayez quelque
+  chose à perdre, jamais si votre agenda n'a pas changé depuis votre dernière sauvegarde, et
+  « Plus tard » vaut deux semaines de silence.
+  L'app ne prétend jamais savoir si vous *avez* une sauvegarde : elle sait seulement quand vous avez
+  utilisé l'export. Le fichier a pu être supprimé, ou vos données protégées autrement.
+
+### Technique
+
+- 211 tests unitaires (0 échec), lint sans erreur, parité français/anglais complète.
+- `EventEditorViewModel` — le chemin de sauvegarde le plus emprunté de l'app — est enfin couvert par
+  des tests. C'est le fichier où vivait le plantage corrigé en v0.4.1.
+
 ## [0.4.1] — 2026-07-15
 
 ### Corrigé
@@ -64,6 +90,7 @@ Première version publique. Agenda local chiffré : vues Mois/Semaine/Jour/Agend
 RFC 5545 avec modification par occurrence, rappels par alarmes exactes, import/export `.ics`,
 import du calendrier de l'appareil (lecture seule), verrou PIN/biométrie, widgets, thème sombre.
 
+[0.5.0]: https://github.com/gitubpatrice/AGENDA-TECH/releases/tag/v0.5.0
 [0.4.1]: https://github.com/gitubpatrice/AGENDA-TECH/releases/tag/v0.4.1
 [0.4.0]: https://github.com/gitubpatrice/AGENDA-TECH/releases/tag/v0.4.0
 [0.3.0]: https://github.com/gitubpatrice/AGENDA-TECH/releases/tag/v0.3.0

@@ -311,4 +311,10 @@
     <string name="restore_prompt_body">Your calendar is empty. Coming from another phone? You can put all your calendars, events and reminders back from an .atbak file.</string>
     <string name="restore_prompt_action">Restore a backup</string>
     <string name="restore_prompt_dismiss">No thanks</string>
+    <!-- Backup reminder, on a filled agenda never backed up -->
+    <string name="backup_prompt_title">No backup</string>
+    <string name="backup_prompt_body">Your events exist only on this phone. If it is lost, stolen or broken, so are they. An encrypted backup takes seconds.</string>
+    <string name="backup_prompt_stale_body">Your calendar has changed since your last backup. Those changes exist only on this phone.</string>
+    <string name="backup_prompt_action">Back up</string>
+    <string name="backup_prompt_later">Later</string>
 </resources>

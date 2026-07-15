@@ -8,6 +8,12 @@ import androidx.room.Upsert
 import com.filestech.agenda_tech.data.local.db.entity.EventEntity
 import kotlinx.coroutines.flow.Flow
 
+/** Projection of [EventDao.observeStats] — mapped to the domain's `AgendaStats` by the repository. */
+data class EventStatsRow(
+    val eventCount: Int,
+    val lastChangeAtUtcMillis: Long,
+)
+
 @Dao
 interface EventDao {
 
@@ -90,12 +96,14 @@ interface EventDao {
     fun observeAll(): Flow<List<EventEntity>>
 
     /**
-     * Streams whether the agenda holds no event at all. A dedicated query rather than
-     * `observeAll().map { it.isEmpty() }`: the answer is one boolean, and loading every row to
-     * discover it would grow with the very agendas that least need asking.
+     * Streams how much the agenda holds and when it last changed — a dedicated query rather than
+     * `observeAll().map { … }`: the answer is two numbers, and loading every row to compute them
+     * would grow with the very agendas that least need asking.
+     *
+     * `COALESCE`: `MAX()` over no rows is NULL, which would not map onto a non-null Long.
      */
-    @Query("SELECT NOT EXISTS(SELECT 1 FROM events)")
-    fun observeIsEmpty(): Flow<Boolean>
+    @Query("SELECT COUNT(*) AS eventCount, COALESCE(MAX(updated_at), 0) AS lastChangeAtUtcMillis FROM events")
+    fun observeStats(): Flow<EventStatsRow>
 
     /**
      * ⚠️ The returned `Long` is the rowid only on the INSERT path; on UPDATE Room returns `-1`.

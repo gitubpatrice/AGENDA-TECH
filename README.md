@@ -9,7 +9,7 @@ Tech** suite, built to leave Google Calendar without handing anything to a cloud
 
 🇫🇷 [Version française](README.fr.md)
 
-> **Test release** `v0.4.1`. Works end to end; being polished ahead of a first stable release. Bug
+> **Test release** `v0.5.0`. Works end to end; being polished ahead of a first stable release. Bug
 > reports are welcome in the [issues](https://github.com/gitubpatrice/AGENDA-TECH/issues).
 
 ## Installation
@@ -100,8 +100,8 @@ one.
 `version.properties`, at the root, is the **single source** of `versionCode` / `versionName`:
 
 ```properties
-versionCode=46
-versionName=0.4.1
+versionCode=47
+versionName=0.5.0
 ```
 
 The `versionCode` must **always increase**: Android refuses to install an APK whose `versionCode` is

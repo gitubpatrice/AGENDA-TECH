@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.repository
 
+import com.filestech.agenda_tech.domain.model.AgendaStats
 import com.filestech.agenda_tech.domain.model.Event
 import kotlinx.coroutines.flow.Flow
 
@@ -35,8 +36,8 @@ interface EventRepository {
      */
     fun observeAll(): Flow<List<Event>>
 
-    /** Streams true while the agenda holds no event — drives the first-run offer to restore a backup. */
-    fun observeIsEmpty(): Flow<Boolean>
+    /** Streams what the agenda holds and when it last changed — drives the backup/restore prompts. */
+    fun observeStats(): Flow<AgendaStats>
 
     /** Streams every per-occurrence override (used to expand recurring series correctly). */
     fun observeOverrides(): Flow<List<Event>>

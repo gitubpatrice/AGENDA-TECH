@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.ui.screens.month
 
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.domain.model.CalendarColor
@@ -41,6 +42,13 @@ class MonthViewModel @Inject constructor(
     private val eventRepository: EventRepository,
     private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
+
+    /**
+     * Overridable clock. The backup rule is entirely about elapsed time, so a test has to be able to
+     * pin "now" — otherwise "has it been two months?" is not a question that can be asserted.
+     */
+    @VisibleForTesting
+    internal var nowUtcMillis: () -> Long = System::currentTimeMillis
 
     private val zone: ZoneId = ZoneId.systemDefault()
     private val locale: Locale = Locale.getDefault()
@@ -95,6 +103,8 @@ class MonthViewModel @Inject constructor(
         ),
     )
 
+    private val agendaStats = eventRepository.observeStats().distinctUntilChanged()
+
     /**
      * Whether to offer restoring a backup.
      *
@@ -106,15 +116,47 @@ class MonthViewModel @Inject constructor(
      * one has nothing to do with drawing the grid.
      */
     val showRestorePrompt: StateFlow<Boolean> = combine(
-        eventRepository.observeIsEmpty(),
+        agendaStats,
         settingsRepository.settings.map { it.restorePromptDismissed }.distinctUntilChanged(),
-    ) { isEmpty, dismissed -> isEmpty && !dismissed }
+    ) { stats, dismissed -> stats.isEmpty && !dismissed }
         .distinctUntilChanged()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-            initialValue = false,
-        )
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
+
+    /**
+     * Whether to remind the user to back up.
+     *
+     * The app's whole promise is that the data lives nowhere but this phone — which is also to say
+     * that a lost phone with no backup loses everything. Offering a backup feature and never
+     * mentioning it again leaves that entirely to chance.
+     *
+     * Unlike [showRestorePrompt], this one *must* come back: backing up is recurring by nature, and a
+     * reminder asked once would only ever be declined once. So the cost is paid where it belongs — it
+     * is made rare and earned, never merely periodic:
+     *
+     *  - nothing worth protecting yet (under [MIN_EVENTS_TO_SUGGEST_BACKUP]) → silent;
+     *  - "later" → silent for [SNOOZE_DAYS] days, not forever;
+     *  - already exported, and nothing has changed since → silent, however long ago that was. Nagging
+     *    someone whose agenda has not moved would be pure noise.
+     */
+    val backupPrompt: StateFlow<BackupPromptReason?> = combine(
+        agendaStats,
+        settingsRepository.settings,
+    ) { stats, settings ->
+        val now = nowUtcMillis()
+        when {
+            stats.eventCount < MIN_EVENTS_TO_SUGGEST_BACKUP -> null
+            now < settings.backupPromptSnoozedUntilUtcMillis -> null
+            settings.lastBackupAtUtcMillis == 0L -> BackupPromptReason.NEVER
+            // Exported before: only speak up if there is something new to lose, and enough time has
+            // passed that saying so is worth the interruption.
+            stats.lastChangeAtUtcMillis > settings.lastBackupAtUtcMillis &&
+                now - settings.lastBackupAtUtcMillis > STALE_BACKUP_DAYS * MILLIS_PER_DAY ->
+                BackupPromptReason.STALE
+            else -> null
+        }
+    }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     /**
      * The user answered the offer — restored, or waved it away. Either way it must not come back:
@@ -122,6 +164,12 @@ class MonthViewModel @Inject constructor(
      */
     fun dismissRestorePrompt() = viewModelScope.launch {
         settingsRepository.update { it.copy(restorePromptDismissed = true) }
+    }
+
+    /** "Later" on the backup reminder — quiet for [SNOOZE_DAYS] days, then it may ask again. */
+    fun snoozeBackupPrompt() = viewModelScope.launch {
+        val until = nowUtcMillis() + SNOOZE_DAYS * MILLIS_PER_DAY
+        settingsRepository.update { it.copy(backupPromptSnoozedUntilUtcMillis = until) }
     }
 
     fun onPreviousMonth() {
@@ -222,7 +270,21 @@ class MonthViewModel @Inject constructor(
     private fun LocalDate.toStartOfDayUtc(): Long =
         atStartOfDay(zone).toInstant().toEpochMilli()
 
-    private companion object {
+    companion object {
+        /**
+         * Below this, an agenda holds nothing worth the interruption — someone trying the app out is
+         * not someone to warn about data loss.
+         */
+        const val MIN_EVENTS_TO_SUGGEST_BACKUP = 10
+
+        /** After an export, how long before changes are worth mentioning again. */
+        const val STALE_BACKUP_DAYS = 60L
+
+        /** How long "later" buys. Long enough not to nag, short enough to still matter. */
+        const val SNOOZE_DAYS = 14L
+
+        const val MILLIS_PER_DAY = 24 * 60 * 60 * 1000L
+
         const val STOP_TIMEOUT_MS = 5_000L
         const val MAX_DOTS = 4
         const val MID_WEEK_INDEX = 3

@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.data.repository
 
 import com.filestech.agenda_tech.data.local.db.dao.EventDao
 import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.domain.model.AgendaStats
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import kotlinx.coroutines.CoroutineDispatcher
@@ -35,7 +36,9 @@ class EventRepositoryImpl @Inject constructor(
     override fun observeAll(): Flow<List<Event>> =
         dao.observeAll().map { rows -> rows.map { it.toDomain() } }.flowOn(io)
 
-    override fun observeIsEmpty(): Flow<Boolean> = dao.observeIsEmpty().flowOn(io)
+    override fun observeStats(): Flow<AgendaStats> = dao.observeStats()
+        .map { AgendaStats(eventCount = it.eventCount, lastChangeAtUtcMillis = it.lastChangeAtUtcMillis) }
+        .flowOn(io)
 
     override suspend fun getAll(): List<Event> = withContext(io) {
         dao.getAll().map { it.toDomain() }
