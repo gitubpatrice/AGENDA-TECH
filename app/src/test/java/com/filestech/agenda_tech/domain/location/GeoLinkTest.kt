@@ -38,6 +38,22 @@ class GeoLinkTest {
     }
 
     @Test
+    fun `never emits scientific notation for a point near zero`() {
+        // Double.toString() would give "5.0E-4", which maps apps don't read as a coordinate: the link
+        // would open on the wrong place without any error (audit SEC2).
+        val uri = GeoLink.fromCoordinates("0.0005,5.0489")!!
+        assertThat(uri).doesNotContain("E-")
+        assertThat(uri).doesNotContain("e-")
+        assertThat(uri).isEqualTo("geo:0.0005,5.0489?q=0.0005,5.0489")
+    }
+
+    @Test
+    fun `keeps a plain decimal for very small and very large valid values`() {
+        assertThat(GeoLink.fromCoordinates("0.0000001,0.0000001")!!).doesNotContain("E")
+        assertThat(GeoLink.fromCoordinates("0,0")).isEqualTo("geo:0,0?q=0,0")
+    }
+
+    @Test
     fun `handles negative coordinates`() {
         assertThat(GeoLink.fromCoordinates("-33.8688,-151.2093"))
             .isEqualTo("geo:-33.8688,-151.2093?q=-33.8688,-151.2093")

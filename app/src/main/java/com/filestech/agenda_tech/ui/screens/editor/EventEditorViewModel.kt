@@ -57,6 +57,12 @@ class EventEditorViewModel @Inject constructor(
     private var loadedParentId: Long? = null
     private var loadedOriginalStart: Long? = null
 
+    /**
+     * The imported event's source uid, carried across an edit. Dropping it would detach the event
+     * from its source, and the next import would re-insert it as a duplicate instead of updating it.
+     */
+    private var loadedSourceUid: String? = null
+
     private val _state = MutableStateFlow(initialState())
     val state: StateFlow<EventEditorUiState> = _state.asStateFlow()
 
@@ -114,6 +120,7 @@ class EventEditorViewModel @Inject constructor(
         loadedRecurrence = event.recurrence
         loadedParentId = event.recurrenceParentId
         loadedOriginalStart = event.originalStartUtcMillis
+        loadedSourceUid = event.sourceUid
 
         // For a tapped occurrence of a recurring master, show that occurrence's times (not the base).
         val editingOccurrence = event.recurrence != null && occurrenceStart > 0L
@@ -317,10 +324,12 @@ class EventEditorViewModel @Inject constructor(
             title = current.title,
             description = current.description.ifBlank { null },
             location = current.location.ifBlank { null },
-            address = current.address.ifBlank { null },
-            postalCode = current.postalCode.ifBlank { null },
-            city = current.city.ifBlank { null },
-            gpsCoordinates = current.gpsCoordinates.ifBlank { null },
+            // Trimmed: a stray space would otherwise reach the DB and, for the coordinates, sit in the
+            // `geo:` link.
+            address = current.address.trim().ifBlank { null },
+            postalCode = current.postalCode.trim().ifBlank { null },
+            city = current.city.trim().ifBlank { null },
+            gpsCoordinates = current.gpsCoordinates.trim().ifBlank { null },
             startUtcMillis = startMillis,
             endUtcMillis = endMillis,
             timeZoneId = zone.id,
@@ -330,6 +339,10 @@ class EventEditorViewModel @Inject constructor(
             colorOverride = current.colorOverride,
             recurrenceParentId = if (asOverride) eventId else loadedParentId,
             originalStartUtcMillis = if (asOverride) occurrenceStart else loadedOriginalStart,
+            // Keep the link to the source so a re-import updates this row instead of duplicating it.
+            // An override is a brand-new row, so it must NOT claim the master's uid — two rows sharing
+            // one uid would fight over the same slot in the import's uid → id map.
+            sourceUid = if (asOverride) null else loadedSourceUid,
         )
         val reminderMinutes = current.reminderMinutes
         viewModelScope.launch {

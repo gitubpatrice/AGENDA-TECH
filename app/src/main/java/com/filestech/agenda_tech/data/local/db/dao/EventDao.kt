@@ -89,6 +89,14 @@ interface EventDao {
     @Query("SELECT id, created_at FROM events WHERE id IN (:ids)")
     suspend fun createdAtByIds(ids: List<Long>): List<CreatedAtRow>
 
+    /**
+     * Place details of the given events. Address and GPS are enrichments the user typed here — no
+     * calendar source carries them — so a re-import must read them back and keep them rather than
+     * blanking them with the source's (always empty) values.
+     */
+    @Query("SELECT id, address, postal_code, city, gps_coordinates FROM events WHERE id IN (:ids)")
+    suspend fun placeDetailsByIds(ids: List<Long>): List<PlaceDetailsRow>
+
     @Query("DELETE FROM events WHERE id = :id")
     suspend fun delete(id: Long)
 
@@ -106,4 +114,13 @@ data class SourceUidRow(
 data class CreatedAtRow(
     val id: Long,
     @ColumnInfo(name = "created_at") val createdAt: Long,
+)
+
+/** Projection for [EventDao.placeDetailsByIds]: the locally-entered place details of an event. */
+data class PlaceDetailsRow(
+    val id: Long,
+    @ColumnInfo(name = "address") val address: String?,
+    @ColumnInfo(name = "postal_code") val postalCode: String?,
+    @ColumnInfo(name = "city") val city: String?,
+    @ColumnInfo(name = "gps_coordinates") val gpsCoordinates: String?,
 )

@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.location
 
+import java.math.BigDecimal
 import java.net.URLEncoder
 
 /**
@@ -26,7 +27,7 @@ object GeoLink {
      */
     fun fromCoordinates(raw: String?, label: String? = null): String? {
         val (lat, lng) = parseCoordinates(raw) ?: return null
-        val point = "$lat,$lng"
+        val point = "${format(lat)},${format(lng)}"
         // `q=` makes the maps app drop a labelled pin; without it some apps only centre the map.
         val query = label?.takeIf { it.isNotBlank() }
             ?.let { "$point(${encode(it)})" }
@@ -54,6 +55,14 @@ object GeoLink {
         if (lat !in LAT_RANGE || lng !in LNG_RANGE) return null
         return lat to lng
     }
+
+    /**
+     * Plain decimal, never scientific notation. `Double.toString()` switches to `5.0E-4` below
+     * 0.001°, which maps apps don't read as a coordinate — the link would open on the wrong place
+     * (or nowhere) without a single error, for a perfectly valid point near the equator/Greenwich.
+     */
+    private fun format(value: Double): String =
+        BigDecimal.valueOf(value).stripTrailingZeros().toPlainString()
 
     private fun encode(text: String): String = URLEncoder.encode(text, Charsets.UTF_8.name())
 }

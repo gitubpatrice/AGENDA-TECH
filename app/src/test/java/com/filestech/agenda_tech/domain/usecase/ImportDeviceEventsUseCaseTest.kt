@@ -133,6 +133,28 @@ class ImportDeviceEventsUseCaseTest {
     }
 
     @Test
+    fun `re-importing keeps the address and GPS the user added by hand`() = runTest {
+        // No calendar source carries these fields, so a naive refresh would blank them (audit SEC1).
+        devices.events = listOf(deviceEvent(uid = "a", deviceId = 1))
+        import(DEVICE_CAL_ID)
+        val id = events.rows.keys.single()
+        events.rows[id] = events.rows.getValue(id).copy(
+            address = "12 rue de la Paix",
+            postalCode = "84200",
+            city = "Carpentras",
+            gpsCoordinates = "44.0512,5.0489",
+        )
+
+        import(DEVICE_CAL_ID)
+
+        val after = events.rows.getValue(id)
+        assertThat(after.address).isEqualTo("12 rue de la Paix")
+        assertThat(after.postalCode).isEqualTo("84200")
+        assertThat(after.city).isEqualTo("Carpentras")
+        assertThat(after.gpsCoordinates).isEqualTo("44.0512,5.0489")
+    }
+
+    @Test
     fun `an unknown calendar is reported as failed, never silently ignored`() = runTest {
         val result = import(999L)
 

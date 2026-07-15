@@ -81,8 +81,25 @@ internal class FakeEventRepository : EventRepository {
         return id
     }
 
+    /**
+     * Mirrors EventRepositoryImpl: an import never carries address/GPS (no calendar source has them),
+     * so the locally-typed place details of a row being updated are merged back instead of wiped.
+     */
     override suspend fun upsertAll(events: List<Event>) {
-        events.forEach { upsert(it) }
+        events.forEach { event ->
+            val kept = rows[event.id]
+            val merged = if (kept == null) {
+                event
+            } else {
+                event.copy(
+                    address = kept.address,
+                    postalCode = kept.postalCode,
+                    city = kept.city,
+                    gpsCoordinates = kept.gpsCoordinates,
+                )
+            }
+            upsert(merged)
+        }
     }
 
     override suspend fun sourceUidMap(calendarId: Long): Map<String, Long> =

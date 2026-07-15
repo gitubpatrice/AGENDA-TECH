@@ -76,7 +76,29 @@ class EventRepositoryImpl @Inject constructor(
         } else {
             dao.createdAtByIds(existingIds).associate { it.id to it.createdAt }
         }
-        dao.upsertAll(events.map { it.toEntity(createdAt = createdAtById[it.id] ?: now, updatedAt = now) })
+        // No calendar source carries an address or GPS coordinates: they only ever come from the user.
+        // An @Upsert rewrites the whole row, so without reading them back a refresh would silently
+        // wipe what the user typed. Merge them onto the rows we are updating.
+        val placeById = if (existingIds.isEmpty()) {
+            emptyMap()
+        } else {
+            dao.placeDetailsByIds(existingIds).associateBy { it.id }
+        }
+        val entities = events.map { event ->
+            val kept = placeById[event.id]
+            val merged = if (kept == null) {
+                event
+            } else {
+                event.copy(
+                    address = kept.address,
+                    postalCode = kept.postalCode,
+                    city = kept.city,
+                    gpsCoordinates = kept.gpsCoordinates,
+                )
+            }
+            merged.toEntity(createdAt = createdAtById[event.id] ?: now, updatedAt = now)
+        }
+        dao.upsertAll(entities)
     }
 
     override suspend fun sourceUidMap(calendarId: Long): Map<String, Long> = withContext(io) {
