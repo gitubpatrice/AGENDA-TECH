@@ -27,8 +27,8 @@ object DeviceEventMapper {
     private const val DAY_MILLIS = 24L * 60 * 60 * 1000
     private const val DEFAULT_DURATION_MILLIS = 60L * 60 * 1000 // 1h when nothing else is known
 
-    // Untrusted third-party calendars could carry pathological field lengths / durations; bound both.
-    private const val MAX_FIELD_CHARS = 4_000
+    // Untrusted third-party calendars could carry pathological durations; bound them. (Field length is
+    // capped by BidiSanitizer.stripAndCap — one shared ceiling, never a second copy of the number.)
     private const val MAX_DURATION_DAYS = 3_650L // ~10 years, per-component bound to avoid overflow
     private const val MAX_DURATION_MILLIS = MAX_DURATION_DAYS * DAY_MILLIS // anything longer is bogus
 
@@ -108,8 +108,9 @@ object DeviceEventMapper {
         }
     }
 
-    // Anti-Bidi spoofing (shared with the .ics path) + length cap against a hostile provider.
-    private fun sanitize(text: String): String = BidiSanitizer.strip(text).take(MAX_FIELD_CHARS)
+    // Anti-Bidi spoofing + length cap against a hostile provider — the single shared guard, so the
+    // two import paths (.ics and device) can never drift apart.
+    private fun sanitize(text: String): String = BidiSanitizer.stripAndCap(text)
 
     /**
      * Parses an RFC 5545 `RRULE` (the subset the app models) into a [RecurrenceRule], folding in the

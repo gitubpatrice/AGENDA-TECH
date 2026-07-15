@@ -200,7 +200,7 @@ private fun EventEditorContent(
                     confirmDelete = false
                     onDelete()
                 }) {
-                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.action_delete), color = BrandDanger)
                 }
             },
             dismissButton = {

@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,8 +36,11 @@ import com.filestech.agenda_tech.ui.AppRoot
 import com.filestech.agenda_tech.ui.lock.LockScreen
 import com.filestech.agenda_tech.ui.theme.AgendaTechTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Provider
 
 /**
  * Single Compose host ([FragmentActivity] so `androidx.biometric` can attach its fragment). Theme
@@ -50,9 +54,11 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var lockRepository: LockRepository
     @Inject lateinit var appLock: AppLockManager
 
-    // ROB-NEW-1 — injecting the DB forces DatabaseFactory.build() (and any reset-on-failure) to run
-    // now, so consumeResetFlag() below sees a reset that happened on THIS launch, not the next one.
-    @Inject lateinit var appDatabase: AppDatabase
+    // ROB-NEW-1 — the DB must be built before consumeResetFlag() is read, so a reset is reported on
+    // THIS launch and not the next one. A Provider (not a direct field) keeps that ordering without
+    // paying for it on the Main thread: building it opens the Keystore (IPC, slow on StrongBox),
+    // reads the wrapped key off disk and decrypts it — all of which onCreate resolves on IO below.
+    @Inject lateinit var appDatabaseProvider: Provider<AppDatabase>
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }
@@ -62,15 +68,18 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         requestNotificationPermissionIfNeeded()
-        // SEC/ROB-1 — if an unrecoverable Keystore failure forced a DB reset, tell the user (once)
-        // rather than losing their data silently.
-        if (DatabaseFactory.consumeResetFlag(this)) {
-            android.widget.Toast.makeText(this, getString(R.string.db_reset_notice), android.widget.Toast.LENGTH_LONG).show()
-        }
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         enableEdgeToEdge()
 
+        // The splash stays up while the lock state is UNKNOWN, so this whole chain runs before any UI
+        // is shown — without blocking the Main thread on Keystore/disk.
         lifecycleScope.launch {
+            withContext(Dispatchers.IO) { appDatabaseProvider.get() }
+            // SEC/ROB-1 — if an unrecoverable Keystore failure forced a DB reset, tell the user (once)
+            // rather than losing their data silently. Read only after the DB was actually built.
+            if (DatabaseFactory.consumeResetFlag(this@MainActivity)) {
+                Toast.makeText(this@MainActivity, R.string.db_reset_notice, Toast.LENGTH_LONG).show()
+            }
             if (lockRepository.isLockEnabled()) appLock.lock() else appLock.unlock()
         }
 

@@ -48,6 +48,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
+import com.filestech.agenda_tech.ui.theme.BrandDanger
 
 /**
  * "Import from the device calendar" — one-shot, read-only, no network. Requests READ_CALENDAR,
@@ -67,6 +68,9 @@ fun DeviceImportScreen(
     val result by viewModel.result.collectAsStateWithLifecycle()
     val cleared by viewModel.cleared.collectAsStateWithLifecycle()
     var confirmClear by remember { mutableStateOf(false) }
+    // Resolved here: the domain has no access to string resources, so the localised name for a device
+    // calendar that reports neither display name nor account is handed to it.
+    val fallbackCalendarName = stringResource(R.string.device_import_fallback_name)
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -142,7 +146,7 @@ fun DeviceImportScreen(
                     selected = selected,
                     importing = importing,
                     onToggle = viewModel::toggle,
-                    onImport = viewModel::import,
+                    onImport = { viewModel.import(fallbackCalendarName) },
                     onClearImported = { confirmClear = true },
                 )
             }
@@ -159,7 +163,7 @@ fun DeviceImportScreen(
                     confirmClear = false
                     viewModel.clearImported()
                 }) {
-                    Text(stringResource(R.string.device_import_clear), color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.device_import_clear), color = BrandDanger)
                 }
             },
             dismissButton = {

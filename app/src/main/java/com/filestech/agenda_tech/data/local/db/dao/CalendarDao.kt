@@ -56,11 +56,14 @@ interface CalendarDao {
     suspend fun delete(id: Long)
 
     /**
-     * Deletes every non-default calendar (cascade-removes its events). Used to wipe previously
-     * imported calendars — including legacy imports made before `source_id` existed — so a fresh
-     * import starts clean. The default calendar and its hand-entered events are preserved.
+     * Deletes the calendars that came from an import (cascade-removes their events), so a fresh
+     * import starts clean. **Only rows carrying a `source_id`**: a calendar the user created by hand
+     * is indistinguishable from a pre-`source_id` legacy import (both have `source_id = null` and
+     * `is_default = 0`), so it is left alone — matching what the confirmation dialog promises.
+     * Wiping on `is_default = 0` alone would silently destroy the user's own calendars and events;
+     * legacy import leftovers are removed by hand from the calendar manager instead.
      */
-    @Query("DELETE FROM calendars WHERE is_default = 0")
+    @Query("DELETE FROM calendars WHERE is_default = 0 AND source_id IS NOT NULL")
     suspend fun deleteImported()
 
     @Query("SELECT COUNT(*) FROM calendars")

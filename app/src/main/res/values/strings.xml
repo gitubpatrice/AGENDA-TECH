@@ -83,7 +83,7 @@
     <string name="reminder_at_time">At time of event</string>
     <string name="reminder_minutes">%1$d min before</string>
     <string name="reminder_hours">%1$d h before</string>
-    <string name="reminder_days">%1$d day before</string>
+    <string name="reminder_days">%1$d day(s) before</string>
     <string name="reminder_custom">Custom…</string>
     <string name="reminder_custom_amount">Time before the event</string>
     <string name="reminder_custom_duplicate">This reminder already exists</string>
@@ -216,6 +216,7 @@
     <string name="device_import_rationale">Agenda Tech can copy events already synced onto this phone (Google, Exchange, local calendars). It only reads them locally — no Internet access, no connection to your account.</string>
     <string name="device_import_grant">Allow calendar access</string>
     <string name="device_import_pick">Choose the calendars to import:</string>
+    <string name="device_import_fallback_name">Imported calendar</string>
     <string name="device_import_empty">No calendar found on this device.</string>
     <string name="device_import_action">Import (%1$d)</string>
     <string name="device_import_running">Importing…</string>

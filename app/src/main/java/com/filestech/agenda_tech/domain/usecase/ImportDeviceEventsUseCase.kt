@@ -1,16 +1,13 @@
 package com.filestech.agenda_tech.domain.usecase
 
-import com.filestech.agenda_tech.di.IoDispatcher
 import com.filestech.agenda_tech.domain.device.DeviceEventMapper
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.DeviceCalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -30,7 +27,6 @@ class ImportDeviceEventsUseCase @Inject constructor(
     private val deviceCalendars: DeviceCalendarRepository,
     private val calendarRepository: CalendarRepository,
     private val eventRepository: EventRepository,
-    @IoDispatcher private val io: CoroutineDispatcher,
 ) {
     /**
      * [failedCalendars] > 0 means some selected calendars could not be imported (read or write
@@ -45,16 +41,24 @@ class ImportDeviceEventsUseCase @Inject constructor(
     private val mutex = Mutex()
 
     /** Lists the device calendars available to import from (requires READ_CALENDAR granted). */
-    suspend fun listCalendars(): List<DeviceCalendar> = withContext(io) { deviceCalendars.listCalendars() }
+    suspend fun listCalendars(): List<DeviceCalendar> = deviceCalendars.listCalendars()
 
-    /** Wipes previously imported calendars (incl. legacy ones) so a fresh import starts clean. */
+    /**
+     * Wipes the calendars created by a previous import so a fresh import starts clean. Calendars the
+     * user made by hand are never touched (see [CalendarRepository.deleteImported]).
+     */
     suspend fun clearImported() = mutex.withLock { calendarRepository.deleteImported() }
 
-    suspend operator fun invoke(selectedCalendarIds: List<Long>): Result = withContext(io) {
-        mutex.withLock { importLocked(selectedCalendarIds) }
-    }
+    /**
+     * Threading is the repositories' job (they each dispatch to IO), as in every other use case.
+     *
+     * [fallbackCalendarName] names a device calendar that reports neither a display name nor an
+     * account — passed in (localised) because the domain has no access to string resources.
+     */
+    suspend operator fun invoke(selectedCalendarIds: List<Long>, fallbackCalendarName: String): Result =
+        mutex.withLock { importLocked(selectedCalendarIds, fallbackCalendarName) }
 
-    private suspend fun importLocked(selectedCalendarIds: List<Long>): Result {
+    private suspend fun importLocked(selectedCalendarIds: List<Long>, fallbackCalendarName: String): Result {
         val byId = deviceCalendars.listCalendars().associateBy { it.id }
         var calendars = 0
         var events = 0
@@ -73,7 +77,9 @@ class ImportDeviceEventsUseCase @Inject constructor(
                 val targetCalendarId = calendarRepository.findBySourceId(sourceId)?.id
                     ?: calendarRepository.upsert(
                         Calendar(
-                            name = deviceCal.displayName.ifBlank { deviceCal.accountName.ifBlank { "Import" } },
+                            name = deviceCal.displayName
+                                .ifBlank { deviceCal.accountName }
+                                .ifBlank { fallbackCalendarName },
                             color = DeviceEventMapper.nearestColor(deviceCal.colorArgb),
                             isVisible = true,
                             isDefault = false,

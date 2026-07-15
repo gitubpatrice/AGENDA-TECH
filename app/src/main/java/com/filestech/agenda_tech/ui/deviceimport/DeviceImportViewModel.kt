@@ -62,13 +62,13 @@ class DeviceImportViewModel @Inject constructor(
         }
     }
 
-    fun import() {
+    fun import(fallbackCalendarName: String) {
         if (_importing.value) return
         val ids = _selected.value.toList()
         if (ids.isEmpty()) return
         _importing.value = true
         viewModelScope.launch {
-            _result.value = importDeviceEvents(ids)
+            _result.value = importDeviceEvents(ids, fallbackCalendarName)
             _importing.value = false
         }
     }
