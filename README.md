@@ -1,121 +1,121 @@
 # Agenda Tech
 
-Agenda / calendrier Android **100 % local, chiffré, zéro réseau** — la brique agenda de
-l'écosystème **Files Tech**, pensée pour sortir de Google Agenda sans rien confier au cloud.
+A **fully local, encrypted, zero-network** Android calendar — the calendar piece of the **Files
+Tech** suite, built to leave Google Calendar without handing anything to a cloud.
 
 [![Licence](https://img.shields.io/badge/licence-Apache%202.0-blue.svg)](LICENSE)
-[![Zéro réseau](https://img.shields.io/badge/r%C3%A9seau-z%C3%A9ro-success.svg)](#confidentialité)
-[![Plateforme](https://img.shields.io/badge/Android-8.0%2B%20(API%2026)-brightgreen.svg)](#installation)
+[![Zero network](https://img.shields.io/badge/network-zero-success.svg)](#privacy)
+[![Platform](https://img.shields.io/badge/Android-8.0%2B%20(API%2026)-brightgreen.svg)](#installation)
 
-> **Version de test** `v0.4.1`. Fonctionnelle de bout en bout ; en cours de finition avant une
-> première publication stable. Vos retours de bug sont les bienvenus dans les
-> [issues](https://github.com/gitubpatrice/AGENDA-TECH/issues).
+🇫🇷 [Version française](README.fr.md)
+
+> **Test release** `v0.4.1`. Works end to end; being polished ahead of a first stable release. Bug
+> reports are welcome in the [issues](https://github.com/gitubpatrice/AGENDA-TECH/issues).
 
 ## Installation
 
-1. Téléchargez l'APK **universel** (`agenda-tech-…-universal.apk`) depuis la
-   [dernière release](https://github.com/gitubpatrice/AGENDA-TECH/releases/latest).
-2. Ouvrez-le sur votre téléphone Android (8.0 ou plus). Autorisez si besoin « installer des
-   applications inconnues ».
-3. C'est tout — aucune inscription, aucun compte, aucune connexion.
+1. Download the **universal** APK (`agenda-tech-…-universal.apk`) from the
+   [latest release](https://github.com/gitubpatrice/AGENDA-TECH/releases/latest).
+2. Open it on your Android phone (8.0 or later). Allow "install unknown apps" if prompted.
+3. That's it — no sign-up, no account, no connection.
 
-L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à choisir) et **signé**.
+The APK is **universal** (works on every device, no variant to pick) and **signed**.
 
-## Fonctionnalités
+## Features
 
-- **Vues** Mois (changement de mois par glissement fluide), Semaine, Jour et Agenda (liste).
-- **Événements** : création/édition, journée entière, description, couleur par événement.
-- **Lieu** : libellé, adresse postale (adresse, code postal, ville) et coordonnées GPS — un appui
-  ouvre le point dans votre application de cartes (sans aucune permission de localisation).
-- **Récurrences** (RFC 5545) : quotidienne / hebdo (jours choisis) / mensuelle / annuelle, avec
-  intervalle, fin après N occurrences ou à une date, et **modification/suppression d'une seule
-  occurrence** (modèle iCalendar `RECURRENCE-ID`).
-- **Rappels** par alarmes exactes, avec re-programmation après redémarrage : délais prédéfinis ou
-  valeur libre, et son au choix (sonnerie système ou votre propre fichier audio).
-- **Sauvegarde chiffrée `.atbak`** : export/restauration de **tout** l'agenda (calendriers,
-  événements, récurrences, lieux, rappels) dans un fichier protégé par mot de passe
-  (PBKDF2 600 000 itérations + AES-256-GCM) — à ranger où vous voulez, y compris un cloud.
-- **Import / export `.ics`** (RFC 5545) via le sélecteur de fichiers système — format d'échange,
-  qui ne remplace pas la sauvegarde (il perd rappels, couleurs et structure des calendriers).
-- **Import depuis le calendrier de l'appareil** (Google, Exchange, calendriers locaux) en
-  **lecture seule** — l'app copie ce qui est déjà synchronisé sur le téléphone, **sans réseau**.
-- **Recherche** dans tout l'agenda (titre, description, lieu, adresse, ville) — insensible aux
-  accents et à la casse : « reunion » trouve « Réunion ».
-- **Verrou optionnel** par code PIN et/ou biométrie.
-- **Thème sombre** (style GitHub), **widgets** écran d'accueil, français / anglais.
+- **Views**: Month (smooth swipe between months), Week, Day and Agenda (list).
+- **Events**: create/edit, all-day, description, per-event colour.
+- **Place**: label, postal address (street, postcode, city) and GPS coordinates — one tap opens the
+  point in your maps app (with no location permission at all).
+- **Recurrence** (RFC 5545): daily / weekly (chosen days) / monthly / yearly, with interval, ending
+  after N occurrences or on a date, and **editing/deleting a single occurrence** (the iCalendar
+  `RECURRENCE-ID` model).
+- **Reminders** via exact alarms, re-armed after a reboot: preset delays or a free value, and your
+  choice of sound (a system ringtone or your own audio file).
+- **Encrypted `.atbak` backup**: export/restore **everything** (calendars, events, recurrences,
+  places, reminders) in a password-protected file (PBKDF2 600,000 iterations + AES-256-GCM) — keep
+  it wherever you like, cloud included.
+- **`.ics` import / export** (RFC 5545) through the system file picker — an interchange format,
+  which does not replace the backup (it loses reminders, colours and the calendar structure).
+- **Import from the device calendar** (Google, Exchange, local calendars), **read-only** — the app
+  copies what is already synced onto the phone, **with no network**.
+- **Search** across the whole calendar (title, description, place, address, city) — accent- and
+  case-insensitive: "reunion" finds "Réunion".
+- **Optional lock** with a PIN and/or biometrics.
+- **Dark theme** (GitHub-styled), home-screen **widgets**, French / English.
 
-## Confidentialité
+## Privacy
 
-- **Aucune permission Internet.** Aucune donnée ne quitte l'appareil : ni cloud, ni analytics,
-  ni publicité, ni SDK tiers de traçage.
-- **Chiffré au repos.** Base Room adossée à **SQLCipher** (AES-256) ; clé maître enveloppée par
-  l'**AndroidKeyStore** (matériel/TEE sur les appareils compatibles).
-- **Sauvegardes chiffrées de bout en bout.** Le fichier `.atbak` est chiffré par votre mot de passe
-  seul : il reste illisible même posé sur un cloud. Format documenté dans [SECURITY.md](SECURITY.md).
-- **Confidentialité à l'écran.** `FLAG_SECURE` (pas d'aperçu dans les Récents, capture d'écran
-  bloquée), sauvegardes cloud exclues (`allowBackup=false`).
+- **No internet permission.** No data leaves the device: no cloud, no analytics, no ads, no
+  third-party tracking SDK.
+- **Encrypted at rest.** A Room database backed by **SQLCipher** (AES-256); the master key is
+  wrapped by the **Android KeyStore** (hardware/TEE on supported devices).
+- **End-to-end encrypted backups.** The `.atbak` file is encrypted by your password alone: it stays
+  unreadable even sitting on a cloud. Format documented in [SECURITY.md](SECURITY.md).
+- **Privacy on screen.** `FLAG_SECURE` (no preview in Recents, screenshots blocked), cloud backups
+  excluded (`allowBackup=false`).
 
-Détails : [SECURITY.md](SECURITY.md) · [PRIVACY.md](PRIVACY.md).
+Details: [SECURITY.md](SECURITY.md) · [PRIVACY.md](PRIVACY.md).
 
-## Stack technique
+## Tech stack
 
-Kotlin natif · Jetpack Compose (Material 3) · Hilt · Room + SQLCipher · Coroutines/Flow ·
-`Outcome`/`AppError` typés · Timber · tests JUnit5 + Truth + MockK.
+Kotlin · Jetpack Compose (Material 3) · Hilt · Room + SQLCipher · Coroutines/Flow · typed
+`Outcome`/`AppError` · Timber · JUnit5 + Truth + MockK tests.
 
-`applicationId` : `com.filestech.agenda_tech` — `minSdk 26` (java.time natif) / `compileSdk 36`.
+`applicationId`: `com.filestech.agenda_tech` — `minSdk 26` (native java.time) / `compileSdk 36`.
 
-### Architecture (couches)
+### Architecture (layers)
 
 ```
-core/      Outcome, AppError, crypto (AeadCipher, KeystoreManager, PinHasher), texte, logging
-domain/    modèles purs (Calendar, Event, RecurrenceRule, Reminder, DeviceCalendar/DeviceEvent
-           + enums), interfaces de repository, use cases, moteur de récurrence (DST-correct),
-           device/ mapper pur ligne calendrier → Event      ← aucune dépendance Android
-data/      entités Room, DAOs, AppDatabase (SQLCipher), mappers, repository impls — dont
-           l'accès au Calendar Provider (import appareil), caché derrière une interface domaine
-di/        modules Hilt
-ui/        thème, navigation, écrans (Mois/Semaine/Jour/Agenda, éditeur, réglages, verrou…)
-system/    alarmes exactes des rappels · notifications
-widget/    widgets Glance (agenda + icône date)
+core/      Outcome, AppError, crypto (AeadCipher, KeystoreManager, PinHasher), text, logging
+domain/    pure models (Calendar, Event, RecurrenceRule, Reminder, DeviceCalendar/DeviceEvent
+           + enums), repository interfaces, use cases, recurrence engine (DST-correct),
+           device/ pure mapper from a calendar row to an Event      ← no Android dependency
+data/      Room entities, DAOs, AppDatabase (SQLCipher), mappers, repository impls — including
+           Calendar Provider access (device import), hidden behind a domain interface
+di/        Hilt modules
+ui/        theme, navigation, screens (Month/Week/Day/Agenda, editor, settings, lock…)
+system/    exact alarms for reminders · notifications
+widget/    Glance widgets (agenda + date icon)
 ```
 
-Le domaine est **100 % pur** ; le seul point de traversée domaine↔Room est
-`data/repository/EntityMappers.kt`. La récurrence est stockée en colonnes structurées
-(`rrule_*`) sur l'événement — modèle iCalendar (RRULE = propriété du VEVENT).
+The domain is **100% pure**; the only domain↔Room crossing point is
+`data/repository/EntityMappers.kt`. Recurrence is stored in structured columns (`rrule_*`) on the
+event — the iCalendar model (RRULE is a property of the VEVENT).
 
-## Compiler depuis les sources
+## Building from source
 
 ```bash
 git clone https://github.com/gitubpatrice/AGENDA-TECH.git
 cd AGENDA-TECH
-./gradlew :app:assembleDebug          # APK de debug (splits + universel)
-./gradlew :app:testDebugUnitTest      # tests unitaires
+./gradlew :app:assembleDebug          # debug APK (splits + universal)
+./gradlew :app:testDebugUnitTest      # unit tests
 ```
 
-La signature de release attend un fichier `keystore.properties` (non versionné) ; le build
-de debug n'en a pas besoin.
+Release signing expects a `keystore.properties` file (not versioned); the debug build does not need
+one.
 
 ### Versions
 
-`version.properties`, à la racine, est la **source unique** de `versionCode` / `versionName` :
+`version.properties`, at the root, is the **single source** of `versionCode` / `versionName`:
 
 ```properties
 versionCode=46
 versionName=0.4.1
 ```
 
-Le `versionCode` doit **toujours augmenter** : Android refuse d'installer un APK dont le
-`versionCode` est inférieur à celui déjà installé, et l'utilisateur ne voit qu'un échec sans
-explication. Il se bumpe **à la main**, avant de builder l'APK d'une release — jamais après.
+The `versionCode` must **always increase**: Android refuses to install an APK whose `versionCode` is
+lower than the installed one, and the user only sees an unexplained failure. It is bumped **by
+hand**, before building a release APK — never after.
 
-Le build **échoue** si le fichier est absent ou illisible : mieux vaut ne rien produire qu'un APK
-portant une version silencieusement fausse.
+The build **fails** if the file is missing or unreadable: producing nothing beats producing an APK
+carrying a silently wrong version.
 
-## Sécurité & vie privée
+## Security & privacy
 
-- Modèle de menace, chiffrement, verrou : [SECURITY.md](SECURITY.md).
-- Politique de confidentialité (permissions, données, contact) : [PRIVACY.md](PRIVACY.md).
-- Signalement de vulnérabilité : voir [SECURITY.md](SECURITY.md#signalement).
+- Threat model, encryption, lock: [SECURITY.md](SECURITY.md).
+- Privacy policy (permissions, data, contact): [PRIVACY.md](PRIVACY.md).
+- Reporting a vulnerability: see [SECURITY.md](SECURITY.md#signalement).
 
 ## Licence
 

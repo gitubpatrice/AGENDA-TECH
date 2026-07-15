@@ -300,4 +300,7 @@
     <string name="search_section_upcoming">À venir</string>
     <string name="search_section_past">Passés</string>
     <string name="search_hidden_calendar">calendrier masqué</string>
+
+    <!-- URL de la politique de confidentialité, localisée : voir values/strings.xml. -->
+    <string name="about_privacy_policy_url" translatable="false">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/PRIVACY.fr.md</string>
 </resources>

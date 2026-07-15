@@ -162,10 +162,13 @@ fun AboutScreen(onBack: () -> Unit) {
                 supporting = stringResource(R.string.about_license_name),
                 onClick = { openUrl(context, URL_LICENSE) },
             )
+            // Localised URL: the French app must point at PRIVACY.fr.md, the English one at
+            // PRIVACY.md. Reading it as a resource lets Android pick, rather than a branch here.
+            val privacyPolicyUrl = stringResource(R.string.about_privacy_policy_url)
             LinkItem(
                 icon = Icons.Outlined.PrivacyTip,
                 label = stringResource(R.string.about_privacy_policy),
-                onClick = { openUrl(context, URL_PRIVACY_POLICY) },
+                onClick = { openUrl(context, privacyPolicyUrl) },
             )
 
             Spacer(Modifier.size(24.dp))
@@ -493,7 +496,6 @@ private const val URL_WEBSITE = "https://files-tech.com"
 private const val URL_SOURCE = "https://github.com/gitubpatrice/AGENDA-TECH"
 private const val URL_RELEASES = "https://github.com/gitubpatrice/AGENDA-TECH/releases/latest"
 private const val URL_LICENSE = "https://www.apache.org/licenses/LICENSE-2.0"
-private const val URL_PRIVACY_POLICY = "https://github.com/gitubpatrice/AGENDA-TECH/blob/main/PRIVACY.md"
 
 private data class PrivacyBadge(val icon: ImageVector, val label: String, val color: Color)
 

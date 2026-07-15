@@ -1,92 +1,87 @@
-# Politique de confidentialité — Agenda Tech
+# Privacy Policy — Agenda Tech
 
-_Dernière mise à jour : 15 juillet 2026 — version 0.4.1_
+_Last updated: 15 July 2026 — version 0.4.1_ · 🇫🇷 [Version française](PRIVACY.fr.md)
 
-Agenda Tech (`com.filestech.agenda_tech`) est une application d'agenda **entièrement locale**.
-Elle est conçue autour d'un principe simple : **vos données ne quittent jamais votre appareil.**
+Agenda Tech (`com.filestech.agenda_tech`) is a **fully local** calendar app, built on one principle:
+**your data never leaves your device.**
 
-## En résumé
+## In short
 
-- **Aucune donnée collectée, aucune donnée transmise.** L'application ne déclare **aucune
-  permission Internet** (`INTERNET`, `ACCESS_NETWORK_STATE`) — elle est techniquement incapable
-  d'envoyer quoi que ce soit sur un réseau.
-- **Aucun compte, aucune inscription, aucun identifiant.**
-- **Aucune publicité, aucun traceur, aucun outil d'analyse** (pas de Firebase Analytics, pas de
-  Crashlytics, aucun SDK tiers de collecte).
-- **Aucune sauvegarde cloud** : `allowBackup=false`, les données sont exclues des sauvegardes
-  automatiques Android et des transferts d'appareil.
+- **No data collected, no data transmitted.** The app declares **no internet permission**
+  (`INTERNET`, `ACCESS_NETWORK_STATE`) — it is technically incapable of sending anything over a
+  network.
+- **No account, no sign-up, no identifier.**
+- **No ads, no trackers, no analytics** (no Firebase Analytics, no Crashlytics, no third-party
+  collection SDK).
+- **No cloud backup**: `allowBackup=false` — your data is excluded from Android's automatic backups
+  and from device-to-device transfers.
 
-## Quelles données, et où
+## What data, and where
 
-Tout ce que vous saisissez (événements, titres, lieux, notes, rappels, calendriers) est stocké
-**uniquement sur votre appareil**, dans une base de données **chiffrée** (SQLCipher, AES-256 ;
-la clé est protégée par l'AndroidKeyStore, matériel/TEE sur les appareils compatibles).
+Everything you enter (events, titles, places, notes, reminders, calendars) is stored **only on your
+device**, in an **encrypted** database (SQLCipher, AES-256; the key is protected by the Android
+KeyStore — hardware/TEE on supported devices).
 
-Le développeur n'a **aucun accès** à ces données et n'en reçoit **aucune copie**.
+The developer has **no access** to this data and receives **no copy** of it.
 
-## Permissions demandées et pourquoi
+## Permissions requested, and why
 
-| Permission | Usage | Réseau ? |
+| Permission | Purpose | Network? |
 |---|---|---|
-| `READ_CALENDAR` | Importer, à votre demande, les événements **déjà présents** sur l'appareil (agenda Google/Exchange/local synchronisé par le système). **Lecture seule.** | Non |
-| `POST_NOTIFICATIONS` | Afficher les rappels d'événements. | Non |
-| `USE_EXACT_ALARM` / `SCHEDULE_EXACT_ALARM` | Déclencher les rappels à l'heure exacte. | Non |
-| `RECEIVE_BOOT_COMPLETED` | Reprogrammer les rappels après un redémarrage. | Non |
-| `VIBRATE` | Vibration des rappels. | Non |
+| `READ_CALENDAR` | Import, at your request, the events **already present** on the device (Google/Exchange/local calendar synced by the system). **Read-only.** | No |
+| `POST_NOTIFICATIONS` | Show event reminders. | No |
+| `USE_EXACT_ALARM` / `SCHEDULE_EXACT_ALARM` | Fire reminders at the exact time. | No |
+| `RECEIVE_BOOT_COMPLETED` | Re-arm reminders after a reboot. | No |
+| `VIBRATE` | Vibration for reminders. | No |
 
-L'application ne demande **jamais** l'accès à la localisation, aux contacts, au micro, à la caméra,
-ni à Internet.
+The app **never** requests access to your location, contacts, microphone, camera, or the internet.
 
-L'import du calendrier de l'appareil (`READ_CALENDAR`) lit seulement ce qui est **déjà synchronisé
-localement** par les applications système ; Agenda Tech ne se connecte pas à votre compte Google ni
-à aucun service distant. La permission est demandée **à l'exécution**, uniquement au moment où vous
-ouvrez l'écran d'import, et peut être refusée.
+The device calendar import (`READ_CALENDAR`) only reads what the system apps have **already synced
+locally**; Agenda Tech does not connect to your Google account or to any remote service. The
+permission is requested **at runtime**, only when you open the import screen, and can be denied.
 
-## Partage avec des tiers
+## Sharing with third parties
 
-**Aucun.** Aucune donnée n'est partagée, vendue ou transmise à qui que ce soit — l'application n'a
-aucun moyen technique de le faire (pas de permission Internet).
+**None.** No data is shared, sold or transmitted to anyone — the app has no technical means of doing
+so (no internet permission).
 
-Les seuls échanges possibles sont ceux que **vous** déclenchez explicitement, et qui restent sur
-votre appareil, d'une application à l'autre :
+The only exchanges possible are the ones **you** trigger explicitly, and they stay on your device,
+from one app to another:
 
-- **Export `.ics`** : vers l'emplacement de votre choix, via le sélecteur de fichiers système.
-- **Sauvegarde chiffrée `.atbak`** : c'est l'échange le plus large, il mérite d'être décrit
-  précisément. Le fichier contient **tout votre agenda** (calendriers, événements, descriptions,
-  lieux, adresses, coordonnées GPS, rappels), et vous choisissez où il est écrit — y compris un
-  dossier synchronisé vers un cloud, si c'est votre choix. **L'application ne l'envoie nulle part
-  elle-même** : elle écrit à l'emplacement que vous désignez dans le sélecteur de fichiers système,
-  et n'a de toute façon aucun moyen d'accéder au réseau. Le contenu est chiffré (AES-256) par une
-  clé dérivée de **votre mot de passe seul** : ni nous, ni le service qui hébergerait ce fichier ne
-  peuvent le lire. Ce mot de passe n'est stocké nulle part — si vous l'oubliez, le fichier est
-  définitivement illisible, y compris pour nous. Ce que devient ensuite le fichier, une fois hors
-  de l'application, ne dépend plus que de vous.
-- **Ouvrir un lieu sur la carte** : si vous saisissez des coordonnées GPS sur un événement et que
-  vous touchez le repère, l'application transmet **ces coordonnées et le libellé de l'événement** à
-  l'application de cartes de votre téléphone. Rien d'autre n'est transmis, et rien ne part si vous
-  ne touchez pas le repère. Ce que cette application de cartes fait ensuite de ces informations
-  relève de sa propre politique de confidentialité.
-- **Son de rappel personnalisé** : si vous choisissez un fichier audio, l'application conserve
-  l'autorisation de le lire pour pouvoir le jouer au moment du rappel.
+- **`.ics` export**: to the location of your choice, through the system file picker.
+- **Encrypted `.atbak` backup**: this is the broadest exchange, so it deserves a precise
+  description. The file holds **your entire calendar** (calendars, events, descriptions, places,
+  addresses, GPS coordinates, reminders), and you choose where it is written — including a folder
+  synced to a cloud, if that is your choice. **The app never sends it anywhere itself**: it writes
+  to the location you point at in the system file picker, and has no way to reach a network anyway.
+  The contents are encrypted (AES-256) with a key derived from **your password alone**: neither we
+  nor whichever service might host that file can read it. That password is stored nowhere — if you
+  forget it, the file is permanently unreadable, **including to us**. What becomes of the file once
+  it leaves the app is entirely up to you.
+- **Opening a place on a map**: if you enter GPS coordinates on an event and tap the marker, the app
+  hands **those coordinates and the event's label** to your phone's maps app. Nothing else is sent,
+  and nothing leaves if you don't tap the marker. What that maps app then does with the information
+  is governed by its own privacy policy.
+- **Custom reminder sound**: if you pick an audio file, the app keeps permission to read it so it
+  can play it when the reminder fires.
 
-## Vos droits (RGPD)
+## Your rights (GDPR)
 
-L'application ne traitant aucune donnée personnelle en dehors de votre appareil, il n'existe aucun
-traitement distant à consulter, rectifier ou supprimer. Vous gardez le contrôle total : supprimer
-un événement, un calendrier, ou désinstaller l'application efface les données correspondantes de
-l'appareil. La désinstallation supprime la base chiffrée.
+Since the app processes no personal data outside your device, there is no remote processing to
+access, rectify or erase. You keep full control: deleting an event, a calendar, or uninstalling the
+app removes the corresponding data from the device. Uninstalling deletes the encrypted database.
 
-## Enfants
+## Children
 
-L'application ne collecte aucune donnée et convient à tous les publics.
+The app collects no data and is suitable for all audiences.
 
-## Modifications
+## Changes
 
-Cette politique pourra évoluer avec l'application ; la date en tête de document indique la dernière
-révision, et l'historique est public dans ce dépôt.
+This policy may evolve alongside the app; the date at the top indicates the latest revision, and the
+history is public in this repository.
 
 ## Contact
 
-Question ou signalement : ouvrez une [issue](https://github.com/gitubpatrice/AGENDA-TECH/issues)
-sur le dépôt, ou via [files-tech.com](https://files-tech.com). Pour la sécurité, voir
+Question or report: open an [issue](https://github.com/gitubpatrice/AGENDA-TECH/issues) on the
+repository, or reach us via [files-tech.com](https://files-tech.com). For security, see
 [SECURITY.md](SECURITY.md).

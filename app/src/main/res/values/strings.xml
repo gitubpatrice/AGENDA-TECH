@@ -300,4 +300,8 @@
     <string name="search_section_upcoming">Upcoming</string>
     <string name="search_section_past">Past</string>
     <string name="search_hidden_calendar">hidden calendar</string>
+
+    <!-- Privacy policy URL, localised: a French user must not land on the English page. Android
+         picks values-fr/ automatically, so the choice needs no code. -->
+    <string name="about_privacy_policy_url" translatable="false">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/PRIVACY.md</string>
 </resources>
