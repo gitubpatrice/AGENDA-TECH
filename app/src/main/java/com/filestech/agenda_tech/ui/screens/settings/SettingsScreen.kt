@@ -6,7 +6,6 @@ import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
 import android.provider.Settings
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.IntentCompat
@@ -90,8 +89,8 @@ fun SettingsScreen(
         BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG or BIOMETRIC_WEAK) ==
             BiometricManager.BIOMETRIC_SUCCESS
     }
-    // Replacing the sound: hand back the grant we no longer need, so picking files repeatedly doesn't
-    // pile up persisted permissions against the per-app cap.
+    // Replacing the sound: release any persistable grant an earlier build's audio-file pick may still
+    // hold (system ringtones never take one), so a stale grant doesn't linger against the per-app cap.
     val replaceSound = { newUri: String? ->
         releasePersistedGrant(context, settings.notifSoundUri, keeping = newUri)
         viewModel.setNotifSoundUri(newUri)
@@ -108,28 +107,6 @@ fun SettingsScreen(
                 Uri::class.java,
             )
             replaceSound(uri?.toString())
-        }
-    }
-
-    // Any audio file (MP3…) from the device storage. Unlike a system ringtone, a document URI is only
-    // ours for this process unless we take a persistable grant — without it the sound would go silent
-    // after a reboot.
-    val audioFilePicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri ->
-        if (uri != null) {
-            val kept = runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
-            }.isSuccess
-            if (kept) {
-                replaceSound(uri.toString())
-            } else {
-                // No lasting access = a reminder that would fall silent later. Refuse rather than lie.
-                Toast.makeText(context, R.string.settings_notif_sound_file_denied, Toast.LENGTH_LONG).show()
-            }
         }
     }
 
@@ -211,11 +188,6 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_notif_ringtone),
                     subtitle = ringtoneTitle(settings.notifSoundUri),
                     onClick = { ringtonePicker.launch(ringtonePickerIntent(context, settings.notifSoundUri)) },
-                )
-                ClickRow(
-                    title = stringResource(R.string.settings_notif_sound_file),
-                    subtitle = stringResource(R.string.settings_notif_sound_file_sub),
-                    onClick = { audioFilePicker.launch(AUDIO_MIME_TYPES) },
                 )
                 if (settings.notifSoundUri != null) {
                     ClickRow(
@@ -606,10 +578,6 @@ private fun releasePersistedGrant(context: Context, previousUri: String?, keepin
         context.contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 }
-
-// Audio files offerable as a reminder sound; the audio wildcard covers MP3/OGG/WAV/M4A alike.
-// (Kept as a line comment: a block comment containing the wildcard would nest and swallow the file.)
-private val AUDIO_MIME_TYPES = arrayOf("audio/*")
 
 /** Intent for the system ringtone picker, pre-selecting the currently chosen sound. */
 private fun ringtonePickerIntent(context: Context, currentUri: String?): Intent {

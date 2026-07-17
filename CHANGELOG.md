@@ -3,6 +3,23 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [0.5.1] — 2026-07-17
+
+### Corrigé
+
+- **La sonnerie choisie pour les rappels est enfin prise en compte.** Choisir une sonnerie ne
+  changeait rien : le rappel continuait de jouer le son par défaut. En cause, une subtilité
+  Android — la configuration son/vibration/écran-verrouillé d'un canal de notification est figée à
+  sa création, et supprimer puis recréer le canal sous le même identifiant restaure en réalité
+  l'ancienne configuration. Chaque réglage vit désormais dans un canal dédié, si bien qu'un
+  changement crée un nouveau canal réellement appliqué. Le vibreur et l'affichage sur écran
+  verrouillé, touchés par le même défaut, sont corrigés du même coup.
+
+### Modifié
+
+- **Retrait du choix d'un fichier audio (musique) comme sonnerie de rappel.** Le sélecteur de
+  sonnerie du système reste — il propose les sons de notification de l'appareil.
+
 ## [0.5.0] — 2026-07-15
 
 ### Ajouté

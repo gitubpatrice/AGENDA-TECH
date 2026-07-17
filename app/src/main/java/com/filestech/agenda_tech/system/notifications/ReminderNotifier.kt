@@ -56,14 +56,44 @@ class ReminderNotifier @Inject constructor(
     // channel momentarily absent while a reminder is being posted.
     private val channelMutex = Mutex()
 
-    suspend fun ensureChannel() = channelMutex.withLock {
-        createChannel(settingsRepository.current())
+    suspend fun ensureChannel() {
+        syncCurrentChannel()
     }
 
-    /** Recreate the channel to apply changed sound/vibration/lock-screen preferences. */
-    suspend fun rebuildChannel() = channelMutex.withLock {
-        platformManager.deleteNotificationChannel(CHANNEL_ID)
-        createChannel(settingsRepository.current())
+    /** Apply changed sound/vibration/lock-screen preferences (lands on a fresh per-config channel). */
+    suspend fun rebuildChannel() {
+        syncCurrentChannel()
+    }
+
+    /**
+     * Brings the channel in line with the current settings and returns the id reminders must post to.
+     * The target is created first, then stale channels — a previous config, or the legacy fixed-id one
+     * — are pruned, so the current channel is never momentarily absent. Serialised by [channelMutex]
+     * (Audit DATA-1) so a concurrent rebuild can't interleave with this create/prune sequence.
+     */
+    private suspend fun syncCurrentChannel(): String = channelMutex.withLock {
+        val settings = settingsRepository.current()
+        val targetId = channelIdFor(settings)
+        createChannel(targetId, settings)
+        platformManager.notificationChannels
+            .filter { it.id.startsWith(CHANNEL_ID_BASE) && it.id != targetId }
+            .forEach { platformManager.deleteNotificationChannel(it.id) }
+        targetId
+    }
+
+    /**
+     * A per-config channel id: any change to the audible/visible config yields a new id. This is what
+     * makes a changed sound (or vibration, or lock-screen visibility) actually take effect — see the
+     * note on [CHANNEL_ID_BASE] for why reusing one id cannot.
+     */
+    private fun channelIdFor(settings: AppSettings): String {
+        val fingerprint = listOf(
+            settings.notifSound,
+            settings.notifSoundUri.orEmpty(),
+            settings.notifVibrate,
+            settings.notifLockScreen,
+        ).joinToString(separator = "|")
+        return CHANNEL_ID_BASE + "_" + Integer.toHexString(fingerprint.hashCode())
     }
 
     /**
@@ -81,9 +111,9 @@ class ReminderNotifier @Inject constructor(
         }
     }
 
-    private fun createChannel(settings: AppSettings) {
+    private fun createChannel(channelId: String, settings: AppSettings) {
         val channel = NotificationChannel(
-            CHANNEL_ID,
+            channelId,
             context.getString(R.string.reminder_channel_name),
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
@@ -124,7 +154,7 @@ class ReminderNotifier @Inject constructor(
             Timber.w("ReminderNotifier: POST_NOTIFICATIONS not granted — skipping reminder for event %d", event.id)
             return
         }
-        ensureChannel()
+        val channelId = syncCurrentChannel()
 
         val tapIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -137,7 +167,7 @@ class ReminderNotifier @Inject constructor(
         )
 
         // Audit SEC-2 — keep user-entered title/location off a locked screen (PRIVATE + generic public).
-        val publicVersion = NotificationCompat.Builder(context, CHANNEL_ID)
+        val publicVersion = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(context.getString(R.string.reminder_channel_name))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
@@ -157,7 +187,7 @@ class ReminderNotifier @Inject constructor(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(event.title)
             .setContentText(contentText(event, occurrenceStartUtcMillis))
@@ -211,6 +241,12 @@ class ReminderNotifier @Inject constructor(
         (eventId * 31 + occurrenceStartUtcMillis).hashCode()
 
     private companion object {
-        const val CHANNEL_ID = "reminders"
+        // A channel's sound/vibration/lock-screen config is frozen at creation, and deleting then
+        // recreating the SAME id un-deletes the old channel with its OLD config (Android keeps deleted
+        // channels so an app can't silently reset the user's choices). So the config is folded into the
+        // id ([channelIdFor]): a changed setting lands on a brand-new channel — the only reliable way
+        // to make it take effect. The base is also the prefix used to prune stale channels, including
+        // the legacy fixed-id "reminders" channel created by app versions before this scheme.
+        const val CHANNEL_ID_BASE = "reminders"
     }
 }

@@ -1,0 +1,10 @@
+v0.5.1 — The sound you pick finally applies
+
+• Fix: picking a reminder sound did nothing
+  (the notification channel kept the old
+  sound). Each setting now lives in its own
+  channel, so a change actually takes effect.
+  Vibration and lock-screen visibility, hit
+  by the same flaw, are fixed too.
+• Removed the "pick an audio file" (music)
+  option: the system ringtone picker stays.

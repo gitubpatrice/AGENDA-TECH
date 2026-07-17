@@ -1,0 +1,12 @@
+v0.5.1 — La sonnerie choisie s'applique enfin
+
+• Correctif : choisir une sonnerie de
+  rappel ne changeait rien (le canal de
+  notification gardait l'ancien son). Chaque
+  réglage vit désormais dans son propre
+  canal — le changement est réellement pris
+  en compte. Vibreur et écran verrouillé,
+  touchés par le même défaut, corrigés aussi.
+• Retrait du choix d'un fichier audio
+  (musique) : le sélecteur de sonneries du
+  système reste disponible.

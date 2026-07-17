@@ -131,10 +131,7 @@
     <string name="settings_notif_sound">Sonnerie</string>
     <string name="settings_notif_ringtone">Son du rappel</string>
     <string name="settings_notif_ringtone_default">Son par défaut du système</string>
-    <string name="settings_notif_sound_file">Choisir un fichier audio</string>
-    <string name="settings_notif_sound_file_sub">N\'importe quel MP3 ou fichier audio du téléphone</string>
     <string name="settings_notif_sound_reset">Revenir au son du système</string>
-    <string name="settings_notif_sound_file_denied">Ce fichier ne peut pas rester accessible — choisissez-en un autre, ou copiez-le dans votre dossier Notifications.</string>
     <string name="settings_notif_vibrate">Vibreur</string>
     <string name="settings_notif_lockscreen">Afficher sur l\'écran de verrouillage</string>
     <string name="settings_notif_system">Ouvrir les réglages système de notification</string>
