@@ -16,6 +16,11 @@ données **au repos** et sur l'**exposition à l'écran**.
   stocké dans `filesDir/db/master.key`. Cf. `DatabaseKeyManager` / `KeystoreManager` / `AeadCipher`.
 - **Pas de KEK en clair.** La clé maître n'est jamais persistée en clair : sans la clé
   AndroidKeyStore de l'appareil, le fichier `master.key` — et donc la base — est inexploitable.
+- **Résidence en mémoire (assumée).** SQLCipher relit la passphrase à **chaque** ouverture de
+  connexion de son pool : elle doit donc rester en mémoire tant que la base est ouverte. La copie
+  transmise à SQLCipher vit pour la durée de vie du processus ; celle détenue par l'app est
+  effacée (`wipe`) dès la construction terminée. C'est une contrainte de la bibliothèque, pas un
+  choix — un effacement plus précoce casserait les connexions suivantes.
 - **Robustesse** : l'invalidation réelle du Keystore (changement du verrou d'écran, reset Knox)
   est distinguée d'une corruption transitoire ; aucun effacement silencieux (pas de perte de
   données furtive) — l'échec est typé et remonté pour un futur flux de récupération.
@@ -40,9 +45,15 @@ quoi qu'il arrive) : c'est un **gate UI**, il ne modifie pas la posture crypto d
   un sel+hash en clair serait cassable hors-ligne en secondes. L'enveloppement bloque l'exfiltration
   simple de fichier (une extraction root avec exécution de code reste hors périmètre).
 - **Anti-force-brute (LOCK-4).** Après 5 essais erronés, un back-off croissant (10 s, 20 s… plafonné
-  à 60 s) est imposé avant chaque nouvelle tentative. L'état est **en mémoire process** (jamais
-  persisté : un lock-out oublié ne peut pas bloquer l'app) et basé sur l'horloge **monotone**
-  (`SystemClock.elapsedRealtime`, insensible au changement d'heure).
+  à 60 s) est imposé avant chaque nouvelle tentative. Le décompte vivant utilise l'horloge
+  **monotone** (`SystemClock.elapsedRealtime`), insensible au changement d'heure.
+- **Le compteur survit à la mort du processus (audit SEC-2, v0.5.2).** L'état était auparavant
+  purement en mémoire : un simple *force-stop* — aucun privilège requis — remettait le compteur à
+  zéro et rendait 5 tentatives fraîches à chaque relance, annulant l'escalade. Il est désormais
+  persisté (`LockThrottleStore`). Le plafond de 60 s garantit qu'un lock-out oublié ne peut pas
+  bloquer l'app. L'échéance persistée est en horloge murale, donc déplaçable par l'utilisateur —
+  elle est **bornée à un palier** au rechargement : avancer l'heure fait sauter au plus une
+  attente, jamais le compteur de tentatives.
 - **Ré-authentification (LOCK-6).** Désactiver le verrou ou changer le PIN exige d'abord la saisie
   du PIN actuel.
 - **Biométrie.** `BiometricPrompt` accepte `BIOMETRIC_STRONG` **et** `BIOMETRIC_WEAK` (LOCK-9) —

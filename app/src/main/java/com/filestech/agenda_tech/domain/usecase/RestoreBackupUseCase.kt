@@ -5,11 +5,14 @@ import com.filestech.agenda_tech.core.crypto.wipe
 import com.filestech.agenda_tech.core.result.AppError
 import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.core.result.flatMap
+import com.filestech.agenda_tech.di.IoDispatcher
 import com.filestech.agenda_tech.domain.backup.BackupCodec
 import com.filestech.agenda_tech.domain.backup.BackupCodec.toDomain
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.repository.BackupRepository
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,11 +23,17 @@ import javax.inject.Singleton
  * or tampered must leave the existing agenda untouched, not half-overwritten.
  *
  * The caller's [password] is wiped, even on failure.
+ *
+ * Audit SEC-3 — opening derives a key with PBKDF2 at the iteration count named in the file's
+ * header, which an untrusted `.atbak` can legitimately push to [BackupEnvelope]'s ceiling. That is
+ * seconds of CPU, so the whole operation is dispatched off the Main thread here: a hostile file
+ * must cost the user a spinner, never an ANR.
  */
 @Singleton
 class RestoreBackupUseCase @Inject constructor(
     private val envelope: BackupEnvelope,
     private val backupRepository: BackupRepository,
+    @IoDispatcher private val io: CoroutineDispatcher,
 ) {
 
     data class Result(val calendars: Int, val events: Int, val reminders: Int)
@@ -37,15 +46,17 @@ class RestoreBackupUseCase @Inject constructor(
     fun isRecognised(file: ByteArray): Boolean = envelope.isRecognised(file)
 
     suspend operator fun invoke(password: CharArray, file: ByteArray): Outcome<Result> =
-        envelope.open(password, file)
-            .flatMap { plaintext ->
-                try {
-                    decode(plaintext)
-                } finally {
-                    plaintext.wipe()
+        withContext(io) {
+            envelope.open(password, file)
+                .flatMap { plaintext ->
+                    try {
+                        decode(plaintext)
+                    } finally {
+                        plaintext.wipe()
+                    }
                 }
-            }
-            .flatMap { decoded -> write(decoded) }
+                .flatMap { decoded -> write(decoded) }
+        }
 
     private fun decode(plaintext: ByteArray): Outcome<Decoded> = try {
         val payload = BackupCodec.decodeFromJson(plaintext.toString(Charsets.UTF_8))

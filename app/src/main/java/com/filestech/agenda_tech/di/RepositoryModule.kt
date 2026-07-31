@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.di
 
 import com.filestech.agenda_tech.data.local.settings.LockRepositoryImpl
 import com.filestech.agenda_tech.data.local.settings.SettingsRepositoryImpl
+import com.filestech.agenda_tech.data.local.settings.SharedPrefsLockThrottleStore
 import com.filestech.agenda_tech.data.repository.BackupRepositoryImpl
 import com.filestech.agenda_tech.data.repository.CalendarRepositoryImpl
 import com.filestech.agenda_tech.data.repository.EventRepositoryImpl
@@ -14,6 +15,7 @@ import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.repository.LockRepository
 import com.filestech.agenda_tech.domain.repository.ReminderRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
+import com.filestech.agenda_tech.security.LockThrottleStore
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -45,4 +47,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindDeviceCalendarRepository(impl: DeviceCalendarRepositoryImpl): DeviceCalendarRepository
+
+    /** Audit SEC-2 — the PIN back-off has to outlive the process to mean anything. */
+    @Binds @Singleton
+    abstract fun bindLockThrottleStore(impl: SharedPrefsLockThrottleStore): LockThrottleStore
 }

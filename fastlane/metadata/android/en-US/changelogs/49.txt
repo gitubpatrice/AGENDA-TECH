@@ -1,0 +1,14 @@
+v0.5.2 — Security release
+
+• Important: the database was not actually
+  protected. The real key, sealed in the
+  hardware vault, was wiped just before it
+  was used — the file ended up encrypted with
+  an all-zero key. Fixed, and existing
+  databases are re-encrypted on first launch,
+  with no data loss (a safety copy is made
+  beforehand).
+• The PIN brute-force counter now survives a
+  force-stop.
+• Backup and restore no longer freeze the
+  app.

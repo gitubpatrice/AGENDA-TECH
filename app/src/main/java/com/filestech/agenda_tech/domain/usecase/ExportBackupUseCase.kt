@@ -6,10 +6,13 @@ import com.filestech.agenda_tech.core.result.AppError
 import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.core.result.map
 import com.filestech.agenda_tech.domain.backup.BackupCodec
+import com.filestech.agenda_tech.di.IoDispatcher
 import com.filestech.agenda_tech.domain.repository.BackupRepository
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,6 +20,11 @@ import javax.inject.Singleton
  * Snapshots the whole agenda into an encrypted `.atbak` byte array.
  *
  * The caller's [password] is wiped, even on failure.
+ *
+ * Audit SEC-3 — sealing derives a key with PBKDF2 (see [BackupEnvelope], ~1s of deliberate CPU
+ * work), so the whole operation is dispatched off the Main thread here rather than trusting every
+ * call site to remember. The KDoc on [BackupEnvelope.seal] says never to call it on the main
+ * thread; this is where that is enforced.
  */
 @Singleton
 class ExportBackupUseCase @Inject constructor(
@@ -24,15 +32,19 @@ class ExportBackupUseCase @Inject constructor(
     private val eventRepository: EventRepository,
     private val backupRepository: BackupRepository,
     private val envelope: BackupEnvelope,
+    @IoDispatcher private val io: CoroutineDispatcher,
 ) {
 
     /** The sealed file plus what went into it, so the UI can tell the user what it just saved. */
     data class Export(val bytes: ByteArray, val calendars: Int, val events: Int)
 
-    suspend operator fun invoke(password: CharArray, nowUtcMillis: Long): Outcome<Export> {
+    suspend operator fun invoke(
+        password: CharArray,
+        nowUtcMillis: Long,
+    ): Outcome<Export> = withContext(io) {
         if (password.size < BackupEnvelope.MIN_PASSWORD_LENGTH) {
             password.wipe()
-            return Outcome.Failure(AppError.Validation("password too short"))
+            return@withContext Outcome.Failure(AppError.Validation("password too short"))
         }
         val payload = try {
             BackupCodec.toPayload(
@@ -43,7 +55,7 @@ class ExportBackupUseCase @Inject constructor(
             )
         } catch (t: Throwable) {
             password.wipe()
-            return Outcome.Failure(AppError.Database(t))
+            return@withContext Outcome.Failure(AppError.Database(t))
         }
 
         val json = BackupCodec.encodeToJson(payload)
@@ -54,15 +66,15 @@ class ExportBackupUseCase @Inject constructor(
             BackupCodec.decodeFromJson(json)
         } catch (t: Throwable) {
             password.wipe()
-            return Outcome.Failure(AppError.Crypto("backup failed self-check", t))
+            return@withContext Outcome.Failure(AppError.Crypto("backup failed self-check", t))
         }
         if (reread != payload) {
             password.wipe()
-            return Outcome.Failure(AppError.Crypto("backup failed self-check"))
+            return@withContext Outcome.Failure(AppError.Crypto("backup failed self-check"))
         }
 
         val plaintext = json.toByteArray(Charsets.UTF_8)
-        return try {
+        try {
             envelope.seal(password, plaintext).map { bytes ->
                 Export(bytes = bytes, calendars = payload.calendars.size, events = payload.events.size)
             }

@@ -3,6 +3,39 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [0.5.2] — 2026-07-31
+
+Release de **sécurité**. Trois défauts trouvés par audit, dont un critique présent depuis le tout
+premier commit.
+
+### Sécurité
+
+- **La base n'était pas réellement protégée : elle était chiffrée avec une clé nulle.** La vraie
+  passphrase — 32 octets aléatoires, scellés sous l'AndroidKeyStore — était bien générée et bien
+  stockée, mais jamais utilisée. Le tableau qui la portait était effacé de la mémoire juste après
+  la construction de la base, or Room n'ouvre réellement le fichier qu'à la première requête :
+  quand SQLCipher réclamait enfin la clé, il ne recevait que des zéros. Le fichier `agendatech.db`
+  était donc déchiffrable par quiconque parvenait à l'extraire de l'appareil, sans avoir à toucher
+  au coffre matériel. Corrigé, et **les bases existantes sont rechiffrées automatiquement au
+  premier lancement**, sans perte : l'agenda est copié de côté avant l'opération et remis en place
+  si quoi que ce soit échoue. Le rechiffrement s'exécute une seule fois, en arrière-plan.
+- **Le compteur anti-force-brute du code PIN se réinitialisait trop facilement.** Il ne vivait
+  qu'en mémoire : fermer l'application de force — quelques appuis dans les réglages, aucun outil,
+  aucun privilège — remettait le compteur à zéro et redonnait cinq essais. L'escalade des délais ne
+  servait donc à rien face à quelqu'un de patient. Le compteur est désormais conservé d'un
+  lancement à l'autre. Le plafond d'une minute est inchangé, un blocage ne peut pas s'éterniser.
+- **L'application se figeait pendant la sauvegarde et la restauration.** Le calcul cryptographique
+  qui protège un fichier `.atbak` (volontairement lent, c'est ce qui le rend résistant) tournait
+  sur le fil d'exécution de l'interface. D'où un gel d'environ une seconde à chaque export — et
+  bien plus long face à un fichier hostile, au point de pouvoir faire tuer l'application par
+  Android. Ces opérations sont passées en arrière-plan.
+
+### Corrigé
+
+- **Démarrage plus fluide.** La base de données était ouverte sur le fil de l'interface au
+  lancement de l'application, ce qui pouvait la faire saccader — d'autant plus avec le
+  rechiffrement ci-dessus. L'ouverture se fait désormais en arrière-plan.
+
 ## [0.5.1] — 2026-07-17
 
 ### Corrigé

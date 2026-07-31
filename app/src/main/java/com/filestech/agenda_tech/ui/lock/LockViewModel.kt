@@ -37,11 +37,11 @@ class LockViewModel @Inject constructor(
     }
 
     fun submitPin(pin: String) {
-        if (appLock.throttleRemainingMs() > 0) {
-            startThrottleTicker()
-            return
-        }
         viewModelScope.launch {
+            if (appLock.throttleRemainingMs() > 0) {
+                startThrottleTicker()
+                return@launch
+            }
             if (lockRepository.verifyPin(pin)) {
                 appLock.resetAttempts()
                 appLock.unlock()
@@ -58,8 +58,10 @@ class LockViewModel @Inject constructor(
     }
 
     fun onBiometricSuccess() {
-        appLock.resetAttempts()
-        appLock.unlock()
+        viewModelScope.launch {
+            appLock.resetAttempts()
+            appLock.unlock()
+        }
     }
 
     /** Ticks the visible countdown down to zero while a back-off is in effect. */

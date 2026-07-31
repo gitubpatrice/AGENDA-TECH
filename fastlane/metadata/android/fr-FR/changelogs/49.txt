@@ -1,0 +1,13 @@
+v0.5.2 — Release de sécurité
+
+• Important : la base n'était pas réellement
+  protégée. La vraie clé, scellée dans le
+  coffre matériel, était effacée juste avant
+  d'être utilisée — le fichier finissait
+  chiffré avec une clé nulle. Corrigé : les
+  bases existantes sont rechiffrées au premier
+  lancement, sans perte (copie de sûreté
+  préalable).
+• Le compteur anti-force-brute du PIN survit
+  à une fermeture forcée.
+• Sauvegarde/restauration : plus de gel.

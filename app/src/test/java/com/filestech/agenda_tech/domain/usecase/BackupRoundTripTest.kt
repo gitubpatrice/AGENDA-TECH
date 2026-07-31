@@ -11,6 +11,7 @@ import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Weekday
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 
@@ -28,8 +29,12 @@ class BackupRoundTripTest {
     private val eventRepo = FakeEventRepository()
     private val backupRepo = FakeBackupRepository()
 
-    private val export = ExportBackupUseCase(calendarRepo, eventRepo, backupRepo, envelope)
-    private val restore = RestoreBackupUseCase(envelope, backupRepo)
+    // Unconfined: the use cases now dispatch to IO themselves (audit SEC-3), and this test asserts
+    // on results rather than on threading.
+    private val io = Dispatchers.Unconfined
+
+    private val export = ExportBackupUseCase(calendarRepo, eventRepo, backupRepo, envelope, io)
+    private val restore = RestoreBackupUseCase(envelope, backupRepo, io)
 
     private fun password() = "un mot de passe correct".toCharArray()
 
