@@ -9,9 +9,6 @@ import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
-import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,6 +29,7 @@ import com.filestech.agenda_tech.domain.settings.AppSettings
 import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.security.AppLockManager
 import com.filestech.agenda_tech.security.LockState
+import com.filestech.agenda_tech.security.StrongBiometrics
 import com.filestech.agenda_tech.ui.AppRoot
 import com.filestech.agenda_tech.ui.lock.LockScreen
 import com.filestech.agenda_tech.ui.theme.AgendaTechTheme
@@ -125,8 +123,10 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun showBiometricPrompt() {
-        val allowed = BIOMETRIC_STRONG or BIOMETRIC_WEAK
-        if (BiometricManager.from(this).canAuthenticate(allowed) != BiometricManager.BIOMETRIC_SUCCESS) return
+        // Audit F3 — Class 3 only; the rationale and the tier live in StrongBiometrics so the prompt
+        // and the settings toggle can never disagree about what "biometric unlock" means.
+        val allowed = StrongBiometrics.allowedAuthenticators
+        if (!StrongBiometrics.isAvailable(this)) return
 
         val prompt = BiometricPrompt(
             this,

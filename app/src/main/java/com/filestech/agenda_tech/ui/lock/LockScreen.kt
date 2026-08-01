@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.security.StrongBiometrics
 
 /** Minimum PIN length, shared with the settings PIN dialog. */
 const val MIN_PIN_LENGTH = 4
@@ -42,13 +44,24 @@ fun LockScreen(
     onRequestBiometric: () -> Unit,
     viewModel: LockViewModel = hiltViewModel(),
 ) {
-    val biometricEnabled by viewModel.biometricEnabled.collectAsStateWithLifecycle()
+    val biometricPreferred by viewModel.biometricEnabled.collectAsStateWithLifecycle()
     val wrongPin by viewModel.wrongPin.collectAsStateWithLifecycle()
     val throttleSeconds by viewModel.throttleSeconds.collectAsStateWithLifecycle()
     var pin by remember { mutableStateOf("") }
 
-    androidx.compose.runtime.LaunchedEffect(biometricEnabled) {
-        if (biometricEnabled) onRequestBiometric()
+    // Audit F3 — the stored preference is not enough: it may have been switched on by an earlier
+    // build that still accepted Class 2, and the prompt now refuses that tier. Offering the button
+    // anyway would auto-fire and tap into a prompt that never appears, with no way to tell why. The
+    // preference is left untouched, so the unlock comes back by itself on a Class 3 device.
+    // Deliberately not remember{}-ed: this screen stays composed across onStop/onResume whenever the
+    // app was already locked when it went to the background, so a cached answer would outlive an
+    // enrolment change made in the meantime — the button would stay hidden, or stay visible and dead.
+    // canAuthenticate() is a cheap local query, so re-asking on recomposition costs nothing.
+    val context = LocalContext.current
+    val biometricUsable = biometricPreferred && StrongBiometrics.isAvailable(context)
+
+    androidx.compose.runtime.LaunchedEffect(biometricUsable) {
+        if (biometricUsable) onRequestBiometric()
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -112,7 +125,7 @@ fun LockScreen(
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
-            if (biometricEnabled) {
+            if (biometricUsable) {
                 TextButton(
                     onClick = onRequestBiometric,
                     modifier = Modifier.padding(top = 8.dp),

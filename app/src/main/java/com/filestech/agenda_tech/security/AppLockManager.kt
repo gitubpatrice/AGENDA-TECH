@@ -7,6 +7,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -56,6 +58,16 @@ class AppLockManager @Inject constructor(
     private val _state = MutableStateFlow(LockState.UNKNOWN)
     val state: StateFlow<LockState> = _state.asStateFlow()
 
+    /**
+     * Serialises the whole read-modify-write (audit F6).
+     *
+     * Each entry point was a check-then-act over shared state with nothing held across the suspend
+     * point, so two attempts racing - a fast double tap, or a caller not on the Main dispatcher -
+     * could both read the same count and both write it back as one increment, spending two guesses
+     * for the price of one and defeating the escalation the persistence was added to protect.
+     */
+    private val mutex = Mutex()
+
     private var failedAttempts = 0
     private var lockedUntilElapsedMs = 0L
     private var restored = false
@@ -74,12 +86,12 @@ class AppLockManager @Inject constructor(
      * `suspend` because the first call reads the persisted back-off off disk, and the writes below
      * are durable (`commit`) by design — none of that may run on the Main thread.
      */
-    suspend fun throttleRemainingMs(): Long = withContext(io) {
+    suspend fun throttleRemainingMs(): Long = withContext(io) { mutex.withLock {
         restoreOnce()
         (lockedUntilElapsedMs - nowMs()).coerceAtLeast(0L)
-    }
+    } }
 
-    suspend fun registerFailedAttempt() = withContext(io) {
+    suspend fun registerFailedAttempt() = withContext(io) { mutex.withLock {
         restoreOnce()
         failedAttempts++
         val backoffMs = if (failedAttempts >= FREE_ATTEMPTS) {
@@ -95,14 +107,14 @@ class AppLockManager @Inject constructor(
                 lockedUntilWallMs = if (backoffMs > 0) wallClockMs() + backoffMs else 0L,
             ),
         )
-    }
+    } }
 
-    suspend fun resetAttempts() = withContext(io) {
+    suspend fun resetAttempts() = withContext(io) { mutex.withLock {
         restored = true // a correct PIN settles the question; nothing left to restore
         failedAttempts = 0
         lockedUntilElapsedMs = 0L
         store.save(LockThrottle.NONE)
-    }
+    } }
 
     /**
      * Pulls the persisted back-off into memory on first use.

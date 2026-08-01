@@ -62,7 +62,10 @@ object IcsCodec {
         // Only add the "@filestech" domain when the UID has none, so it never accumulates on round-trips.
         val base = event.uid?.takeIf { it.isNotBlank() } ?: "agenda-tech-$index-${event.startUtcMillis}"
         val uid = if (base.contains("@")) base else "$base@filestech"
-        out.appendContentLine("UID:$uid")
+        // Audit F2/F4 - the UID is attacker-controlled on any imported event and was the one TEXT
+        // value written raw: real newlines in it became content lines, so an exported .ics could
+        // carry whole VEVENTs the attacker wrote, under the user's name.
+        out.appendContentLine("UID:${escapeText(uid)}")
         out.appendContentLine("DTSTAMP:${utcStamp(nowUtcMillis)}")
         out.appendContentLine(dateProperty("DTSTART", event.startUtcMillis, event))
         out.appendContentLine(dateProperty("DTEND", event.endUtcMillis, event))
@@ -103,8 +106,21 @@ object IcsCodec {
     private fun utcStamp(utcMillis: Long): String =
         Instant.ofEpochMilli(utcMillis).atZone(ZoneOffset.UTC).format(UTC_STAMP)
 
+    /**
+     * RFC 5545 TEXT escaping.
+     *
+     * Audit F9/F10/F11 - a carriage return has to be neutralised too. Escaping only LF left a bare
+     * CR in the output, which every unfolder treats as a line break: a CR in a title (pasted text,
+     * a device-imported event) silently split the content line and turned the remainder into a
+     * forged property. CRLF is collapsed first so a real line break becomes one escape, not two.
+     */
     private fun escapeText(text: String): String =
-        text.replace("\\", "\\\\").replace("\n", "\\n").replace(",", "\\,").replace(";", "\\;")
+        text.replace("\\", "\\\\")
+            .replace("\r\n", "\\n")
+            .replace("\r", "\\n")
+            .replace("\n", "\\n")
+            .replace(",", "\\,")
+            .replace(";", "\\;")
 
     /** Fold a content line to ≤ [FOLD_LIMIT] chars, continuation lines prefixed with a space. */
     private fun fold(line: String): String {
@@ -166,7 +182,13 @@ object IcsCodec {
             timeZoneId = zoneId,
             allDay = allDay,
             recurrence = recurrence,
-            uid = props["UID"]?.value?.let(::unescapeText)?.takeIf { it.isNotBlank() },
+            // Audit F2/F4 - UID bypassed the sanitiser every other imported string goes through.
+            // Line breaks and control characters are dropped outright: never legitimate in a UID,
+            // and they are the injection primitive.
+            uid = props["UID"]?.value?.let(::unescapeText)
+                ?.filterNot { it == '\n' || it == '\r' || it.isISOControl() }
+                ?.let(::sanitizeText)
+                ?.takeIf { it.isNotBlank() },
         )
     }
 
@@ -195,10 +217,16 @@ object IcsCodec {
         }.orEmpty()
         RecurrenceRule(
             freq = freq,
-            interval = parts["INTERVAL"]?.toIntOrNull()?.coerceAtLeast(1) ?: 1,
+            interval = parts["INTERVAL"]?.toIntOrNull()
+                ?.coerceIn(1, RecurrenceRule.MAX_INTERVAL) ?: 1,
             byWeekdays = parts["BYDAY"]?.split(",")?.mapNotNull { BYDAY_TO_ISO[it.trim().uppercase()] }?.toSet().orEmpty(),
             count = parts["COUNT"]?.toIntOrNull(),
             untilUtcMillis = parts["UNTIL"]?.let { parseDateTime(IcsProperty("UNTIL", emptyMap(), it), defaultZone) },
+            // The EXDATEs were parsed just above and then dropped on the floor: every cancelled
+            // occurrence came back to life on import, including on a round-trip through our own
+            // export, which does write them. detekt had been reporting the symptom as an unused
+            // `exDates` property.
+            exDatesUtcMillis = exDates,
         )
     }.getOrNull()
 

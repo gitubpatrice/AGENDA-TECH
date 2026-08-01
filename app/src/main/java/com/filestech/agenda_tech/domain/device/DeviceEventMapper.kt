@@ -130,7 +130,8 @@ object DeviceEventMapper {
 
         RecurrenceRule(
             freq = freq,
-            interval = parts["INTERVAL"]?.toIntOrNull()?.coerceAtLeast(1) ?: 1,
+            interval = parts["INTERVAL"]?.toIntOrNull()
+                ?.coerceIn(1, RecurrenceRule.MAX_INTERVAL) ?: 1,
             byWeekdays = parts["BYDAY"]
                 ?.split(",")
                 ?.mapNotNull { BYDAY_TO_WEEKDAY[it.trim().take(2).uppercase()] }

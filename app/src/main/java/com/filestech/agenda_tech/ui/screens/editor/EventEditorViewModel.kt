@@ -440,7 +440,10 @@ class EventEditorViewModel @Inject constructor(
         }
         return RecurrenceRule(
             freq = freq,
-            interval = recurrenceInterval.coerceAtLeast(1),
+            // Audit F1 — clamped on the way out too, not just on input: this is the one place the
+            // editor constructs the rule, and an unbounded value here would trip the require() in
+            // RecurrenceRule.init and crash the save instead of being refused in the field.
+            interval = recurrenceInterval.coerceIn(1, MAX_INTERVAL),
             byWeekdays = if (freq == RecurrenceFreq.WEEKLY) recurrenceByWeekdays else emptySet(),
             count = count,
             untilUtcMillis = until,
@@ -452,7 +455,10 @@ class EventEditorViewModel @Inject constructor(
         const val NO_DATE = -1L
         const val NO_OCCURRENCE = -1L
         const val DEFAULT_HOUR = 9
-        const val MAX_INTERVAL = 999
+
+        /** Single source of truth: the editor must never let through what the domain would reject. */
+        const val MAX_INTERVAL = RecurrenceRule.MAX_INTERVAL
+
         const val MAX_COUNT = 999
     }
 }

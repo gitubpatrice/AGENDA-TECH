@@ -1,0 +1,12 @@
+v0.5.3 — Security release
+
+• Important: a booby-trapped .ics file could
+  crash the calendar in a loop from launch,
+  with no way to delete the offending event.
+  Fixed, including for events already stored.
+• An imported event can no longer slip forged
+  lines into the .ics files you export.
+• Biometrics: Class 3 sensors only (a photo no
+  longer passes). The PIN is always available.
+• A cancelled appointment no longer comes back
+  after an .ics import.

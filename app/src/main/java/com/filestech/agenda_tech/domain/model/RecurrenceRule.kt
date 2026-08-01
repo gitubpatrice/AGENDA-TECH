@@ -26,7 +26,9 @@ data class RecurrenceRule(
     val exDatesUtcMillis: List<Long> = emptyList(),
 ) {
     init {
-        require(interval >= 1) { "RRULE interval must be >= 1, was $interval" }
+        require(interval in 1..MAX_INTERVAL) {
+            "RRULE interval must be in 1..$MAX_INTERVAL, was $interval"
+        }
         require(count == null || untilUtcMillis == null) {
             "RRULE cannot set both COUNT and UNTIL"
         }
@@ -49,4 +51,18 @@ data class RecurrenceRule(
         } else {
             copy(exDatesUtcMillis = exDatesUtcMillis + instantUtcMillis)
         }
+
+    companion object {
+        /**
+         * Upper bound on [interval] (audit F1/F5/F7).
+         *
+         * The expander turns an interval into a year offset, and `YearMonth.of` throws for a year
+         * outside +/-999,999,999 — an uncaught exception on the render path of every calendar view
+         * and of the widget, which made one imported event enough to crash the app on every launch
+         * with no in-app way to reach and delete it. The editor always clamped; the import paths did
+         * not. The bound lives here so no future ingestion path can reintroduce the hole, and it is
+         * enforced in [init] rather than left to callers.
+         */
+        const val MAX_INTERVAL = 999
+    }
 }

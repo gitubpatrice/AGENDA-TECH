@@ -55,7 +55,9 @@ internal fun EventEntity.toDomain(): Event = Event(
     recurrence = rruleFreq?.let { freq ->
         RecurrenceRule(
             freq = freq,
-            interval = rruleInterval,
+            // Audit F1 — clamped on the way out of the DB too, so a row an affected build already
+            // stored is healed on read instead of throwing in RecurrenceRule.init.
+            interval = rruleInterval.coerceIn(1, RecurrenceRule.MAX_INTERVAL),
             byWeekdays = parseWeekdays(rruleByWeekdays),
             count = rruleCount,
             untilUtcMillis = rruleUntilUtcMillis,

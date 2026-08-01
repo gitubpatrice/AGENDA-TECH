@@ -99,6 +99,22 @@ class BackupCodecTest {
     }
 
     @Test
+    fun `an out-of-range RRULE interval is clamped instead of sinking the whole restore`() {
+        // Audit F1. The bound added to RecurrenceRule.init turns a value an affected build could have
+        // written into an IllegalArgumentException, which RestoreBackupUseCase reports as "file is not
+        // readable" — the user's own legitimate backup, refused whole. Heal it the way the DB read
+        // does rather than rejecting the file.
+        val json = BackupCodec.encodeToJson(BackupCodec.toPayload(calendars, listOf(fullEvent), emptyMap(), 0))
+        val poisoned = json.replaceFirst("\"rruleInterval\":2", "\"rruleInterval\":1000000000")
+        assertThat(poisoned).isNotEqualTo(json) // the field name really is what we just rewrote
+
+        val restored = BackupCodec.decodeFromJson(poisoned).events.single().toDomain()
+
+        assertThat(restored.recurrence?.interval).isEqualTo(RecurrenceRule.MAX_INTERVAL)
+        assertThat(restored.title).isEqualTo("Dentiste") // the rest of the event survived intact
+    }
+
+    @Test
     fun `an unknown field written by a newer version does not break the restore`() {
         val json = BackupCodec.encodeToJson(BackupCodec.toPayload(calendars, listOf(overrideEvent), emptyMap(), 0))
         val withFutureField = json.replaceFirst("{", """{"someFieldFromTheFuture":42,""")

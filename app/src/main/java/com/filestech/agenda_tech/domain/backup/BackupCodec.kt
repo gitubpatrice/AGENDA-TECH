@@ -114,7 +114,10 @@ object BackupCodec {
         recurrence = rruleFreqRaw?.let { freqRaw ->
             RecurrenceRule(
                 freq = RecurrenceFreq.fromRaw(freqRaw),
-                interval = rruleInterval,
+                // Audit F1 — same clamp as the DB read: a .atbak taken by an affected build can carry
+                // an out-of-range interval, and it is the user's own legitimate backup. Without this
+                // the new require() in RecurrenceRule.init rejects the whole restore as unreadable.
+                interval = rruleInterval.coerceIn(1, RecurrenceRule.MAX_INTERVAL),
                 byWeekdays = rruleByWeekdaysIso.map { Weekday.fromIso(it) }.toSet(),
                 count = rruleCount,
                 untilUtcMillis = rruleUntilUtcMillis,

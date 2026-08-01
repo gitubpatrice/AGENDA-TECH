@@ -56,9 +56,18 @@ quoi qu'il arrive) : c'est un **gate UI**, il ne modifie pas la posture crypto d
   attente, jamais le compteur de tentatives.
 - **Ré-authentification (LOCK-6).** Désactiver le verrou ou changer le PIN exige d'abord la saisie
   du PIN actuel.
-- **Biométrie.** `BiometricPrompt` accepte `BIOMETRIC_STRONG` **et** `BIOMETRIC_WEAK` (LOCK-9) —
-  compromis UX assumé pour des données personnelles locales (ni paiement ni secret à haute valeur) ;
-  repli explicite vers le PIN via le bouton négatif.
+- **Biométrie : Classe 3 uniquement (audit F3, v0.5.3).** `BiometricPrompt` n'accepte plus que
+  `BIOMETRIC_STRONG`. `BIOMETRIC_WEAK` (Classe 2) est précisément le palier que la plateforme
+  interdit d'adosser à une clé Keystore, parce qu'il est usurpable par une photo sur beaucoup de
+  déverrouillages faciaux OEM ; le compromis UX antérieur (LOCK-9) est donc annulé. `DEVICE_CREDENTIAL`
+  reste exclu : il réadmettrait le même palier faible indirectement. Un appareil sans Classe 3
+  retombe sur le PIN, qui est throttlé, et le champ PIN est affiché en toutes circonstances — le
+  durcissement ne peut pas enfermer l'utilisateur hors de ses données. La politique est centralisée
+  dans `StrongBiometrics` : disponibilité et masque d'authentifieurs sont la même question, posée au
+  même endroit par le prompt, l'écran de verrouillage et le réglage.
+- **Liaison cryptographique — non faite (résiduel assumé).** `onAuthenticationSucceeded` déverrouille
+  l'UI sans `CryptoObject` : la biométrie garde l'écran, elle ne dérive pas la clé de la base. La clé
+  reste protégée par l'AndroidKeyStore indépendamment du verrou d'application.
 - **Résiduel accepté (LOCK-8).** Le PIN transite en `String` immuable dans l'état Compose avant
   conversion en `CharArray` (wipé après hachage). Le scrubbing complet du chemin Compose serait
   disproportionné (`OutlinedTextField` est nativement `String`-backed) ; l'exploitation exigerait un

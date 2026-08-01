@@ -1,0 +1,13 @@
+v0.5.3 — Release de sécurité
+
+• Important : un .ics piégé pouvait faire
+  planter l'agenda en boucle dès le lancement,
+  sans moyen de supprimer l'événement fautif.
+  Corrigé, même pour les événements déjà
+  enregistrés.
+• Un événement importé ne peut plus glisser de
+  fausses lignes dans les .ics exportés.
+• Biométrie : Classe 3 seulement (une photo ne
+  suffit plus). Le PIN reste disponible.
+• Un rendez-vous annulé ne réapparaît plus
+  après un import .ics.

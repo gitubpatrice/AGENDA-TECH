@@ -10,9 +10,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.IntentCompat
 import androidx.core.net.toUri
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
-import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -62,6 +59,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.CalendarColor
+import com.filestech.agenda_tech.security.StrongBiometrics
 import com.filestech.agenda_tech.ui.lock.MIN_PIN_LENGTH
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -85,10 +83,10 @@ fun SettingsScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val lockState by viewModel.lockState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val biometricAvailable = remember {
-        BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG or BIOMETRIC_WEAK) ==
-            BiometricManager.BIOMETRIC_SUCCESS
-    }
+    // Audit F3 — same Class 3 question the unlock prompt asks. Gating this toggle on a weaker tier
+    // than the prompt accepts would let the user switch on a biometric unlock that then silently
+    // never fires.
+    val biometricAvailable = remember { StrongBiometrics.isAvailable(context) }
     // Replacing the sound: release any persistable grant an earlier build's audio-file pick may still
     // hold (system ringtones never take one), so a stale grant doesn't linger against the per-app cap.
     val replaceSound = { newUri: String? ->
