@@ -125,7 +125,10 @@ object DeviceEventMapper {
             }.toMap()
 
         val freq = RecurrenceFreq.entries.firstOrNull { it.name == parts["FREQ"]?.uppercase() } ?: return null
-        val count = parts["COUNT"]?.toIntOrNull()
+        // COUNT is filtered BEFORE deciding UNTIL: a COUNT of 0 is not a bound, so it must not
+        // suppress a perfectly good UNTIL on its way to being discarded itself — that dropped both
+        // bounds and silently turned a finite series infinite. Same order as IcsCodec.parseRRule.
+        val count = parts["COUNT"]?.toIntOrNull()?.takeIf { it >= 1 }
         val until = if (count == null) parts["UNTIL"]?.let { parseStamp(it, zone) } else null
 
         RecurrenceRule(
@@ -137,7 +140,7 @@ object DeviceEventMapper {
                 ?.mapNotNull { BYDAY_TO_WEEKDAY[it.trim().take(2).uppercase()] }
                 ?.toSet()
                 .orEmpty(),
-            count = count?.takeIf { it >= 1 },
+            count = count,
             untilUtcMillis = until,
             exDatesUtcMillis = parseExDates(exDate, zone),
         )

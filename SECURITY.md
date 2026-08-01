@@ -65,9 +65,25 @@ quoi qu'il arrive) : c'est un **gate UI**, il ne modifie pas la posture crypto d
   durcissement ne peut pas enfermer l'utilisateur hors de ses données. La politique est centralisée
   dans `StrongBiometrics` : disponibilité et masque d'authentifieurs sont la même question, posée au
   même endroit par le prompt, l'écran de verrouillage et le réglage.
-- **Liaison cryptographique — non faite (résiduel assumé).** `onAuthenticationSucceeded` déverrouille
-  l'UI sans `CryptoObject` : la biométrie garde l'écran, elle ne dérive pas la clé de la base. La clé
-  reste protégée par l'AndroidKeyStore indépendamment du verrou d'application.
+- **Liaison cryptographique (audit F3, v0.5.4).** Le déverrouillage n'est plus conditionné au seul
+  rappel `onAuthenticationSucceeded` — une affirmation faite par le processus de l'app, donc sans
+  valeur là où ce processus peut être manipulé. `BiometricPrompt` reçoit un `CryptoObject` adossé à
+  une clé AndroidKeyStore dédiée (`agendatech_biometric_gate`, cf. `BiometricGate`), créée avec
+  `setUserAuthenticationRequired(true)` **sans** fenêtre de validité : le TEE exige donc une
+  authentification Classe 3 pour **chaque** usage. L'UI ne s'ouvre que si l'opération cryptographique
+  aboutit réellement. Sur API 30+, le palier accepté est épinglé à `AUTH_BIOMETRIC_STRONG` — la
+  politique Classe 3 est alors imposée par l'OS, pas seulement par notre propre contrôle.
+- **Résiduel accepté (API 26-29).** `setUserAuthenticationParameters` n'existe qu'à partir d'API 30 :
+  sur les appareils antérieurs, la clé exige bien une authentification par usage, mais le palier
+  Classe 3 n'est pas épinglé dans le Keystore lui-même — il repose alors sur le seul
+  `setAllowedAuthenticators` de `BiometricPrompt`. Non vérifié sur un appareil réel API < 30.
+- **Ré-enrôlement.** La clé est créée avec `setInvalidatedByBiometricEnrollment(true)` : ajouter une
+  empreinte la détruit, ce qui est le comportement voulu (qui peut enrôler ne doit pas hériter du
+  déverrouillage). `KeyPermanentlyInvalidatedException` est rattrapée à l'initialisation du cipher,
+  la clé morte est supprimée, la préférence biométrique désactivée et l'utilisateur informé — puis
+  repli sur le PIN, jamais un bouton qui échoue en silence.
+- **Portée.** La biométrie garde l'**écran**. Elle ne dérive pas la clé de la base : celle-ci reste
+  enveloppée par sa propre clé AndroidKeyStore, indépendamment du verrou d'application.
 - **Résiduel accepté (LOCK-8).** Le PIN transite en `String` immuable dans l'état Compose avant
   conversion en `CharArray` (wipé après hachage). Le scrubbing complet du chemin Compose serait
   disproportionné (`OutlinedTextField` est nativement `String`-backed) ; l'exploitation exigerait un
@@ -117,6 +133,27 @@ C'est la **seule** permission dangereuse de l'app, et elle **ne trahit pas** la 
   supprimé à la source n'est pas retiré (import additif). Réserve : un événement créé hors-ligne et
   pas encore synchronisé côté serveur peut être ré-inséré une fois au premier passage `rowid → _sync_id`.
   VALARM hors périmètre (comme l'import `.ics`).
+
+## Contenu importé et expansion des récurrences
+
+Un `.ics` et un calendrier système sont tous deux du **contenu tiers** : ils sont traités comme
+hostiles, y compris une fois en base.
+
+- **`INTERVAL` borné (audit F1/F5/F7, v0.5.3).** Un intervalle absurde faisait lever une
+  `DateTimeException` non rattrapée dans `RecurrenceExpander` : toutes les vues et le widget
+  plantaient à chaque rendu, en boucle dès le lancement, et l'événement fautif devenait inatteignable
+  — seule issue, effacer toutes les données. `RecurrenceRule.MAX_INTERVAL` est imposé dans `init` et
+  borné aux **cinq** points d'ingestion : import `.ics`, import device, **lecture depuis la base**,
+  **restauration `.atbak`** et éditeur. Les deux derniers sont indispensables : sans le bornage à la
+  lecture, une ligne déjà écrite par une version affectée déplacerait le crash au lieu de le corriger.
+- **Bornes de RRULE tolérantes (v0.5.4).** Un `COUNT` inférieur à 1, ou un `COUNT` et un `UNTIL`
+  simultanés, violent les invariants du modèle. Plutôt que de faire perdre à l'événement toute sa
+  récurrence, la borne fautive est écartée et `COUNT` l'emporte — même lecture par l'import `.ics` et
+  par l'import device.
+- **Budget d'expansion global (audit F8, v0.5.4).** Le plafond par événement ne dit rien du nombre
+  d'événements, et c'est exactement ce qu'un import contrôle. Un `ExpansionBudget` unique est partagé
+  par toute une passe de rendu : un agenda pathologique est **tronqué** (et journalisé), jamais
+  transformé en gel de l'interface.
 
 ## Sauvegardes
 

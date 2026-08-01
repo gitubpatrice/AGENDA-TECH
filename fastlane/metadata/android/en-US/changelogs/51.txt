@@ -1,0 +1,12 @@
+v0.5.4 — Security release
+
+• Biometric unlock is bound to the hardware
+  vault: the calendar opens only if the device
+  really authenticated your fingerprint, not on
+  the app's word alone.
+• If the device's biometrics change, biometric
+  unlock switches off and tells you.
+• A huge imported calendar can no longer freeze
+  the display.
+• .ics import: a malformed repeat rule no
+  longer costs the event its recurrence.

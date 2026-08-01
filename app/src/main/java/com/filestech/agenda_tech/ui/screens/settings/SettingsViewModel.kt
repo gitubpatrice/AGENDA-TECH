@@ -9,6 +9,7 @@ import com.filestech.agenda_tech.domain.settings.AppSettings
 import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.domain.settings.WeekStart
 import com.filestech.agenda_tech.security.AppLockManager
+import com.filestech.agenda_tech.security.BiometricGate
 import com.filestech.agenda_tech.system.notifications.ReminderNotifier
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -33,6 +34,7 @@ class SettingsViewModel @Inject constructor(
     private val lockRepository: LockRepository,
     private val appLock: AppLockManager,
     private val reminderNotifier: ReminderNotifier,
+    private val biometricGate: BiometricGate,
 ) : ViewModel() {
 
     val settings: StateFlow<AppSettings> = settingsRepository.settings.stateIn(
@@ -94,7 +96,13 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setBiometricEnabled(enabled: Boolean) {
-        viewModelScope.launch { lockRepository.setBiometricEnabled(enabled) }
+        viewModelScope.launch {
+            // Audit F3 — turning the gate off discards its Keystore key, so switching it back on
+            // starts from a fresh one. Keeping the old key would leave a credential bound to the
+            // enrolments of the moment it was created, outliving the preference that justified it.
+            if (!enabled) biometricGate.reset()
+            lockRepository.setBiometricEnabled(enabled)
+        }
     }
 
     fun setThemeMode(value: ThemeMode) = update { it.copy(themeMode = value) }

@@ -47,6 +47,7 @@ class RecurrenceExpander @Inject constructor() {
         windowStartUtcMillis: Long,
         windowEndUtcMillis: Long,
         extraExcludedStartsUtcMillis: Set<Long> = emptySet(),
+        budget: ExpansionBudget? = null,
     ): List<EventOccurrence> {
         require(windowEndUtcMillis >= windowStartUtcMillis) {
             "window end ($windowEndUtcMillis) must be >= start ($windowStartUtcMillis)"
@@ -58,7 +59,7 @@ class RecurrenceExpander @Inject constructor() {
         val nominalDuration = nominalDuration(event, zone)
 
         val out = ArrayList<EventOccurrence>()
-        for (startMillis in occurrenceStarts(event, rule, zone, extraExcludedStartsUtcMillis)) {
+        for (startMillis in occurrenceStarts(event, rule, zone, extraExcludedStartsUtcMillis, budget)) {
             // Occurrences are ascending: once a start reaches the window end, none can overlap.
             if (startMillis >= windowEndUtcMillis) break
             val endMillis = occurrenceEndMillis(startMillis, nominalDuration, zone)
@@ -134,6 +135,7 @@ class RecurrenceExpander @Inject constructor() {
         rule: RecurrenceRule,
         zone: ZoneId,
         extraExcluded: Set<Long> = emptySet(),
+        budget: ExpansionBudget? = null,
     ): Sequence<Long> = sequence {
         val baseStartLocal = Instant.ofEpochMilli(event.startUtcMillis).atZone(zone).toLocalDateTime()
         val startTime = baseStartLocal.toLocalTime()
@@ -147,6 +149,15 @@ class RecurrenceExpander @Inject constructor() {
                 Timber.w(
                     "RecurrenceExpander: scan cap (%d) hit for event %d — truncating series",
                     MAX_SCAN_ITERATIONS,
+                    event.id,
+                )
+                break
+            }
+            // Audit F8 — the per-event cap above bounds one rule; this bounds the whole pass, which
+            // is what an import can inflate by adding events rather than by making one rule worse.
+            if (budget != null && !budget.tryConsume()) {
+                Timber.w(
+                    "RecurrenceExpander: pass budget spent at event %d — truncating this render",
                     event.id,
                 )
                 break

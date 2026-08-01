@@ -21,6 +21,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.withResumed
 import com.filestech.agenda_tech.data.local.db.AppDatabase
 import com.filestech.agenda_tech.data.local.db.DatabaseFactory
 import com.filestech.agenda_tech.domain.repository.LockRepository
@@ -28,6 +29,7 @@ import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.settings.AppSettings
 import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.security.AppLockManager
+import com.filestech.agenda_tech.security.BiometricGate
 import com.filestech.agenda_tech.security.LockState
 import com.filestech.agenda_tech.security.StrongBiometrics
 import com.filestech.agenda_tech.ui.AppRoot
@@ -51,12 +53,16 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var lockRepository: LockRepository
     @Inject lateinit var appLock: AppLockManager
+    @Inject lateinit var biometricGate: BiometricGate
 
     // ROB-NEW-1 — the DB must be built before consumeResetFlag() is read, so a reset is reported on
     // THIS launch and not the next one. A Provider (not a direct field) keeps that ordering without
     // paying for it on the Main thread: building it opens the Keystore (IPC, slow on StrongBox),
     // reads the wrapped key off disk and decrypts it — all of which onCreate resolves on IO below.
     @Inject lateinit var appDatabaseProvider: Provider<AppDatabase>
+
+    /** Guards against two overlapping biometric prompts — see [showBiometricPrompt]. Main thread only. */
+    private var biometricPromptInFlight = false
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }
@@ -128,21 +134,83 @@ class MainActivity : FragmentActivity() {
         val allowed = StrongBiometrics.allowedAuthenticators
         if (!StrongBiometrics.isAvailable(this)) return
 
-        val prompt = BiometricPrompt(
-            this,
-            ContextCompat.getMainExecutor(this),
-            object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    appLock.unlock()
+        // The lock screen asks automatically on display and again on every tap of its button, and the
+        // preparation below is slow enough to sit between the two. Two overlapping calls would each
+        // reach authenticate() and fight over the same prompt fragment, so only one runs at a time.
+        if (biometricPromptInFlight) return
+        biometricPromptInFlight = true
+
+        lifecycleScope.launch {
+            try {
+                // Audit F3 — the unlock is gated on a Keystore operation the OS only permits after a
+                // Class 3 authentication, not on the success callback alone. Preparing it generates
+                // the key on first use: an IPC to keystore2, slow enough on StrongBox to matter, so it
+                // stays off the Main thread like every other Keystore call in this app.
+                val preparation = withContext(Dispatchers.IO) { biometricGate.prepare() }
+                val cipher = when (preparation) {
+                    is BiometricGate.Preparation.Ready -> preparation.cipher
+                    BiometricGate.Preparation.Invalidated -> {
+                        onBiometricKeyInvalidated()
+                        return@launch
+                    }
+                    BiometricGate.Preparation.Unavailable -> {
+                        // The button is drawn from canAuthenticate(), which says nothing about whether
+                        // the Keystore can actually produce a cipher. Say so instead of doing nothing.
+                        Toast.makeText(this@MainActivity, R.string.lock_biometric_failed, Toast.LENGTH_LONG)
+                            .show()
+                        return@launch
+                    }
                 }
-            },
-        )
-        val info = BiometricPrompt.PromptInfo.Builder()
-            .setTitle(getString(R.string.lock_biometric_title))
-            .setNegativeButtonText(getString(R.string.lock_use_pin))
-            .setAllowedAuthenticators(allowed)
-            .build()
-        prompt.authenticate(info)
+
+                val prompt = BiometricPrompt(
+                    this@MainActivity,
+                    ContextCompat.getMainExecutor(this@MainActivity),
+                    object : BiometricPrompt.AuthenticationCallback() {
+                        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                            if (biometricGate.verify(result.cryptoObject?.cipher)) {
+                                appLock.unlock()
+                            } else {
+                                // The prompt said yes but the crypto could not run: precisely the case
+                                // the CryptoObject exists to catch. Stay locked; the PIN is on screen.
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    R.string.lock_biometric_failed,
+                                    Toast.LENGTH_LONG,
+                                ).show()
+                            }
+                        }
+                    },
+                )
+                val info = BiometricPrompt.PromptInfo.Builder()
+                    .setTitle(getString(R.string.lock_biometric_title))
+                    .setNegativeButtonText(getString(R.string.lock_use_pin))
+                    .setAllowedAuthenticators(allowed)
+                    .build()
+                // authenticate() commits a fragment transaction, which throws once the activity has
+                // saved its state — reachable by simply leaving the app while the key is being
+                // prepared, since lifecycleScope survives onStop. Waiting for RESUMED rather than
+                // bailing out means the prompt is still there when the user comes back, and a
+                // destroyed activity cancels this coroutine instead of crashing it.
+                lifecycle.withResumed { prompt.authenticate(info, BiometricPrompt.CryptoObject(cipher)) }
+            } finally {
+                biometricPromptInFlight = false
+            }
+        }
+    }
+
+    /**
+     * Biometrics were re-enrolled, so the gate key is gone for good. Turn the preference off — it can
+     * no longer be honoured — and say so, instead of leaving a button that fails every time.
+     */
+    private fun onBiometricKeyInvalidated() {
+        lifecycleScope.launch {
+            lockRepository.setBiometricEnabled(false)
+            Toast.makeText(
+                this@MainActivity,
+                R.string.lock_biometric_enrollment_changed,
+                Toast.LENGTH_LONG,
+            ).show()
+        }
     }
 
     private fun requestNotificationPermissionIfNeeded() {

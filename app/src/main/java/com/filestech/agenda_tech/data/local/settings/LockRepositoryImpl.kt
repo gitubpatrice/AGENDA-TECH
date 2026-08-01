@@ -81,6 +81,9 @@ class LockRepositoryImpl @Inject constructor(
         // keystore.deleteKey() is an IPC to keystore2 (potentially slow on StrongBox) — keep it off
         // the Main thread, consistent with setPin/verifyPin.
         keystore.deleteKey(KeystoreManager.ALIAS_PIN_WRAP)
+        // Audit F3 — this path clears BIOMETRIC_ENABLED below, so it owes the same clean-up the
+        // biometric toggle does: turning the whole lock off must not leave its gate key behind.
+        keystore.deleteKey(KeystoreManager.ALIAS_BIOMETRIC_GATE)
         dataStore.edit { prefs ->
             prefs.remove(Keys.PIN_WRAP)
             prefs[Keys.LOCK_ENABLED] = false

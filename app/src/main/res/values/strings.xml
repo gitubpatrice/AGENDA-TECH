@@ -254,6 +254,8 @@
     <string name="lock_use_biometric">Use biometrics</string>
     <string name="lock_biometric_title">Unlock Agenda Tech</string>
     <string name="lock_use_pin">Use PIN</string>
+    <string name="lock_biometric_failed">Biometric unlock could not be verified. Please use your PIN.</string>
+    <string name="lock_biometric_enrollment_changed">Biometrics changed on this device, so biometric unlock has been turned off. Use your PIN, then re-enable it in Settings.</string>
 
     <!-- Encrypted backup (.atbak) -->
     <string name="settings_backup">Encrypted backup</string>

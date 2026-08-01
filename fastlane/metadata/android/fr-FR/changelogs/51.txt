@@ -1,0 +1,12 @@
+v0.5.4 — Release de sécurité
+
+• Le déverrouillage biométrique est adossé au
+  coffre matériel : l'agenda ne s'ouvre que si
+  l'appareil a vraiment authentifié votre
+  empreinte, plus sur la seule parole de l'app.
+• Si la biométrie de l'appareil change, le
+  déverrouillage se désactive et vous prévient.
+• Un agenda importé énorme ne peut plus figer
+  l'affichage.
+• Import .ics : une règle de répétition
+  malformée ne fait plus perdre la répétition.

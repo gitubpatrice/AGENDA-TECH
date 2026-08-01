@@ -215,13 +215,24 @@ object IcsCodec {
         val exDates = exDate?.value?.split(",")?.mapNotNull { token ->
             parseDateTime(IcsProperty("EXDATE", exDate.params, token.trim()), defaultZone)
         }.orEmpty()
+        // COUNT below 1 is not a bound, and COUNT together with UNTIL is not a valid RRULE — both
+        // violate an invariant of RecurrenceRule, and since this whole function is wrapped in
+        // runCatching, throwing would silently strip the recurrence from an otherwise fine event.
+        // Drop the bad bound instead, and let COUNT win over UNTIL exactly as the device importer
+        // does (DeviceEventMapper), so the same file reads the same way through either path.
+        val count = parts["COUNT"]?.toIntOrNull()?.takeIf { it >= 1 }
+        val until = if (count == null) {
+            parts["UNTIL"]?.let { parseDateTime(IcsProperty("UNTIL", emptyMap(), it), defaultZone) }
+        } else {
+            null
+        }
         RecurrenceRule(
             freq = freq,
             interval = parts["INTERVAL"]?.toIntOrNull()
                 ?.coerceIn(1, RecurrenceRule.MAX_INTERVAL) ?: 1,
             byWeekdays = parts["BYDAY"]?.split(",")?.mapNotNull { BYDAY_TO_ISO[it.trim().uppercase()] }?.toSet().orEmpty(),
-            count = parts["COUNT"]?.toIntOrNull(),
-            untilUtcMillis = parts["UNTIL"]?.let { parseDateTime(IcsProperty("UNTIL", emptyMap(), it), defaultZone) },
+            count = count,
+            untilUtcMillis = until,
             // The EXDATEs were parsed just above and then dropped on the floor: every cancelled
             // occurrence came back to life on import, including on a round-trip through our own
             // export, which does write them. detekt had been reporting the symptom as an unused

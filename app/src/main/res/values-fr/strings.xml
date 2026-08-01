@@ -254,6 +254,8 @@
     <string name="lock_use_biometric">Utiliser la biométrie</string>
     <string name="lock_biometric_title">Déverrouiller Agenda Tech</string>
     <string name="lock_use_pin">Utiliser le code PIN</string>
+    <string name="lock_biometric_failed">Le déverrouillage biométrique n\'a pas pu être vérifié. Utilisez votre code PIN.</string>
+    <string name="lock_biometric_enrollment_changed">La biométrie de l\'appareil a changé : le déverrouillage biométrique a été désactivé. Utilisez votre code PIN, puis réactivez-le dans les Réglages.</string>
 
     <!-- Sauvegarde chiffrée (.atbak) -->
     <string name="settings_backup">Sauvegarde chiffrée</string>

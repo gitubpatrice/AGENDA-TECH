@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.domain.usecase
 
 import com.filestech.agenda_tech.di.DefaultDispatcher
 import com.filestech.agenda_tech.domain.recurrence.EventOccurrence
+import com.filestech.agenda_tech.domain.recurrence.ExpansionBudget
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
@@ -39,6 +40,9 @@ class ObserveOccurrencesInRangeUseCase @Inject constructor(
             calendarRepository.observeVisible(),
             repository.observeOverrides(),
         ) { events, visibleCalendars, overrides ->
+            // Audit F8 — one allowance for the whole pass. Without it the expander's per-event cap is
+            // paid once per event, and the number of events is exactly what an import controls.
+            val budget = ExpansionBudget()
             val visibleIds = visibleCalendars.mapTo(HashSet()) { it.id }
             val excludedByParent = overrides
                 .groupBy { it.recurrenceParentId }
@@ -52,7 +56,7 @@ class ObserveOccurrencesInRangeUseCase @Inject constructor(
                     } else {
                         emptySet()
                     }
-                    expander.expand(event, windowStartUtcMillis, windowEndUtcMillis, extraExcluded)
+                    expander.expand(event, windowStartUtcMillis, windowEndUtcMillis, extraExcluded, budget)
                 }
                 .sortedBy { it.startUtcMillis }
         }.flowOn(defaultDispatcher)

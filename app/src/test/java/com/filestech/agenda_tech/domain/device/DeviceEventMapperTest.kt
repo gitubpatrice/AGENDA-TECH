@@ -116,6 +116,21 @@ class DeviceEventMapperTest {
     }
 
     @Test
+    fun `a COUNT below 1 does not take the UNTIL bound down with it`() {
+        // COUNT was filtered after UNTIL had already been suppressed on the raw value, so COUNT=0 lost
+        // both bounds and turned a finite series into an endless one. Same order as IcsCodec now.
+        val e = DeviceEventMapper.toEvent(
+            deviceEvent(rrule = "FREQ=DAILY;COUNT=0;UNTIL=20251231T235959Z"),
+            CAL_ID,
+        )!!
+        val expected = LocalDateTime.of(2025, 12, 31, 23, 59, 59).toInstant(ZoneOffset.UTC).toEpochMilli()
+        val r = e.recurrence!!
+        assertThat(r.count).isNull()
+        assertThat(r.untilUtcMillis).isEqualTo(expected)
+        assertThat(r.isInfinite).isFalse()
+    }
+
+    @Test
     fun `parses EXDATE list with a TZID prefix`() {
         val e = DeviceEventMapper.toEvent(
             deviceEvent(rrule = "FREQ=DAILY", exDate = "TZID=UTC:20250101T090000Z,20250102T090000Z"),

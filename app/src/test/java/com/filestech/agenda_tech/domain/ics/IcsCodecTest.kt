@@ -247,6 +247,42 @@ class IcsCodecTest {
         assertThat(occurrences.map { it.startUtcMillis }).containsExactly(event.startUtcMillis)
     }
 
+    @Test
+    fun `a COUNT below 1 drops the bound instead of the whole recurrence`() {
+        // RecurrenceRule requires COUNT >= 1, and parseRRule is wrapped in runCatching: throwing here
+        // stripped the recurrence from an otherwise perfectly good event, silently turning a repeating
+        // appointment into a one-off.
+        val decoded = IcsCodec.decode(icsWithRRule("FREQ=WEEKLY;COUNT=0"), paris).single()
+
+        assertThat(decoded.recurrence).isNotNull()
+        assertThat(decoded.recurrence?.freq).isEqualTo(RecurrenceFreq.WEEKLY)
+        assertThat(decoded.recurrence?.count).isNull()
+    }
+
+    @Test
+    fun `COUNT and UNTIL together resolve to COUNT rather than losing the recurrence`() {
+        // An RRULE may carry at most one bound; a file with both violated the domain invariant and
+        // cost the event its whole recurrence. COUNT wins, matching the device importer.
+        val decoded = IcsCodec.decode(
+            icsWithRRule("FREQ=WEEKLY;COUNT=5;UNTIL=20251231T225900Z"),
+            paris,
+        ).single()
+
+        assertThat(decoded.recurrence?.count).isEqualTo(5)
+        assertThat(decoded.recurrence?.untilUtcMillis).isNull()
+    }
+
+    private fun icsWithRRule(rrule: String): String = buildString {
+        append("BEGIN:VCALENDAR\r\n")
+        append("BEGIN:VEVENT\r\n")
+        append("DTSTART:20250601T080000Z\r\n")
+        append("DTEND:20250601T090000Z\r\n")
+        append("SUMMARY:Récurrent\r\n")
+        append("RRULE:$rrule\r\n")
+        append("END:VEVENT\r\n")
+        append("END:VCALENDAR\r\n")
+    }
+
     // --- Audit F2/F4/F9/F10/F11 — no value may forge a content line ---------
 
     @Test
