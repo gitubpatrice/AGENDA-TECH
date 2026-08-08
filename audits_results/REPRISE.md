@@ -1,0 +1,198 @@
+# Agenda Tech — point de reprise (audit + durcissement du 2026-08-08)
+
+> Document écrit pour survivre à une compaction de conversation. Tout ce qui suit a été **mesuré**, pas
+> rappelé de mémoire. Il remplace le contexte perdu.
+
+---
+
+## 1. Où en est le dépôt
+
+**Branche : `fix/audit-2026-08-08`**, partant de `main` = `893b683` = tag `v0.5.4`.
+Arbre **propre**, rien à pousser, **7 commits**, gate **verte**.
+
+| Commit | Lot | Contenu |
+|---|---|---|
+| `211adbc` | — | Rapports d'audit (lots 0, 1, 2) + prompts de relecture versionnés |
+| `b378e66` | **A** | detekt **520 → 0**, sans baseline, sans renommer le package |
+| `52a2075` | **F** | 5 premiers tests instrumentés + CI + assertion « zéro réseau » |
+| `de52745` | **B** | Le **CRITIQUE F1** : un échec transitoire du Keystore n'efface plus l'agenda |
+| `0d90527` | **B'** | Correctifs issus des relectures externes **sur mon propre lot B** |
+| `c0e4603` | **C** | F2 — les deux receivers construisaient la base sur le thread principal |
+| `a181882` | **D** | F5 budget · F16 overrides vivants · F7 alarmes orphelines |
+
+**État vérifié** : `assembleDebug` OK · **259 tests JVM**, 0 échec · **lint 0** · **detekt 0** ·
+**7 tests instrumentés verts** sur Galaxy S9.
+
+⚠️ **Aucune release en cours.** `version.properties` est **intact** (`versionCode=51`,
+`versionName=0.5.4`). Ne rien bumper. Le hook de fin de turn a signalé un « contexte version-bump » :
+c'est un **faux positif**, déclenché par `build.gradle.kts` modifié pour des dépendances de test.
+
+---
+
+## 2. Ce qui reste à faire
+
+### Lot E — durcir l'import `.ics` (la seule entrée de données externes)
+
+| # | Constat | Fichier |
+|---|---|---|
+| **F3** | `timeZoneId` validé par 2 des 4 points d'ingestion. **F3a** corruption de l'instant à chaque aller-retour `.ics` (un rendez-vous Outlook recule de 2 h) · **F3b** dérive DST de toute série importée, contre la promesse du KDoc de `RecurrenceExpander` · **F3c** injection de ligne iCalendar par `TZID` non échappé, atteignable par un `.atbak` fabriqué · **F3d** les 9 tests d'aller-retour utilisent tous un fuseau **valide**, donc aucun ne peut le voir | `IcsCodec.kt:170-174` (stocke le TZID brut) · `IcsCodec.kt:92` (`TZID=` écrit sans échappement) · `IcsCodec.kt:310-311` (`zoneOf` → UTC) · `RestoreBackupUseCase.validate` (ne regarde pas le fuseau) — à comparer à `DeviceEventMapper.kt:65-67,82` qui, lui, **valide et normalise** |
+| **F4** | Lecture `.ics` non bornée — **3 déclencheurs, 1 correctif** : (a) `openFileDescriptor` rend `null` → contrôle sauté · (b) un provider **ment** sur `statSize` → contrôle passé, lecture énorme · (c) `statSize == -1` → **refus d'un fichier légitime**. Le jumeau `BackupViewModel.readFile:181-205` borne la lecture elle-même (correctif H2 de `ed19126`) | `IcsViewModel.kt:63-70` |
+| **F8** | Lignes `EXDATE` **répétées** : `current[property.name] = property` écrase, seule la dernière survit → les occurrences annulées ressuscitent. Trouvé par **les deux** relecteurs externes | `IcsCodec.kt:152-155` |
+| **F14** | Le pliage coupe les paires de substitution : un emoji au mauvais offset devient `??` à l'export (`toByteArray(UTF_8)` remplace un substitut orphelin). RFC 5545 borne à 75 **octets**, pas 73 caractères | `IcsCodec.kt:126-137` + `IcsViewModel.kt:49` |
+
+**Décision déjà validée par Patrice** : réparer en base les fuseaux invalides déjà importés, par une
+**migration Room additive** (v5 → v6), et non seulement arrêter d'en créer.
+
+**Patron de correction imposé par le dépôt** : normaliser **à l'ingestion**, exactement comme
+`MAX_INTERVAL` a été porté dans `RecurrenceRule.init`. Les trois symptômes F3a/F3b/F3c tombent avec la
+cause. Ajouter aussi l'échappement de `TZID` à l'export (ceinture et bretelles).
+
+**Ce qui manque structurellement** : les tests `.ics` n'exercent que **notre propre sortie**. Le lot E
+doit apporter les premiers cas construits à partir de **fichiers réels** (TZID Windows type
+`Romance Standard Time`, plusieurs lignes `EXDATE`).
+
+### Lot G — documentation et finitions
+
+- **C0-1** — `PRIVACY.md` et `PRIVACY.fr.md` documentent **6** permissions, l'APK en porte **11**.
+  Manquent : `USE_BIOMETRIC`, `USE_FINGERPRINT` (androidx.biometric), `WAKE_LOCK`, `FOREGROUND_SERVICE`
+  (androidx.work via Glance). ⚠️ La CI échouera si on les retire de l'allowlist sans les retirer de
+  l'APK — l'allowlist de `tools/check-manifest-permissions.py` et les deux `PRIVACY` doivent bouger
+  ensemble, c'est le couplage voulu.
+- **F9** — asymétrie widget/notification sur le verrou d'app. **Décision de Patrice : option (a)** —
+  laisser le comportement et **écrire la décision dans `SECURITY.md`**, pour qu'elle cesse d'être un
+  oubli.
+- **F13** — MINEUR : le re-verrouillage à `onStop` est asynchrone, donc la garantie `FLAG_SECURE` sur
+  l'instantané Recents ne tient pas si `flagSecure` est désactivé alors qu'un PIN est actif.
+  `MainActivity.kt:99-109` et `:123-129`.
+- **F12** — PROBABLE, **non testable sur le matériel disponible** : révocation de
+  `SCHEDULE_EXACT_ALARM` sur API 31-32. À traiter en **défense sans regret** (un receiver sur
+  `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED`), pas comme la correction d'un défaut établi.
+
+### Relectures externes restant à faire
+
+Une relecture **GPT + Gemini sur les lots C, D et E** une fois E terminé — plutôt que de multiplier les
+passes partielles.
+
+---
+
+## 3. Faits vérifiés à ne pas re-découvrir
+
+### Gemini Pro est indisponible — c'est un ÉCHEC consigné, pas « rien à signaler »
+
+Environ **28 tentatives**, 3 modèles, charge utile réduite de moitié. Sondé à charge minimale :
+
+| Modèle | Réponse |
+|---|---|
+| `gemini-3.1-pro-preview` | **HTTP 503** — « currently experiencing high demand » |
+| `gemini-3-pro-preview` | **HTTP 404 — retiré** |
+| `gemini-2.5-pro` | **HTTP 404 — retiré pour les nouveaux usagers** |
+
+`gemini-3.1-pro-preview` est le **seul Pro joignable** et il n'existe **aucun repli**. Conséquence :
+les lots A, F, B, C et D n'ont **qu'un relecteur externe sur deux**. GPT-5.2 fonctionne
+(`--model gpt-5.2`).
+
+### Le manifeste que la CI contrôle est bien celui de l'APK — mesuré
+
+| Source | Permissions |
+|---|---|
+| `processReleaseMainManifest` (contrôlé par la CI) | 11 |
+| `packaged_manifests` (étape ultérieure, par ABI) | 11 — identiques |
+| APK signé, `aapt2 dump badging` | 11 — identiques |
+
+**Promesse « zéro réseau » : TIENT.** Ni `INTERNET` ni `ACCESS_NETWORK_STATE` dans l'APK.
+⚠️ Un `grep` sur le manifeste **source** fait apparaître `ACCESS_NETWORK_STATE` parce qu'elle y figure
+**pour être retirée**. Seul le manifeste **fusionné** fait autorité.
+⚠️ Un `grep` ligne-à-ligne sur le XML **rate `SCHEDULE_EXACT_ALARM`**, écrite sur trois lignes — d'où le
+parsing XML dans `tools/check-manifest-permissions.py`.
+
+### Le widget ne tourne PAS dans un autre processus
+
+`android:process` est absent du manifeste fusionné (0 occurrence). Le widget partage le processus de
+l'app. La garde sur `isLockEnabled()` reste néanmoins le bon choix : le lanceur peut lier le widget sur
+un processus démarré à froid, sans Activity.
+
+### Le piège `stateIn` non hydraté est ABSENT de ce dépôt
+
+Les 12 `stateIn` sont tous dans des ViewModels sur `viewModelScope`. Les chemins réveillés par le
+système lisent de vraies valeurs suspendues (`dataStore.data.first()`). Cherché, non trouvé.
+
+### Autres points vérifiés solides — ne pas re-auditer
+
+Clé SQLCipher (le correctif v0.5.2 tient, prouvé par test instrumenté) · débordement arithmétique des
+récurrences (fermé par `MAX_INTERVAL=999` + cap 100 000, bornes recalculées) · modèle temporel face aux
+changements d'heure et de fuseau · anti-force-brute du PIN · biométrie · visibilité des notifications
+sur l'écran de verrouillage de l'appareil · zéroïsation · les 18 `LaunchedEffect`.
+
+### `room-testing` est inutilisable ici
+
+`room-testing` 2.8.4 exige kotlinx-serialization ≥ 1.8 ; l'app épingle 1.7.3 →
+`AbstractMethodError`. Un bump test-only est **impossible** (AGP impose `{strictly 1.7.3}`). Bumper la
+sérialisation embarquée est **exclu** : c'est elle qui écrit le `.atbak`, vérifié contre une implé Python
+indépendante sur APK signé (H3, `ed19126`). `MigrationsTest` passe donc par le **vrai chemin de
+production**, ce qui exerce plus, pas moins.
+
+---
+
+## 4. Règles de travail à ne pas perdre
+
+1. **Vérifier avant d'affirmer.** Mes noms de colonnes v1 étaient faux, mes rulesets detekt étaient
+   faux, ma prémisse sur le processus du widget était fausse, mon `runCatching` n'attrapait pas ce que
+   je croyais. Chaque fois, la vérification a corrigé.
+2. **Sabotage systématique.** Un test vert ne prouve rien tant qu'on ne l'a pas vu échouer. Fait 4 fois
+   sur cette branche (clé nulle, migration retirée, ancien `catch` fourre-tout, budget débranché).
+3. **Relire ses propres correctifs.** Mon correctif du CRITIQUE ne couvrait que **la moitié du trajet
+   cryptographique** — trouvé par deux relecteurs indépendants. C'est la raison d'être de la règle.
+4. **Git** : stager **fichier par fichier**, jamais `git add -A`. Messages via **`-F fichier`**, jamais
+   `-m` (les accents y sont mangés).
+5. **Ne pas modifier l'arbre de travail pendant qu'un auditeur le lit** — c'est ce qui a produit le faux
+   positif « C1 » de `ed19126`.
+6. **Jamais de baseline detekt.** La politique du lot A nomme des **règles** avec leur motif, pas des
+   instances : c'est auditable et le compte ne peut pas dériver.
+
+### Appareils
+
+- **Galaxy S9 `22dbb7390a057ece`** — appareil de test, **API 29** (Android 10). Branché.
+- **S24 FE `RZCY41EGKYL`** — **téléphone RÉEL de Patrice**. Annoncer avant toute installation.
+- 🔴 **JAMAIS `connectedAndroidTest`** en local : la tâche vise **tous** les appareils connectés et
+  **efface les données** de l'app. Cibler par série :
+
+```bash
+./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
+adb -s 22dbb7390a057ece install -r app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
+adb -s 22dbb7390a057ece install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+adb -s 22dbb7390a057ece shell am instrument -w -r \
+  com.filestech.agenda_tech.debug.test/com.filestech.agenda_tech.HiltTestRunner
+```
+
+⚠️ `connectedDebugAndroidTest` n'est utilisé QUE dans le job CI, où l'émulateur est le seul appareil.
+
+### Gate
+
+```bash
+./gradlew :app:assembleDebug testDebugUnitTest :app:lintDebug detekt
+```
+
+### Relecture externe
+
+```bash
+python ~/.claude/tools/audit-ia.py --provider gpt --model gpt-5.2 \
+  --prompt prompts/PROMPT-<sujet>.md --out audits/ia-externe/rapport-gpt-<sujet>-<date>.md <fichiers entiers>
+```
+Gemini : même commande, `--provider gemini` (modèle par défaut `gemini-3.1-pro-preview`), **boucler**.
+Un rapport vide ou absent est un **ÉCHEC**, jamais un « rien à signaler ».
+
+---
+
+## 5. Où lire le détail
+
+| Document | Contenu |
+|---|---|
+| [lot 0](2026-08-08-lot0-etat-des-lieux-et-manifeste-fusionne.md) | État des lieux + manifeste fusionné + les 3 constats C0 |
+| [lot 1](2026-08-08-lot1-audit-par-motifs.md) | L'audit par les 4 motifs : 1 CRITIQUE, 7 MAJEURS, 3 MINEURS, **et ce qui a été cherché et NON trouvé** |
+| [lot 2](2026-08-08-lot2-tri-relectures-et-plan.md) | Tri des relectures + le plan en 6 lots + les 3 décisions de Patrice |
+| [lot 3](2026-08-08-lot3-journal-des-relectures-et-correctifs.md) | Journal des relectures sur mes propres correctifs |
+| `audits/ia-externe/` | Les 3 rapports bruts (GPT lot 1, GPT lots A+F, GPT lot B) + Gemini lot 1 |
+| `prompts/` | Les prompts de relecture, versionnés parce que leur qualité décide de celle des rapports |
+
+**Les corps de commit sont la documentation principale** : chacun explique le défaut, pourquoi il
+existait, ce que le correctif change et ce qu'il risque de casser.
