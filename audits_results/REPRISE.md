@@ -8,7 +8,7 @@
 ## 1. Où en est le dépôt
 
 **Branche : `fix/audit-2026-08-08`**, partant de `main` = `893b683` = tag `v0.5.4`.
-Arbre **propre**, rien à pousser, **23 commits**, gate **verte**.
+Arbre **propre**, rien à pousser, **27 commits**, gate **verte**.
 
 | Commit | Lot | Contenu |
 |---|---|---|
@@ -34,8 +34,13 @@ Arbre **propre**, rien à pousser, **23 commits**, gate **verte**.
 | `d0282d7` | — | Point de reprise |
 | `1f0729f` | **N** | SEC-6 + DR-9 : le plafond d'import était **par agenda** et la troncature muette |
 | `3ca7f54` | **O** | Le logo du splash était **découpé en cercle** — coins arrondis rétablis |
+| `c739a04` | — | Point de reprise |
+| `f106393` | **P** | Une sauvegarde d'une version **plus récente** était reniée comme « pas une sauvegarde » |
+| `8a4474c` | **Q** | Trois arbitrages que j'avais mal tranchés (receiver, trace de migration, widget) |
+| `205f0c3` | **R** | L'écran de sauvegarde **annonçait un échec pendant qu'il remplaçait l'agenda** |
+| `a81454e` | **S** | F5-ter : une série pathologique désarmait les rappels derrière elle |
 
-**État vérifié** : `assembleDebug` OK · **316 tests JVM**, 0 échec · **lint 0** · **detekt 0** ·
+**État vérifié** : `assembleDebug` OK · **322 tests JVM**, 0 échec · **lint 0** · **detekt 0** ·
 **15 tests instrumentés verts** sur Galaxy S9 · manifeste fusionné à 11 permissions, contrôle OK ·
 lancement réel sur appareil sans crash · splash vérifié **par capture d'écran avant/après**.
 
@@ -130,6 +135,37 @@ python ~/.claude/tools/audit-ia.py --provider gpt --model gpt-5.2   --prompt pro
 
 Idem `--provider gemini`. **Jamais audité non plus** : le widget Glance et le chemin de notification,
 qui rendent du contenu d'agenda **hors de l'application**.
+
+### R5 — quatre relectures externes de plus, et ce qu'elles ont donné (2026-08-08, soir)
+
+Lancées avec `prompts/PROMPT-RELECTURE-{CRYPTO-ET-POINTS-OUVERTS,WIDGET-ET-NOTIFICATIONS,
+INTERACTIONS-ET-BRANCHEMENTS,FAIBLESSES-RESTANTES}.md`. Rapports dans `audits/ia-externe/`.
+
+**Zones jamais auditées, désormais couvertes** : la crypto du `.atbak`, le widget Glance, le chemin
+de notification, l'axe interaction / dialogues / branchements.
+
+**Neuf défauts corrigés** (lots P à S). Les deux qui comptent le plus :
+- l'écran de sauvegarde annonçait « échec » **pendant** qu'il remplaçait l'agenda (double tap) ;
+- une série récurrente pathologique laissait **tous les rappels derrière elle désarmés** après un
+  redémarrage — trouvé par les deux relecteurs indépendamment, dans mon propre correctif F5-bis.
+
+**Six constats réfutés, dont trois donnés « CONFIRMÉ » par les relecteurs** :
+- le « bug du I turc » sur la table Windows→IANA (GPT **et** Gemini, ÉLEVÉ) : le `lowercase()` sans
+  argument de Kotlin est `Locale.ROOT`. Réfuté **par un test**, pas par une affirmation ;
+- le verrou qui s'ouvre après corruption des préférences (Gemini, CRITIQUE) : arbitrage S15 déjà
+  documenté sur place, l'enveloppe du PIN meurt avec le fichier ;
+- un identifiant de rappel débordant l'Int depuis un `.atbak` : les rappels sont reconstruits avec
+  des identifiants neufs ;
+- `flagSecure` non appliqué à chaud : il l'est, `MainActivity:211` ;
+- le KDoc « every consumer wipes » de `PasswordDialog` : vrai, vérifié sur les deux use cases ;
+- OOM à la restauration sur un `.atbak` de 80–200 Mo : la lecture est plafonnée à 16 Mio.
+
+**Résidus assumés, écrits ici plutôt que corrigés** : une alarme repoussée survit à la suppression
+de son événement (coût réel : un réveil unique sans effet) ; une série qui déborde sa propre part
+d'expansion n'est pas réarmée par la passe de redémarrage.
+
+**Vérifié mécaniquement au passage** : 278 clés de chaînes, **zéro orpheline**, zéro callback vide
+réel — aucune fonctionnalité non câblée.
 
 ### R3 — ce que l'audit a laissé de côté, sciemment
 
