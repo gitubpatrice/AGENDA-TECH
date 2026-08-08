@@ -229,6 +229,7 @@
     <string name="device_import_running">Import en cours…</string>
     <string name="device_import_done">%1$d événements importés depuis %2$d calendrier(s).</string>
     <string name="device_import_partial">%1$d événements importés depuis %2$d calendrier(s). %3$d calendrier(s) n\'ont pas pu être lus.</string>
+    <string name="device_import_truncated">%1$d événements importés depuis %2$d agenda(s). La sélection en contenait plus que les %3$d acceptés en un seul import — importez les agendas restants séparément.</string>
     <string name="device_import_clear">Effacer les calendriers déjà importés</string>
     <string name="device_import_cleared">Calendriers importés effacés.</string>
     <string name="device_import_clear_confirm_title">Effacer les calendriers importés ?</string>

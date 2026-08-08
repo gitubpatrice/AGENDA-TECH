@@ -9,6 +9,7 @@ import com.filestech.agenda_tech.domain.device.DeviceEventMapper
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.domain.model.DeviceEvent
 import com.filestech.agenda_tech.domain.repository.DeviceCalendarRepository
+import com.filestech.agenda_tech.domain.repository.DeviceRead
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -68,8 +69,8 @@ class DeviceCalendarRepositoryImpl @Inject constructor(
         }
     }
 
-    /** Reads up to [MAX_EVENTS] events of a device calendar (masters, standalone and moved ones). */
-    override suspend fun readEvents(deviceCalendarId: Long): List<DeviceEvent> = withContext(io) {
+    /** Reads up to [limit] events of a device calendar (masters, standalone and moved ones). */
+    override suspend fun readEvents(deviceCalendarId: Long, limit: Int): DeviceRead = withContext(io) {
         val projection = arrayOf(
             CalendarContract.Events.TITLE,
             CalendarContract.Events.DESCRIPTION,
@@ -103,8 +104,9 @@ class DeviceCalendarRepositoryImpl @Inject constructor(
                 arrayOf(deviceCalendarId.toString()),
                 "${CalendarContract.Events.DTSTART} ASC",
             )?.use { c ->
-                buildList {
-                    while (c.moveToNext() && size < MAX_EVENTS) {
+                var truncated = false
+                val rows = buildList {
+                    while (c.moveToNext() && size < limit) {
                         val dtStart = if (c.isNull(3)) continue else c.getLong(3)
                         val deviceId = c.getLong(11)
                         // Stable per-row identity for idempotent re-import: sync id, else local row id.
@@ -132,29 +134,18 @@ class DeviceCalendarRepositoryImpl @Inject constructor(
                     // "this is the whole calendar". Unlike the file imports this one cannot refuse and
                     // hand anything back: it is a live provider, and a partial read is its contract.
                     //
-                    // ⚠️ Audit SEC-6 — and `Timber.w` is NOT saying so on a release build.
-                    // `NoOpReleaseTree.log` is an empty method, which is precisely the conclusion audit
-                    // D3 reached about the migration witness thirty-seven minutes after this line was
-                    // written; it was not carried back here. So the honest statement today is: the
-                    // truncation is visible on a debug build and silent on a release one.
-                    //
-                    // Telling the user properly means returning the fact rather than logging it —
-                    // `readEvents` would hand back `(events, truncated)` and the import screen would
-                    // say "N imported, the calendar held more". That is a UI change, recorded here
-                    // rather than half-done, and `SECURITY.md` no longer claims otherwise.
-                    if (size >= MAX_EVENTS) {
-                        Timber.w(
-                            "DeviceCalendarRepository: calendar %d truncated at %d events",
-                            deviceCalendarId,
-                            MAX_EVENTS,
-                        )
-                    }
+                    // Audit SEC-6 — so the fact is RETURNED, not logged. `Timber.w` looked like it
+                    // said so and did not: `NoOpReleaseTree.log` is empty, so on a release build the
+                    // truncation was perfectly silent. `moveToNext()` is called once more than the
+                    // rows taken, so "there was at least one more" is exactly what it answers.
+                    truncated = size >= limit && c.moveToNext()
                 }
-            }.orEmpty()
+                DeviceRead(rows, truncated)
+            }
         }.getOrElse {
             Timber.w(it, "DeviceCalendarRepository: readEvents(%d) failed", deviceCalendarId)
-            emptyList()
-        }
+            null
+        } ?: DeviceRead(emptyList(), truncated = false)
     }
 
     private fun Cursor.getStringOrNull(index: Int): String? = if (isNull(index)) null else getString(index)

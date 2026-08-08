@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.usecase
 
+import com.filestech.agenda_tech.domain.ImportLimits
 import com.filestech.agenda_tech.domain.device.DeviceEventMapper
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
@@ -32,7 +33,22 @@ class ImportDeviceEventsUseCase @Inject constructor(
      * [failedCalendars] > 0 means some selected calendars could not be imported (read or write
      * error); the screen surfaces it instead of silently reporting "0 events".
      */
-    data class Result(val calendars: Int, val events: Int, val failedCalendars: Int = 0)
+    data class Result(
+        val calendars: Int,
+        val events: Int,
+        val failedCalendars: Int = 0,
+        /**
+         * True when the import stopped short of the source: a single calendar held more than the
+         * ceiling, or the selection did together.
+         *
+         * Audit SEC-6 + DR-9 — the ceiling used to apply **per calendar** and to announce itself only
+         * through a `Timber.w`, which `NoOpReleaseTree` drops in release. So ten selected calendars
+         * imported ten times the advertised maximum, and a calendar over the ceiling lost its tail
+         * without a word. Both halves are now one running total, and the fact is returned so the
+         * screen can say it.
+         */
+        val truncated: Boolean = false,
+    )
 
     /**
      * Serialises imports: the get-or-create of a calendar by `source_id` is a read-then-write, so two
@@ -63,10 +79,19 @@ class ImportDeviceEventsUseCase @Inject constructor(
         var calendars = 0
         var events = 0
         var failed = 0
+        // Audit DR-9 — one allowance for the whole import, spent as it goes, instead of one per
+        // calendar. `ImportLimits.MAX_EVENTS` says "from a single import"; applied per calendar it
+        // said something else, and nothing anywhere reconciled the two.
+        var remaining = ImportLimits.MAX_EVENTS
+        var truncated = false
         for (deviceId in selectedCalendarIds.distinct()) {
             val deviceCal = byId[deviceId]
-            if (deviceCal == null) {
-                failed++
+            // One guard, two reasons to skip, and they are NOT the same thing: a calendar that has
+            // vanished from the provider is a failure, while a calendar left unread because the
+            // allowance ran out is simply outside this import. Reporting the second as the first
+            // would tell the user something broke when nothing did.
+            if (deviceCal == null || remaining <= 0) {
+                if (deviceCal == null) failed++ else truncated = true
                 continue
             }
             // Isolate each calendar: a failure on one (bad row, write error) is logged and skipped,
@@ -86,7 +111,8 @@ class ImportDeviceEventsUseCase @Inject constructor(
                             sourceId = sourceId,
                         ),
                     )
-                val deviceEvents = deviceCalendars.readEvents(deviceId)
+                val read = deviceCalendars.readEvents(deviceId, remaining)
+                val deviceEvents = read.events
                 // FIAB-3 — fold each moved occurrence's original instant into its master's EXDATE, so
                 // a provider that omits EXDATE on the master can't leave a ghost at the original time
                 // next to the moved one.
@@ -121,17 +147,29 @@ class ImportDeviceEventsUseCase @Inject constructor(
                     if (existingId != null) withEx.copy(id = existingId) else withEx
                 }
                 eventRepository.upsertAll(mapped) // atomic batch — all rows or none
-                mapped.size
-            }.onSuccess { imported ->
+                CalendarOutcome(imported = mapped.size, read = deviceEvents.size, truncated = read.truncated)
+            }.onSuccess { outcome ->
                 calendars++
-                events += imported
+                events += outcome.imported
+                // Spent on what was READ, not on what was written: rows the mapper drops still cost
+                // the provider a read, and the ceiling exists to bound that work too.
+                remaining -= outcome.read
+                truncated = truncated || outcome.truncated
             }.onFailure {
                 failed++
                 Timber.w(it, "ImportDeviceEventsUseCase: calendar %d skipped", deviceId)
             }
         }
-        return Result(calendars = calendars, events = events, failedCalendars = failed)
+        return Result(
+            calendars = calendars,
+            events = events,
+            failedCalendars = failed,
+            truncated = truncated,
+        )
     }
+
+    /** One calendar's contribution, so the running allowance is spent on facts and not on guesses. */
+    private data class CalendarOutcome(val imported: Int, val read: Int, val truncated: Boolean)
 
     private companion object {
         const val SOURCE_PREFIX = "device:"

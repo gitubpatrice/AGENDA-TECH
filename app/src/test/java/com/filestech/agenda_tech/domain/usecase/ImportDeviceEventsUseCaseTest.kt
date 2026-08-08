@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.domain.usecase
 
 import com.filestech.agenda_tech.domain.device.DeviceEventMapper
 import com.filestech.agenda_tech.domain.model.Calendar
+import com.filestech.agenda_tech.domain.ImportLimits
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.domain.model.DeviceEvent
 import com.google.common.truth.Truth.assertThat
@@ -202,5 +203,51 @@ class ImportDeviceEventsUseCaseTest {
 
         assertThat(calendars.stored.map { it.name }).containsExactly("Perso", "Travail")
         assertThat(calendars.stored.none { it.sourceId != null }).isTrue()
+    }
+
+    // --- Audit SEC-6 + DR-9 : le plafond est un TOTAL, et la troncature se dit ---
+
+    @Test
+    fun `the ceiling applies to the whole import, not to each calendar`() = runTest {
+        // DR-9 : le plafond s'appliquait PAR calendrier. Dix agendas sélectionnés importaient donc dix
+        // fois le maximum annoncé, et `ImportLimits.MAX_EVENTS` dit pourtant « from a single import ».
+        val many = FakeDeviceCalendars(
+            calendars = listOf(
+                DeviceCalendar(id = 1, displayName = "A", accountName = "a", colorArgb = null),
+                DeviceCalendar(id = 2, displayName = "B", accountName = "b", colorArgb = null),
+            ),
+            events = List(ImportLimits.MAX_EVENTS) { deviceEvent(uid = "u$it", deviceId = it.toLong()) },
+        )
+        val useCase = ImportDeviceEventsUseCase(many, FakeCalendarRepository(), FakeEventRepository())
+
+        val result = useCase(listOf(1L, 2L), FALLBACK_NAME)
+
+        // Le premier agenda consomme toute l'allocation ; le second n'est pas lu.
+        assertThat(result.events).isEqualTo(ImportLimits.MAX_EVENTS)
+        assertThat(result.calendars).isEqualTo(1)
+        // Et il n'est pas compté comme un ÉCHEC : rien n'a mal tourné, il y avait simplement plus.
+        assertThat(result.failedCalendars).isEqualTo(0)
+        assertThat(result.truncated).isTrue()
+    }
+
+    @Test
+    fun `a calendar larger than the ceiling reports the truncation`() = runTest {
+        // SEC-6 : le fait était journalisé, et `NoOpReleaseTree.log` est vide — donc silencieux sur
+        // une version publiée. Il est désormais RENDU, pas tracé.
+        val huge = FakeDeviceCalendars(
+            calendars = listOf(DeviceCalendar(id = 1, displayName = "A", accountName = "a", colorArgb = null)),
+            events = List(ImportLimits.MAX_EVENTS + 1) { deviceEvent(uid = "u$it", deviceId = it.toLong()) },
+        )
+        val useCase = ImportDeviceEventsUseCase(huge, FakeCalendarRepository(), FakeEventRepository())
+
+        assertThat(useCase(listOf(1L), FALLBACK_NAME).truncated).isTrue()
+    }
+
+    @Test
+    fun `an import that fits reports no truncation`() = runTest {
+        // L'autre moitié, sans quoi « toujours vrai » passerait le test précédent.
+        devices.events = listOf(deviceEvent(uid = "a", deviceId = 1))
+
+        assertThat(import(DEVICE_CAL_ID).truncated).isFalse()
     }
 }

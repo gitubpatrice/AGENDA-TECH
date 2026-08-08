@@ -8,6 +8,7 @@ import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.repository.BackupRepository
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.DeviceCalendarRepository
+import com.filestech.agenda_tech.domain.repository.DeviceRead
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.model.Reminder
 import com.filestech.agenda_tech.domain.repository.ReminderRepository
@@ -28,7 +29,13 @@ internal class FakeDeviceCalendars(
     var events: List<DeviceEvent> = emptyList(),
 ) : DeviceCalendarRepository {
     override suspend fun listCalendars(): List<DeviceCalendar> = calendars
-    override suspend fun readEvents(deviceCalendarId: Long): List<DeviceEvent> = events
+
+    /**
+     * Honours [limit] like the real implementation, and reports the truncation the same way — a fake
+     * that ignored the limit would let a test pass on a ceiling that does not hold in production.
+     */
+    override suspend fun readEvents(deviceCalendarId: Long, limit: Int): DeviceRead =
+        DeviceRead(events.take(limit), truncated = events.size > limit)
 }
 
 internal class FakeCalendarRepository : CalendarRepository {

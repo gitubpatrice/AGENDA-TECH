@@ -229,6 +229,7 @@
     <string name="device_import_running">Importing…</string>
     <string name="device_import_done">%1$d events imported from %2$d calendar(s).</string>
     <string name="device_import_partial">%1$d events imported from %2$d calendar(s). %3$d calendar(s) could not be read.</string>
+    <string name="device_import_truncated">%1$d events imported from %2$d calendar(s). The selection held more than the %3$d this app accepts in one import — import the remaining calendars separately.</string>
     <string name="device_import_clear">Delete previously imported calendars</string>
     <string name="device_import_cleared">Imported calendars deleted.</string>
     <string name="device_import_clear_confirm_title">Delete imported calendars?</string>

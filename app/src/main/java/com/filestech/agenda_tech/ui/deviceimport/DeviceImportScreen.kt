@@ -51,6 +51,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.domain.ImportLimits
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.ui.theme.BrandDanger
 
@@ -97,10 +98,17 @@ fun DeviceImportScreen(
     val resources = LocalResources.current
     LaunchedEffect(result, resources) {
         result?.let {
-            val message = if (it.failedCalendars > 0) {
-                resources.getString(R.string.device_import_partial, it.events, it.calendars, it.failedCalendars)
-            } else {
-                resources.getString(R.string.device_import_done, it.events, it.calendars)
+            // Audit SEC-6 — trois issues distinctes, trois messages. La troncature n'est ni un échec
+            // (rien n'a mal tourné) ni un succès (il manque des événements) : la confondre avec l'un
+            // ou l'autre, c'est la taire.
+            val message = when {
+                it.failedCalendars > 0 -> resources.getString(
+                    R.string.device_import_partial, it.events, it.calendars, it.failedCalendars,
+                )
+                it.truncated -> resources.getString(
+                    R.string.device_import_truncated, it.events, it.calendars, ImportLimits.MAX_EVENTS,
+                )
+                else -> resources.getString(R.string.device_import_done, it.events, it.calendars)
             }
             android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
             viewModel.consumeResult()
