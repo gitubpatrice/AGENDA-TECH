@@ -1,0 +1,13 @@
+v1.0.0 — Audit de sécurité complet
+
+• Vos rappels sont réarmés de façon fiable
+  après un redémarrage du téléphone.
+• Le widget masque les titres dès que vous
+  activez le verrouillage, sans attendre.
+• Une sauvegarde faite par une version plus
+  récente n'est plus annoncée comme « pas une
+  sauvegarde » : ne la supprimez jamais.
+• L'export ne peut plus échouer en silence.
+• La restauration n'annonce plus d'échec
+  pendant qu'elle travaille.
+• L'icône de démarrage est arrondie.

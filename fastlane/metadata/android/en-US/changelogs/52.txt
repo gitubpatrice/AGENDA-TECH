@@ -1,0 +1,15 @@
+v1.0.0 — Full security audit
+
+• Your reminders are reliably re-armed after
+  the phone restarts.
+• The widget hides event titles the moment you
+  turn the lock on, with no delay.
+• A backup written by a newer version is no
+  longer reported as "not a backup": never
+  delete that file.
+• Exporting a backup can no longer fail
+  silently.
+• Restoring no longer reports a failure while
+  it is still working.
+• The startup icon gets its rounded corners
+  back.
