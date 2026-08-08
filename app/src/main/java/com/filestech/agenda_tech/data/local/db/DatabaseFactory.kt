@@ -31,26 +31,88 @@ class DatabaseFactory @Inject constructor(
 
     fun build(context: Context): AppDatabase {
         loadNativeOnce()
-        // SEC/ROB-1 — only the passphrase acquisition is guarded (never the Room build/migration).
-        // If the Keystore key is gone/corrupted the encrypted DB is cryptographically unrecoverable
-        // and there is no backup (allowBackup=false), so we reset to a fresh usable DB and flag it,
-        // instead of crashing on every launch forever. A genuine migration bug still surfaces as a
-        // visible crash later — it is never silently wiped here.
-        val raw = try {
-            keyManager.getOrCreatePassphrase()
-        } catch (e: Exception) {
-            Timber.e(e, "DB passphrase unrecoverable — resetting the local database")
-            keyManager.destroyKeyFile()
-            context.deleteDatabase(AppDatabase.DATABASE_NAME)
-            markResetPending(context)
-            keyManager.getOrCreatePassphrase() // fresh key; a second failure is a truly broken device
-        }
+        val raw = acquirePassphrase(context)
         return try {
             rekeyLegacyZeroKeyDatabase(context, raw)
             open(context, raw)
         } finally {
             raw.wipe()
         }
+    }
+
+    /**
+     * Gets the SQLCipher passphrase, resetting the database **only** when the key is genuinely gone.
+     *
+     * ## Audit F1 (CRITICAL) — what this used to do
+     *
+     * ```
+     * catch (e: Exception) {           // every failure, alike
+     *     keyManager.destroyKeyFile()
+     *     context.deleteDatabase(...)  // the user's only copy
+     * }
+     * ```
+     *
+     * [DatabaseKeyManager] classifies its failures precisely so a caller can tell "the key is gone for
+     * good" from "this attempt failed", and its KDoc promises the caller "surfaces a recovery flow
+     * instead of auto-wiping the key". The caller did the opposite, and collapsed the whole hierarchy
+     * into one branch — which made the classification dead code and the promise false.
+     *
+     * Worse, `catch (e: Exception)` also swallowed exceptions that were never [DatabaseKeyManager.Failure]
+     * at all: `KeyStoreException` and friends travelled up bare from `getOrCreateKey`. Those are the
+     * *transient* ones. Since `allowBackup=false` leaves no other copy on the device, a keystore2 hiccup
+     * during a `BOOT_COMPLETED` — where no screen is shown and no question asked — destroyed the entire
+     * agenda while the real key was intact.
+     *
+     * ## What it does now
+     *
+     * - **Unrecoverable** ([DatabaseKeyManager.Failure.dataIsUnrecoverable]) → reset, as before. The
+     *   database cannot be decrypted by anything, ever; refusing to open would brick the app for good.
+     * - **Anything else** → retry once, then **fail with the data untouched**. The retry is immediate
+     *   and deliberately so: it catches the "first call while the platform is still settling" class of
+     *   failure, which is what a boot storm produces.
+     * - **Not a [DatabaseKeyManager.Failure] at all** → propagate. An unforeseen exception is a reason
+     *   to stop, never a reason to erase. A crash is visible and reportable and leaves the agenda in
+     *   place; the previous behaviour was neither.
+     */
+    private fun acquirePassphrase(context: Context): ByteArray = try {
+        keyManager.getOrCreatePassphrase()
+    } catch (first: DatabaseKeyManager.Failure) {
+        if (first.dataIsUnrecoverable) {
+            resetAfterUnrecoverableKey(context, first)
+        } else {
+            retryOrFailWithoutTouchingData(first)
+        }
+    }
+
+    private fun retryOrFailWithoutTouchingData(first: DatabaseKeyManager.Failure): ByteArray {
+        Timber.w(first, "DB passphrase unavailable — retrying once, leaving the database untouched")
+        return try {
+            keyManager.getOrCreatePassphrase()
+        } catch (second: DatabaseKeyManager.Failure) {
+            Timber.e(
+                second,
+                "DB passphrase still unavailable — refusing to open. The database is NOT erased: " +
+                    "this failure does not mean the key is gone.",
+            )
+            throw second
+        }
+    }
+
+    /**
+     * The one path that erases. Kept in its own function so the call site reads as a decision rather
+     * than as a fallback: the previous code's shape was what let "reset" become the answer to
+     * everything.
+     */
+    private fun resetAfterUnrecoverableKey(
+        context: Context,
+        cause: DatabaseKeyManager.Failure,
+    ): ByteArray {
+        Timber.e(cause, "DB key is unrecoverable — resetting the local database")
+        keyManager.destroyKeyFile()
+        context.deleteDatabase(AppDatabase.DATABASE_NAME)
+        markResetPending(context)
+        // Fresh key; a second failure here is a truly broken device and must surface.
+        return keyManager.getOrCreatePassphrase()
     }
 
     // The only spread in the codebase, and it is Room's own vararg API (`addMigrations(vararg …)`):

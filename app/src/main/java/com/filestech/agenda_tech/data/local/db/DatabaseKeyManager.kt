@@ -12,6 +12,7 @@ import timber.log.Timber
 import java.io.File
 import java.io.IOException
 import java.security.SecureRandom
+import javax.crypto.SecretKey
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -49,16 +50,63 @@ class DatabaseKeyManager @Inject constructor(
     private val keyFile: File by lazy { File(keyDir, "master.key") }
 
     sealed class Failure(message: String, cause: Throwable? = null) : RuntimeException(message, cause) {
+
+        /**
+         * Whether the SQLCipher passphrase is **gone for good**, making the encrypted database
+         * cryptographically dead — the only state in which erasing it is the right answer.
+         *
+         * Audit F1 — this property exists because the distinction was being made here and thrown away
+         * by the caller. `DatabaseFactory` caught `Exception`, deleted `master.key` **and**
+         * `agendatech.db`, and did so for every failure alike. With `allowBackup=false` the database is
+         * the user's only copy, so a Keystore hiccup during a `BOOT_COMPLETED` — no screen, no
+         * question asked — cost the whole agenda while the real key was intact and a second attempt
+         * would have worked.
+         *
+         * `false` is the safe answer and the default for anything unrecognised: a launch that refuses
+         * to open is recoverable, an erased agenda is not.
+         */
+        abstract val dataIsUnrecoverable: Boolean
+
         /** The Keystore alias is gone or invalidated. The existing wrapped key cannot be recovered. */
         class KeystoreInvalidated(cause: Throwable? = null) :
-            Failure("AndroidKeyStore alias was invalidated; existing data unrecoverable", cause)
+            Failure("AndroidKeyStore alias was invalidated; existing data unrecoverable", cause) {
+            // The OS itself says the key no longer exists. Nothing can decrypt the database again.
+            override val dataIsUnrecoverable = true
+        }
 
-        /** AEAD decryption failed but the Keystore is healthy — likely file corruption. */
+        /**
+         * AEAD decryption failed **while the Keystore was healthy enough to hand back a key** — so the
+         * blob on disk is what is wrong, not the attempt. The passphrase it held is unrecoverable.
+         *
+         * Distinct from [KeystoreUnavailable] on purpose: getting here means `getOrCreateKey` returned
+         * normally and only `aead.decrypt` refused.
+         */
         class WrapCorrupted(cause: Throwable? = null) :
-            Failure("wrapped DB key is corrupted on disk", cause)
+            Failure("wrapped DB key is corrupted on disk", cause) {
+            override val dataIsUnrecoverable = true
+        }
 
-        /** I/O failure while reading/writing the key blob. */
-        class Io(cause: Throwable? = null) : Failure("I/O failure reading the wrapped DB key", cause)
+        /**
+         * I/O failure while reading/writing the key blob. Says nothing about the key itself: the file
+         * may be perfectly fine and unreadable for a moment.
+         */
+        class Io(cause: Throwable? = null) : Failure("I/O failure reading the wrapped DB key", cause) {
+            override val dataIsUnrecoverable = false
+        }
+
+        /**
+         * The AndroidKeyStore could not be reached, or refused to hand back the key for a reason that
+         * is not invalidation — `KeyStoreException`, `UnrecoverableKeyException`, `ProviderException`,
+         * or the plain `RuntimeException`s some OEM implementations raise.
+         *
+         * This is the class the CRITICAL of audit F1 turned on: these used to reach `DatabaseFactory`
+         * as bare exceptions, outside the [Failure] hierarchy entirely, and its `catch (e: Exception)`
+         * read every one of them as "the key is gone". They mean **this attempt failed**.
+         */
+        class KeystoreUnavailable(cause: Throwable? = null) :
+            Failure("AndroidKeyStore unreachable; this attempt failed, the key is not gone", cause) {
+            override val dataIsUnrecoverable = false
+        }
     }
 
     /** Returns the raw 32-byte SQLCipher key, generating it on first call. */
@@ -71,12 +119,37 @@ class DatabaseKeyManager @Inject constructor(
         if (keyFile.exists()) keyFile.delete()
     }
 
+    /**
+     * The AndroidKeyStore key that wraps the passphrase, with **every** way it can fail mapped onto the
+     * [Failure] hierarchy.
+     *
+     * Audit F1 — this mapping is the fix. `getOrCreateKey` declares no checked exception and wraps
+     * nothing, so a `KeyStoreException` from the keystore2 daemon, an `UnrecoverableKeyException`, a
+     * `ProviderException`, or an OEM `RuntimeException` used to travel up as-is, past a hierarchy built
+     * precisely to classify them, into a `catch (e: Exception)` that deleted the agenda. Anything not
+     * recognised as genuine invalidation is now typed [Failure.KeystoreUnavailable], i.e. transient,
+     * i.e. **not** a reason to erase anything.
+     */
+    private fun wrappingKey(): SecretKey = try {
+        keystore.getOrCreateKey(KeystoreManager.ALIAS_DB_MASTER, allowUserIv = true)
+    } catch (e: KeyPermanentlyInvalidatedException) {
+        Timber.e("Keystore key invalidated (likely credential change on this device)")
+        throw Failure.KeystoreInvalidated(e)
+    } catch (e: UserNotAuthenticatedException) {
+        // We do not require user auth on the DB key, so reaching this means the platform considers the
+        // key unusable as configured — treated as invalidation, as before.
+        throw Failure.KeystoreInvalidated(e)
+    } catch (e: Throwable) {
+        throw Failure.KeystoreUnavailable(e)
+    }
+
     private fun generateAndWrap(): ByteArray {
         val raw = ByteArray(AeadCipher.KEY_BYTES).also(secureRandom::nextBytes)
         val secretKey = try {
-            keystore.getOrCreateKey(KeystoreManager.ALIAS_DB_MASTER, allowUserIv = true)
-        } catch (e: KeyPermanentlyInvalidatedException) {
-            throw Failure.KeystoreInvalidated(e)
+            wrappingKey()
+        } catch (e: Failure) {
+            raw.wipe()
+            throw e
         }
         val wrapped = when (val r = aead.encrypt(secretKey, raw)) {
             is Outcome.Success -> r.value
@@ -109,13 +182,10 @@ class DatabaseKeyManager @Inject constructor(
             throw Failure.Io(e)
         }
         val secretKey = try {
-            keystore.getOrCreateKey(KeystoreManager.ALIAS_DB_MASTER, allowUserIv = true)
-        } catch (e: KeyPermanentlyInvalidatedException) {
-            Timber.e("Keystore key invalidated (likely credential change on this device)")
-            throw Failure.KeystoreInvalidated(e)
-        } catch (e: UserNotAuthenticatedException) {
-            // We do not require user auth on the DB key; re-throw mapped error for safety.
-            throw Failure.KeystoreInvalidated(e)
+            wrappingKey()
+        } catch (e: Failure) {
+            wrapped.wipe()
+            throw e
         }
         return when (val r = aead.decrypt(secretKey, wrapped)) {
             is Outcome.Success -> {

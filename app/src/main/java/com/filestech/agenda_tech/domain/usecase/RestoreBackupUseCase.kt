@@ -80,10 +80,19 @@ class RestoreBackupUseCase @Inject constructor(
     } catch (t: Throwable) {
         // Covers malformed JSON, an unknown format version, and domain invariants rejected in
         // Event's init (e.g. end before start) — all "this file is not usable", none of them a crash.
-        // The cause is logged rather than dropped: the message the user gets is deliberately vague
-        // (it must not describe an untrusted file back to them), so the log is the only place left
-        // that can say *why* a restore was refused.
-        Timber.w(t, "Backup restore: file rejected while decoding")
+        // The failure TYPE is logged, never the throwable itself.
+        //
+        // At this point the plaintext has been decrypted, so it is the user's actual agenda — titles,
+        // descriptions, locations. `kotlinx.serialization`'s decoding errors quote the offending input
+        // in their message ("Unexpected JSON token at offset N: …"), so passing `t` to Timber would put
+        // fragments of a private agenda into logcat. `NoOpReleaseTree` drops everything in release, so
+        // the exposure was debug-only — but a debug build is what runs on a test phone, and
+        // `NoOpReleaseTree`'s own KDoc sets the rule: never log event titles, locations or notes.
+        //
+        // The class name keeps what the log was added for: telling a JSON parse error apart from a
+        // domain invariant rejected in `Event.init`. That is the diagnosis; the payload was never
+        // needed for it.
+        Timber.w("Backup restore: file rejected while decoding (%s)", t.javaClass.simpleName)
         Outcome.Failure(AppError.Validation("backup file is not readable"))
     }
 
