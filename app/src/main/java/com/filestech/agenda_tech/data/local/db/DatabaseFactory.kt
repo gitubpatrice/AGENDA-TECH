@@ -292,16 +292,30 @@ class DatabaseFactory @Inject constructor(
      * A rename on the same directory is atomic, so the file is either fully restored or untouched.
      * A backup that could not be moved into place is **kept**: it is the last copy of the agenda,
      * and the failure path is exactly where disk trouble is most likely.
+     *
+     * ## Why one failure stops the whole restore (found in external review)
+     *
+     * The three files are not independent. `SIDECAR_SUFFIXES` puts the database first, and this loop
+     * used to `return@forEach` on a file it could not put back — moving on to the next one. So a
+     * database that refused to be replaced was followed by a `-wal` that restored perfectly: a
+     * pre-rekey write-ahead log sitting against a database that is not the one it was written for.
+     * SQLite reads that as corruption, and it is the kind no reset flag is raised for, because it is
+     * not a Keystore failure. The half-restore was worse than either whole.
+     *
+     * So it is all or nothing. Stopping leaves every `.prerekey` copy on disk, the caller rethrows,
+     * and the user meets [com.filestech.agenda_tech.ui.StartupFailureScreen] with their agenda still
+     * recoverable — rather than a database silently destroyed by its own rescue.
      */
     private fun restore(backups: List<File>, dbFile: File) {
-        backups.forEach { copy ->
+        for (copy in backups) {
             val target = File(copy.path.removeSuffix(BACKUP_SUFFIX))
             if (!target.delete() && target.exists()) {
-                Timber.e("Could not clear %s — keeping the .prerekey copy", target.name)
-                return@forEach
+                Timber.e("Could not clear %s — every .prerekey copy is kept, restore abandoned", target.name)
+                return
             }
             if (!copy.renameTo(target)) {
-                Timber.e("Could not restore %s — the .prerekey copy is kept", target.name)
+                Timber.e("Could not restore %s — every .prerekey copy is kept, restore abandoned", target.name)
+                return
             }
         }
         // Sidecars that did not exist before the rekey must not survive it either: a stale -wal

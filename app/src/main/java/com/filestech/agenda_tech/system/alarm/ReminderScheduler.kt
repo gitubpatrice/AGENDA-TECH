@@ -66,21 +66,40 @@ class ReminderScheduler @Inject constructor(
     /**
      * Reschedule every reminder in the database — call once after a reboot.
      *
-     * Audit F5 — one [ExpansionBudget] for the whole pass. Exact alarms do not survive a reboot, so this
-     * runs inside a broadcast whose budget is measured in seconds; without a ceiling, N reminders cost
+     * Audit F5 — a bounded [ExpansionBudget]. Exact alarms do not survive a reboot, so this runs inside
+     * a broadcast whose budget is measured in seconds; without a ceiling, N reminders cost
      * `N × RecurrenceExpander.MAX_SCAN_ITERATIONS`, and N is exactly what an import controls. Running out
      * of time here means the process is killed with the reminders never re-armed — and nothing anywhere
-     * says so. Truncating a pathological tail is the lesser loss, and it is logged.
+     * says so.
+     *
+     * Audit F5-ter, found by external review — **the allowance is divided, not shared.** F5 passed one
+     * instance across the pass, and F5-bis then taught the caller not to cancel when it ran out. Both
+     * were right about a render, where the tail is merely not drawn this frame, and both were wrong
+     * here: the sentence three lines above says exact alarms do not survive a reboot, so on this path
+     * "left as it is" means *left unarmed, permanently* — until the user happens to edit the event.
+     * One pathological series therefore silently cost every recurring reminder behind it.
+     *
+     * Splitting keeps F5's total ceiling exactly (`ways × total/ways ≤ total`) and removes the
+     * starvation: a series can spend its own share and nobody else's. Non-recurring reminders never
+     * enter this arithmetic at all — [RecurrenceExpander.nextOccurrenceStart] answers them before it
+     * looks at a budget — so a hostile import cannot stop a plain reminder from being re-armed.
+     *
+     * What remains, stated rather than implied: a recurring series that outruns its own share is left
+     * unarmed by this pass, and logged. That is the residue of the trade, not an oversight.
      */
     suspend fun rescheduleAll() {
         val now = System.currentTimeMillis()
-        val budget = newPassBudget()
         val overrides = eventRepository.observeOverrides().first()
         val excludedByParent = overrides
             .groupBy { it.recurrenceParentId }
             .mapValues { (_, list) -> list.mapNotNull { it.originalStartUtcMillis }.toHashSet() }
         val eventCache = HashMap<Long, Event?>()
-        reminderRepository.getAll().forEach { reminder ->
+        val reminders = reminderRepository.getAll()
+        // Sized on the whole list rather than on the recurring subset: telling them apart first would
+        // cost a second lookup of every event, and over-dividing only makes each share smaller than it
+        // strictly had to be — never larger than the pass total, which is the property that matters.
+        val share = newPassBudget().shareSize(reminders.size)
+        reminders.forEach { reminder ->
             val event = eventCache.getOrPut(reminder.eventId) { eventRepository.getById(reminder.eventId) }
                 ?: return@forEach
             val excluded = if (event.isRecurring) excludedByParent[event.id].orEmpty() else emptySet()
@@ -89,7 +108,7 @@ class ReminderScheduler @Inject constructor(
                 event,
                 ReminderScheduling.initialEarliestStart(now, reminder.minutesBefore),
                 excluded,
-                budget,
+                ExpansionBudget(share),
             )
         }
     }
@@ -198,9 +217,17 @@ class ReminderScheduler @Inject constructor(
             // That is the opposite of the trade the budget was introduced for. Truncating a
             // pathological tail means leaving those alarms alone, not destroying them. When the
             // budget is spent we cannot conclude anything about the series, so we conclude nothing.
+            //
+            // Audit F5-ter — "left as it is" was accurate on the edit path and misleading on the
+            // reboot path, where there is no alarm left to leave: exact alarms do not survive a
+            // reboot. The starvation that made this reachable for a whole tail of reminders is gone
+            // (see `rescheduleAll`, the allowance is now divided), so what lands here is one series
+            // that outran its own share. It stays unarmed until its event is next saved, and the log
+            // says that rather than something reassuring.
             if (budget?.isExhausted == true) {
                 Timber.w(
-                    "ReminderScheduler: expansion budget spent — reminder %d left as it is, not cancelled",
+                    "ReminderScheduler: reminder %d outran its expansion share — not cancelled, but " +
+                        "not armed either; it will not fire until its event is saved again",
                     reminder.id,
                 )
                 return

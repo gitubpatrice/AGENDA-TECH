@@ -117,7 +117,12 @@ class TimeZonesTest {
         // design (it is `Locale.ROOT`), precisely because `toLowerCase()` was not. The trap is real,
         // it is just already avoided — and a future "fix" to `lowercase(Locale.getDefault())` would
         // walk straight into it, which is what this test exists to stop.
+        val windowsNames = listOf("India Standard Time", "Pacific Standard Time", "Romance Standard Time")
         val previous = Locale.getDefault()
+        val underRoot = windowsNames.associateWith { TimeZones.resolveOrNull(it)?.id }
+        // Guards the guard: if the table ever stopped resolving these at all, comparing "null to null"
+        // would pass while proving nothing.
+        assertThat(underRoot.values.filterNotNull()).hasSize(windowsNames.size)
         try {
             Locale.setDefault(Locale.forLanguageTag("tr-TR"))
             assertThat(TimeZones.resolve("Israel Standard Time", ZoneId.of("UTC")))
@@ -144,5 +149,40 @@ class TimeZonesTest {
         assertThat(TimeZones.isCanonical("\"Europe/Paris\"")).isFalse()
         assertThat(TimeZones.isCanonical("Totally Made Up Time")).isFalse()
         assertThat(TimeZones.isCanonical(null)).isFalse()
+    }
+
+    @Test
+    fun `a Windows zone still resolves under the Turkish locale`() {
+        // Both external reviewers reported this as CONFIRMED and HIGH: `candidate.lowercase()` would
+        // use the device locale, so in tr-TR the "I" of "India Standard Time" becomes the dotless "ı",
+        // the key misses, and a valid zone silently falls back — the F3 family all over again.
+        //
+        // They are both wrong, and the reason is worth pinning rather than remembering: Kotlin's
+        // no-argument `lowercase()` is `Locale.ROOT` by definition. It exists precisely because the
+        // Java method it replaced, `toLowerCase()`, used the default locale and produced this bug.
+        // Two reviewers agreeing is not evidence; this is.
+        val windowsNames = listOf("India Standard Time", "Pacific Standard Time", "Romance Standard Time")
+        val underRoot = windowsNames.associateWith { TimeZones.resolveOrNull(it)?.id }
+        // Guards the guard: if the table ever stopped resolving these at all, comparing null to null
+        // would pass while proving nothing.
+        assertThat(underRoot.values.filterNotNull()).hasSize(windowsNames.size)
+        val previous = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"))
+            // The trap itself, so the test fails loudly if the JDK ever stopped behaving this way.
+            assertThat("India Standard Time".lowercase(Locale.getDefault())).doesNotContain("i ")
+
+            // Asserted against what the SAME call answers under Locale.ROOT rather than against
+            // hard-coded ids: the property under test is that the locale makes no difference, and
+            // pinning the ids would only re-state the table (India Standard Time resolves through the
+            // IANA backward link Asia/Calcutta, not Asia/Kolkata — a detail this test has no business
+            // owning).
+            windowsNames.forEach { name ->
+                assertThat(TimeZones.resolveOrNull(name)?.id).isEqualTo(underRoot.getValue(name))
+                assertThat(TimeZones.resolveOrNull(name)).isNotNull()
+            }
+        } finally {
+            Locale.setDefault(previous)
+        }
     }
 }

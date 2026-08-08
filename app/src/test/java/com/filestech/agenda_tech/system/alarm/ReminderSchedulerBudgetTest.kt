@@ -97,6 +97,43 @@ class ReminderSchedulerBudgetTest {
     }
 
     @Test
+    fun `a pathological series cannot spend the share of the reminders behind it`() = runTest {
+        // Audit F5-ter. Event 1 is a weekly series running since the year 2000, so reaching "now"
+        // costs well over a thousand iterations; event 2 is an ordinary one from this year. With ONE
+        // instance shared across the pass — what F5 did — event 1 drained it and event 2 was never
+        // armed. After a reboot that is not "the tail is not drawn this frame": exact alarms are gone,
+        // so event 2's reminder simply never fires again until its event is saved.
+        val ancient = LocalDateTime.of(2000, 1, 5, 9, 0).atZone(zone).toInstant().toEpochMilli()
+        eventRepo.rows[1] = eventRepo.rows.getValue(1).copy(
+            startUtcMillis = ancient,
+            endUtcMillis = ancient + 3_600_000,
+            recurrence = RecurrenceRule(freq = RecurrenceFreq.WEEKLY),
+        )
+        eventRepo.rows[2] = eventRepo.rows.getValue(1).copy(
+            id = 2,
+            title = "Réunion",
+            startUtcMillis = start,
+            endUtcMillis = start + 3_600_000,
+            recurrence = RecurrenceRule(freq = RecurrenceFreq.WEEKLY),
+        )
+        reminderRepo.rows.clear()
+        reminderRepo.rows[10] = Reminder(id = 10, eventId = 1, minutesBefore = 15)
+        reminderRepo.rows[11] = Reminder(id = 11, eventId = 2, minutesBefore = 15)
+
+        // Two reminders, so each share is 100. Event 1 needs far more than that and gives up; event 2
+        // needs a few dozen and must still get armed out of its OWN share.
+        scheduler.newPassBudget = { ExpansionBudget(200) }
+
+        scheduler.rescheduleAll()
+
+        verify(atLeast = 1) {
+            alarmManager.setExactAndAllowWhileIdle(any(), any(), any<PendingIntent>())
+        }
+        // And the starved one is still not cancelled — F5-bis must survive F5-ter.
+        verify(exactly = 0) { alarmManager.cancel(any<PendingIntent>()) }
+    }
+
+    @Test
     fun `a series that really has ended is still cancelled`() = runTest {
         // The other half, and the reason the fix is a budget check and not "never cancel": with room
         // to look, a null means what it always meant, and the alarm must go. A test asserting only

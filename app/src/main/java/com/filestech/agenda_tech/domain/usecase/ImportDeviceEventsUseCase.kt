@@ -113,6 +113,14 @@ class ImportDeviceEventsUseCase @Inject constructor(
                     )
                 val read = deviceCalendars.readEvents(deviceId, remaining)
                 val deviceEvents = read.events
+                // Charged HERE, the moment the rows leave the provider — not when the calendar
+                // finishes. Found by external review: the allowance used to be debited only in
+                // `onSuccess`, so a calendar whose write failed had read its rows for free and the
+                // next calendar started again from the full ceiling. Five failing calendars therefore
+                // read five times the cap, and the comment below — "the ceiling exists to bound that
+                // work too" — was true of the happy path only. Reading is the cost being bounded, and
+                // reading has already happened by the time we know whether the write will succeed.
+                remaining -= deviceEvents.size
                 // FIAB-3 — fold each moved occurrence's original instant into its master's EXDATE, so
                 // a provider that omits EXDATE on the master can't leave a ghost at the original time
                 // next to the moved one.
@@ -151,9 +159,8 @@ class ImportDeviceEventsUseCase @Inject constructor(
             }.onSuccess { outcome ->
                 calendars++
                 events += outcome.imported
-                // Spent on what was READ, not on what was written: rows the mapper drops still cost
-                // the provider a read, and the ceiling exists to bound that work too.
-                remaining -= outcome.read
+                // The allowance was already debited at the read, above — on every path, including
+                // the one that ends in `onFailure`.
                 truncated = truncated || outcome.truncated
             }.onFailure {
                 failed++
