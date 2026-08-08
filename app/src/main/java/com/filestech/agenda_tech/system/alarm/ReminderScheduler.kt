@@ -7,11 +7,13 @@ import android.content.Intent
 import android.os.Build
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.Reminder
+import com.filestech.agenda_tech.domain.recurrence.ExpansionBudget
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
 import com.filestech.agenda_tech.domain.reminder.ReminderScheduling
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.repository.ReminderRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.first
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -41,19 +43,45 @@ class ReminderScheduler @Inject constructor(
     suspend fun rescheduleEvent(eventId: Long) {
         val event = eventRepository.getById(eventId) ?: return
         val now = System.currentTimeMillis()
+        val excluded = excludedStartsFor(event)
         reminderRepository.getForEvent(eventId).forEach { reminder ->
-            schedule(reminder, event, ReminderScheduling.initialEarliestStart(now, reminder.minutesBefore))
+            schedule(
+                reminder,
+                event,
+                ReminderScheduling.initialEarliestStart(now, reminder.minutesBefore),
+                excluded,
+            )
         }
     }
 
-    /** Reschedule every reminder in the database — call once after a reboot. */
+    /**
+     * Reschedule every reminder in the database — call once after a reboot.
+     *
+     * Audit F5 — one [ExpansionBudget] for the whole pass. Exact alarms do not survive a reboot, so this
+     * runs inside a broadcast whose budget is measured in seconds; without a ceiling, N reminders cost
+     * `N × RecurrenceExpander.MAX_SCAN_ITERATIONS`, and N is exactly what an import controls. Running out
+     * of time here means the process is killed with the reminders never re-armed — and nothing anywhere
+     * says so. Truncating a pathological tail is the lesser loss, and it is logged.
+     */
     suspend fun rescheduleAll() {
         val now = System.currentTimeMillis()
+        val budget = ExpansionBudget()
+        val overrides = eventRepository.observeOverrides().first()
+        val excludedByParent = overrides
+            .groupBy { it.recurrenceParentId }
+            .mapValues { (_, list) -> list.mapNotNull { it.originalStartUtcMillis }.toHashSet() }
         val eventCache = HashMap<Long, Event?>()
         reminderRepository.getAll().forEach { reminder ->
             val event = eventCache.getOrPut(reminder.eventId) { eventRepository.getById(reminder.eventId) }
                 ?: return@forEach
-            schedule(reminder, event, ReminderScheduling.initialEarliestStart(now, reminder.minutesBefore))
+            val excluded = if (event.isRecurring) excludedByParent[event.id].orEmpty() else emptySet()
+            schedule(
+                reminder,
+                event,
+                ReminderScheduling.initialEarliestStart(now, reminder.minutesBefore),
+                excluded,
+                budget,
+            )
         }
     }
 
@@ -61,8 +89,32 @@ class ReminderScheduler @Inject constructor(
     suspend fun onReminderFired(reminderId: Long, eventId: Long, firedOccurrenceStartUtcMillis: Long) {
         val event = eventRepository.getById(eventId) ?: return
         val reminder = reminderRepository.getById(reminderId) ?: return
-        schedule(reminder, event, ReminderScheduling.nextEarliestStart(firedOccurrenceStartUtcMillis))
+        schedule(
+            reminder,
+            event,
+            ReminderScheduling.nextEarliestStart(firedOccurrenceStartUtcMillis),
+            excludedStartsFor(event),
+        )
     }
+
+    /**
+     * The instants of [event] that per-occurrence overrides have replaced, read from the live override
+     * rows — the same mechanism the calendar views and search use.
+     *
+     * The scheduler used to read nothing here and rely on the `EXDATE`s persisted on the master alone,
+     * which made it the only reader with its own answer to "does this occurrence still exist". The
+     * editor writes both halves in one transaction (`upsertOverrideAtomic`), so in normal use the two
+     * agree; a hand-edited `.atbak` is not required to carry the master's `EXDATE`, and there the
+     * reminder would fire for an occurrence the user had moved away.
+     */
+    private suspend fun excludedStartsFor(event: Event): Set<Long> =
+        if (!event.isRecurring) {
+            emptySet()
+        } else {
+            eventRepository.observeOverrides().first()
+                .filter { it.recurrenceParentId == event.id }
+                .mapNotNullTo(HashSet()) { it.originalStartUtcMillis }
+        }
 
     /** Cancel the alarms of every reminder of an event — call before deleting the event. */
     suspend fun cancelEvent(eventId: Long) {
@@ -108,8 +160,21 @@ class ReminderScheduler @Inject constructor(
      */
     fun cancelReminders(reminderIds: Collection<Long>) = reminderIds.forEach(::cancel)
 
-    private fun schedule(reminder: Reminder, event: Event, earliestOccurrenceStart: Long) {
-        val fire = ReminderScheduling.computeNextFire(expander, event, reminder.minutesBefore, earliestOccurrenceStart)
+    private fun schedule(
+        reminder: Reminder,
+        event: Event,
+        earliestOccurrenceStart: Long,
+        extraExcludedStarts: Set<Long>,
+        budget: ExpansionBudget? = null,
+    ) {
+        val fire = ReminderScheduling.computeNextFire(
+            expander,
+            event,
+            reminder.minutesBefore,
+            earliestOccurrenceStart,
+            extraExcludedStarts,
+            budget,
+        )
         if (fire == null) {
             cancel(reminder.id)
             return

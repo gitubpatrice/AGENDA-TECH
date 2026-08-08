@@ -131,7 +131,24 @@ class BackupViewModel @Inject constructor(
 
         // Captured before the wipe: once the rows are gone their alarms can no longer be enumerated,
         // and a reminder from the replaced agenda would keep firing.
-        val staleReminderIds = runCatching { reminderRepository.getAll().map { it.id } }.getOrDefault(emptyList())
+        //
+        // Audit F7 — this used to end in `.getOrDefault(emptyList())`, which defeated the very purpose of
+        // the line it was attached to: on failure the restore went ahead, `cancelReminders([])` disarmed
+        // nothing, and the old agenda's alarms stayed armed. They are not harmless. A restore reinserts
+        // event ids **verbatim** from the file, so a stale alarm carrying `eventId = 42` finds a *different*
+        // event 42 in the restored agenda: `ReminderActionHandler` looks it up, finds it, and posts a
+        // reminder for the WRONG event at the OLD time, then reschedules it.
+        //
+        // So it fails closed, like the rest of this path — `RestoreBackupUseCase` already refuses a file
+        // whole rather than applying half of it. Nothing has been written yet at this point, so refusing
+        // costs the user a retry and never an inconsistent agenda.
+        val staleReminderIds = runCatching { reminderRepository.getAll().map { it.id } }
+            .getOrElse { error ->
+                Timber.w(error, "Backup restore: cannot enumerate the alarms to disarm — refusing")
+                _state.value = BackupUiState(busy = null, message = BackupMessage.Failed)
+                password.wipe()
+                return@launch
+            }
 
         val message = when (val out = restoreBackup(password, file)) {
             is Outcome.Success -> {

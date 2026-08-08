@@ -4,6 +4,7 @@ import com.filestech.agenda_tech.core.text.SearchText
 import com.filestech.agenda_tech.di.DefaultDispatcher
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.Event
+import com.filestech.agenda_tech.domain.recurrence.ExpansionBudget
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
@@ -119,9 +120,19 @@ class SearchEventsUseCase @Inject constructor(
         // field is focused would bury the one thing being looked for.
         if (needle.isEmpty()) return emptyList()
 
+        // Audit F5 — one allowance for the whole keystroke. `SearchViewModel` deliberately does not
+        // debounce, on the stated grounds that "typing only runs a contains over pre-folded strings —
+        // there is no expensive work to throttle". That was only true of the matching: `dateHit` below
+        // expands a recurrence per HIT, up to the per-event scan cap each time. A common letter matching
+        // hundreds of old recurring events therefore cost millions of java.time operations per
+        // keystroke, on a computation with no suspension point, so cancellation could not even interrupt
+        // it. Off the main thread (`flowOn(defaultDispatcher)`), so never an ANR — just a search that
+        // stops answering and a battery that drains.
+        val budget = ExpansionBudget(SEARCH_MAX_ITERATIONS)
+
         val hits = entries.mapNotNull { entry ->
             if (!entry.haystack.contains(needle)) return@mapNotNull null
-            dateHit(entry, nowUtcMillis)
+            dateHit(entry, nowUtcMillis, budget)
         }
 
         // Upcoming first, soonest first — "when is my dentist?". Then the past, most recent first —
@@ -136,15 +147,26 @@ class SearchEventsUseCase @Inject constructor(
      * the series is over. Falling back to the master's base start would date a weekly meeting to the
      * day it was created.
      */
-    private fun dateHit(entry: Entry, nowUtcMillis: Long): EventSearchHit? {
-        expander.nextOccurrenceStart(entry.event, nowUtcMillis, entry.excludedStarts)?.let { next ->
+    private fun dateHit(entry: Entry, nowUtcMillis: Long, budget: ExpansionBudget): EventSearchHit? {
+        expander.nextOccurrenceStart(entry.event, nowUtcMillis, entry.excludedStarts, budget)?.let { next ->
             return EventSearchHit(entry.event, entry.calendar, next, isUpcoming = true)
         }
-        expander.lastOccurrenceStartBefore(entry.event, nowUtcMillis, entry.excludedStarts)?.let { last ->
-            return EventSearchHit(entry.event, entry.calendar, last, isUpcoming = false)
-        }
-        // Neither ahead nor behind: every occurrence was excluded (EXDATE), so the series has no
-        // instance left to point at. Nothing truthful to show.
+        expander.lastOccurrenceStartBefore(entry.event, nowUtcMillis, entry.excludedStarts, budget)
+            ?.let { last ->
+                return EventSearchHit(entry.event, entry.calendar, last, isUpcoming = false)
+            }
+        // Neither ahead nor behind: every occurrence was excluded (EXDATE), the series has no instance
+        // left to point at — or the pass budget ran out. Nothing truthful to show either way.
         return null
+    }
+
+    private companion object {
+        /**
+         * Far more generous than a render pass ([ExpansionBudget.DEFAULT_MAX_ITERATIONS]): a search walks
+         * a series from its base to *today* rather than over a visible window, so a legitimate old daily
+         * event costs thousands of iterations on its own. High enough that a real agenda never reaches
+         * it, low enough that a hostile import cannot turn one keystroke into minutes of arithmetic.
+         */
+        const val SEARCH_MAX_ITERATIONS = 5_000_000
     }
 }
