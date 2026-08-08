@@ -3,6 +3,7 @@ package com.filestech.agenda_tech.data.local.db
 import android.content.Context
 import androidx.room.Room
 import com.filestech.agenda_tech.core.crypto.wipe
+import com.filestech.agenda_tech.core.prefs.OneShotFlag
 import net.zetetic.database.sqlcipher.SQLiteDatabase
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import timber.log.Timber
@@ -315,10 +316,7 @@ class DatabaseFactory @Inject constructor(
         }
     }
 
-    private fun markResetPending(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_RESET_PENDING, true).apply()
-    }
+    private fun markResetPending(context: Context) = OneShotFlag.DATABASE_RESET.raise(context)
 
     @Synchronized
     private fun loadNativeOnce() {
@@ -330,9 +328,6 @@ class DatabaseFactory @Inject constructor(
     companion object {
         @Volatile private var loaded = false
 
-        private const val PREFS = "agendatech_db"
-        private const val KEY_RESET_PENDING = "db_reset_pending"
-
         /** The database file itself first, then the WAL sidecars Room may have left beside it. */
         private val SIDECAR_SUFFIXES = listOf("", "-wal", "-shm")
         private const val BACKUP_SUFFIX = ".prerekey"
@@ -341,11 +336,6 @@ class DatabaseFactory @Inject constructor(
          * Returns true once if the DB had to be reset after an unrecoverable key failure, clearing
          * the flag. The UI reads this at startup to inform the user their data was reset.
          */
-        fun consumeResetFlag(context: Context): Boolean {
-            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            if (!prefs.getBoolean(KEY_RESET_PENDING, false)) return false
-            prefs.edit().remove(KEY_RESET_PENDING).apply()
-            return true
-        }
+        fun consumeResetFlag(context: Context): Boolean = OneShotFlag.DATABASE_RESET.consume(context)
     }
 }

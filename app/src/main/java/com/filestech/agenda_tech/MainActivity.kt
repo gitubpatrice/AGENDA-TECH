@@ -23,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.withResumed
 import com.filestech.agenda_tech.data.local.db.AppDatabase
+import com.filestech.agenda_tech.core.prefs.OneShotFlag
 import com.filestech.agenda_tech.data.local.db.DatabaseFactory
 import com.filestech.agenda_tech.domain.repository.LockRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
@@ -74,11 +75,28 @@ class MainActivity : FragmentActivity() {
      * The LOCK-2 guarantee stated in `SECURITY.md` ("the Recents snapshot can never leak") did not
      * hold in exactly the configuration it was written for.
      *
-     * Mirroring the flow into a field is what makes the decision synchronous. `@Volatile` because it
-     * is written from the collector's dispatcher and read on the Main thread.
+     * Mirroring the flow into a field is what makes the decision synchronous.
+     *
+     * ## Why `null` and not `false` (audit S3)
+     *
+     * The first version of this field defaulted to `false`, i.e. "no lock configured", before anything
+     * had been read. That traded a timing defect for a **fail-open** one: an Activity recreated while
+     * the process was already `UNLOCKED` — a configuration change outside the `configChanges` list, or
+     * "don't keep activities" — could reach `onStop` in that window, and `onStop` would then do
+     * nothing at all: no `FLAG_SECURE`, no re-lock. This repo has treated failing open as unacceptable
+     * since F1; a default that means "no protection" is exactly that.
+     *
+     * Three states, and the two questions are answered differently on purpose:
+     *  - raising `FLAG_SECURE` treats `null` like "locked" — it costs nothing, it is reversible on the
+     *    next resume, and a Recents snapshot cannot be taken back;
+     *  - re-locking requires a firm `true` — locking with no PIN configured would strand the user on a
+     *    lock screen with nothing to type, which is the one outcome worse than a missed re-lock.
+     *
+     * `@Volatile` by prudence rather than by necessity: both writers and the reader are on the Main
+     * thread today (`lifecycleScope` is `Dispatchers.Main.immediate`), but nothing in the type says so.
      */
     @Volatile
-    private var lockConfigured = false
+    private var lockConfigured: Boolean? = null
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }
@@ -100,7 +118,18 @@ class MainActivity : FragmentActivity() {
             if (DatabaseFactory.consumeResetFlag(this@MainActivity)) {
                 Toast.makeText(this@MainActivity, R.string.db_reset_notice, Toast.LENGTH_LONG).show()
             }
-            if (lockRepository.isLockEnabled()) appLock.lock() else appLock.unlock()
+            // Audit S15 — same rule, other file: a corrupted settings store is replaced with defaults,
+            // and since it carries `lock_enabled` that silently switches the app lock off. The lock
+            // cannot be restored (the PIN wrap died with the file, and locking someone out of their
+            // own agenda with nothing to type would be worse), so the least we owe them is to say it.
+            if (OneShotFlag.SETTINGS_RESET.consume(this@MainActivity)) {
+                Toast.makeText(this@MainActivity, R.string.settings_reset_notice, Toast.LENGTH_LONG).show()
+            }
+            val enabled = lockRepository.isLockEnabled()
+            // Settles [lockConfigured] on the very first pass, so the window where onStop knows
+            // nothing is as short as the splash — see the field's KDoc.
+            lockConfigured = enabled
+            if (enabled) appLock.lock() else appLock.unlock()
         }
 
         // Kept up to date for [onStop], which cannot wait for a suspend read. Collected on
@@ -154,10 +183,12 @@ class MainActivity : FragmentActivity() {
         //
         // Nothing is cleared when no lock is configured: that is the user's "allow screenshots"
         // preference, and honouring it is the whole reason the flag is not simply pinned on.
-        if (lockConfigured) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-            appLock.lock()
-        }
+        //
+        // The two questions are answered differently, and the asymmetry is the point (audit S3):
+        // "unknown" protects the snapshot, because that is free and reversible; only a firm "yes"
+        // locks, because locking without a PIN to type is a dead end. See [lockConfigured].
+        if (lockConfigured != false) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        if (lockConfigured == true) appLock.lock()
     }
 
     private fun showBiometricPrompt() {

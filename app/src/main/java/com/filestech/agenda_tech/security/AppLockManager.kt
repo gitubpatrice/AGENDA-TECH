@@ -80,8 +80,59 @@ class AppLockManager @Inject constructor(
         _state.value = LockState.UNLOCKED
     }
 
+    /** What one call to [attemptPin] did. */
+    sealed interface Attempt {
+        /** The back-off was still running; no guess was spent. */
+        data class Throttled(val remainingMs: Long) : Attempt
+        data object Accepted : Attempt
+        data class Rejected(val throttleMs: Long) : Attempt
+    }
+
+    /**
+     * Spends **one** PIN guess: checks the back-off, verifies, and records the outcome — atomically.
+     *
+     * ## Why the verification happens inside the lock (audit S16)
+     *
+     * The mutex below was introduced by F6 to serialise the counter, and it did. But the decision
+     * *whether an attempt is allowed at all* lived in the caller, split across two separate calls with
+     * roughly 100 ms of PBKDF2 between them and no lock held:
+     *
+     * ```
+     * if (appLock.throttleRemainingMs() > 0) return   // lock taken, then released
+     * if (lockRepository.verifyPin(pin)) …            // ~120 000 rounds, unguarded
+     * else appLock.registerFailedAttempt()            // lock taken again
+     * ```
+     *
+     * Every coroutine launched inside that gap read a back-off of zero and got its own guess. The
+     * counter still ended up correct — the mutex saw to that — but the back-off had not been applied
+     * to any of them. Against the threat model SEC-2 was written for (someone holding the phone, e.g.
+     * `adb shell input tap` in a loop), that turns one guess per 60 s window into a burst, and a
+     * four-digit PIN from a week of brute force into hours.
+     *
+     * Passing the verification in as a lambda is what makes the whole read-modify-write one operation,
+     * which is what the class KDoc claimed all along. It also keeps this class free of any dependency
+     * on the PIN store, so it stays unit-testable with a fake.
+     */
+    suspend fun attemptPin(verify: suspend () -> Boolean): Attempt = withContext(io) {
+        mutex.withLock {
+            restoreOnce()
+            val remaining = (lockedUntilElapsedMs - nowMs()).coerceAtLeast(0L)
+            if (remaining > 0) return@withLock Attempt.Throttled(remaining)
+            if (verify()) {
+                resetLocked()
+                Attempt.Accepted
+            } else {
+                registerFailedLocked()
+                Attempt.Rejected((lockedUntilElapsedMs - nowMs()).coerceAtLeast(0L))
+            }
+        }
+    }
+
     /**
      * Remaining throttle time in ms before another PIN attempt is accepted (0 if none).
+     *
+     * Read-only: it drives the visible countdown. Deciding whether a guess may be spent is
+     * [attemptPin]'s job, and only its — asking here and acting later is the race S16 named.
      *
      * `suspend` because the first call reads the persisted back-off off disk, and the writes below
      * are durable (`commit`) by design — none of that may run on the Main thread.
@@ -93,6 +144,13 @@ class AppLockManager @Inject constructor(
 
     suspend fun registerFailedAttempt() = withContext(io) { mutex.withLock {
         restoreOnce()
+        registerFailedLocked()
+    } }
+
+    suspend fun resetAttempts() = withContext(io) { mutex.withLock { resetLocked() } }
+
+    /** The body of [registerFailedAttempt]; the caller must already hold [mutex] and have restored. */
+    private fun registerFailedLocked() {
         failedAttempts++
         val backoffMs = if (failedAttempts >= FREE_ATTEMPTS) {
             val step = (failedAttempts - FREE_ATTEMPTS + 1).coerceAtMost(MAX_BACKOFF_STEPS)
@@ -107,14 +165,15 @@ class AppLockManager @Inject constructor(
                 lockedUntilWallMs = if (backoffMs > 0) wallClockMs() + backoffMs else 0L,
             ),
         )
-    } }
+    }
 
-    suspend fun resetAttempts() = withContext(io) { mutex.withLock {
+    /** The body of [resetAttempts]; the caller must already hold [mutex]. */
+    private fun resetLocked() {
         restored = true // a correct PIN settles the question; nothing left to restore
         failedAttempts = 0
         lockedUntilElapsedMs = 0L
         store.save(LockThrottle.NONE)
-    } }
+    }
 
     /**
      * Pulls the persisted back-off into memory on first use.

@@ -6,6 +6,7 @@ import com.filestech.agenda_tech.core.result.AppError
 import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.core.result.flatMap
 import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.domain.ImportLimits
 import com.filestech.agenda_tech.domain.backup.BackupCodec
 import com.filestech.agenda_tech.domain.backup.BackupCodec.toDomain
 import com.filestech.agenda_tech.domain.model.Calendar
@@ -111,6 +112,15 @@ class RestoreBackupUseCase @Inject constructor(
     // harder to read, not safer. Suppressed here rather than by raising the threshold repo-wide.
     @Suppress("ReturnCount")
     private fun validate(calendars: List<Calendar>, events: List<Event>): String? {
+        // Audit S12 — the 16 MiB file ceiling bounds memory, not rows. A file at that size carries
+        // tens of thousands of events AND their reminders, and `BackupViewModel` arms an alarm per
+        // reminder right after this returns. Nothing crashes; the agenda simply comes out unusable,
+        // and only another restore undoes it. Refused here rather than truncated, for the reason this
+        // whole function exists: half an agenda looks exactly like a whole one.
+        if (events.size > ImportLimits.MAX_EVENTS) {
+            return "backup holds ${events.size} events, over the ${ImportLimits.MAX_EVENTS} ceiling"
+        }
+
         // Room treats id 0 on an autoGenerate primary key as "unset" and silently assigns a fresh
         // rowid — every calendarId/parentId pointing at 0 would then dangle, with no error raised.
         calendars.firstOrNull { it.id <= 0 }?.let { return "calendar has a non-positive id (${it.id})" }

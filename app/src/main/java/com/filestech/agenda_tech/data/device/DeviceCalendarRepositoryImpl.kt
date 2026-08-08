@@ -4,6 +4,7 @@ import android.content.Context
 import android.database.Cursor
 import android.provider.CalendarContract
 import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.domain.ImportLimits
 import com.filestech.agenda_tech.domain.device.DeviceEventMapper
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.domain.model.DeviceEvent
@@ -127,6 +128,17 @@ class DeviceCalendarRepositoryImpl @Inject constructor(
                             ),
                         )
                     }
+                    // Audit S12 — a cap that truncates in silence reads, to every later caller, as
+                    // "this is the whole calendar". Unlike the file imports this one cannot refuse and
+                    // hand anything back: it is a live provider, and a partial read is its contract.
+                    // What it can do is say so.
+                    if (size >= MAX_EVENTS) {
+                        Timber.w(
+                            "DeviceCalendarRepository: calendar %d truncated at %d events",
+                            deviceCalendarId,
+                            MAX_EVENTS,
+                        )
+                    }
                 }
             }.orEmpty()
         }.getOrElse {
@@ -138,7 +150,10 @@ class DeviceCalendarRepositoryImpl @Inject constructor(
     private fun Cursor.getStringOrNull(index: Int): String? = if (isNull(index)) null else getString(index)
 
     private companion object {
-        // A personal agenda is well under this; the cap bounds memory against a pathological provider.
-        const val MAX_EVENTS = 20_000
+        /**
+         * Audit S12 — the app's single import ceiling, shared with the `.ics` and `.atbak` paths. A
+         * personal agenda is well under it; it bounds what a pathological provider can hand over.
+         */
+        val MAX_EVENTS = ImportLimits.MAX_EVENTS
     }
 }

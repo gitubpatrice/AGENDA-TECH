@@ -63,6 +63,30 @@ class EventEditorViewModel @Inject constructor(
      */
     private var loadedSourceUid: String? = null
 
+    /**
+     * The zone the event being edited was authored in, kept so saving does not overwrite it.
+     *
+     * ## Why (audit D2)
+     *
+     * This editor reads and writes every time in the **device** zone, which is right for the times —
+     * the user types a wall clock and reads one back — and wrong for the label. `persist` wrote
+     * `timeZoneId = zone.id` unconditionally, so simply opening an event to add a reminder replaced
+     * its authored zone with wherever the phone is now.
+     *
+     * The instants survive that (the same zone converts both ways), but the label is what
+     * [com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander] re-anchors recurring
+     * occurrences to, and what the `.ics` exporter emits. A weekly meeting imported from Exchange as
+     * `Asia/Tokyo`, opened once in Paris, becomes a Paris series: Japan has no summer time and France
+     * does, so every occurrence after the October transition moves by an hour — and the export tells
+     * the recipient it was always a Paris meeting.
+     *
+     * It also silently undid the v6 repair migration, which exists precisely to put a resolvable zone
+     * on rows imported from Outlook.
+     *
+     * Null for a new event: there is nothing to preserve, and the device zone is the right answer.
+     */
+    private var loadedTimeZoneId: String? = null
+
     private val _state = MutableStateFlow(initialState())
     val state: StateFlow<EventEditorUiState> = _state.asStateFlow()
 
@@ -121,6 +145,7 @@ class EventEditorViewModel @Inject constructor(
         loadedParentId = event.recurrenceParentId
         loadedOriginalStart = event.originalStartUtcMillis
         loadedSourceUid = event.sourceUid
+        loadedTimeZoneId = event.timeZoneId
 
         // For a tapped occurrence of a recurring master, show that occurrence's times (not the base).
         val editingOccurrence = event.recurrence != null && occurrenceStart > 0L
@@ -335,7 +360,20 @@ class EventEditorViewModel @Inject constructor(
             gpsCoordinates = current.gpsCoordinates.trim().ifBlank { null },
             startUtcMillis = startMillis,
             endUtcMillis = endMillis,
-            timeZoneId = zone.id,
+            // Audit D2 — keep the zone the event was authored in; see [loadedTimeZoneId].
+            //
+            // Two deliberate exceptions, both because the zone is not a label there but part of the
+            // arithmetic:
+            //  - an ALL-DAY event's instants are the day boundaries computed with `atStartOfDay(zone)`
+            //    a few lines above. Storing a different zone beside them would put the boundaries and
+            //    their label out of step — the very inconsistency `DeviceEventMapper` and `IcsCodec`
+            //    avoid by anchoring all-day rows to the device zone on both sides.
+            //  - a NEW event has nothing to preserve.
+            //
+            // An override inherits the master's zone rather than the device's: it replaces one
+            // occurrence of that series, and the expander skips the master's instance by instant. Two
+            // rows describing the same slot in two zones is the asymmetry this audit keeps finding.
+            timeZoneId = if (current.allDay) zone.id else (loadedTimeZoneId ?: zone.id),
             allDay = current.allDay,
             // An override is a single event; the whole-series save keeps the recurrence rule.
             recurrence = if (asOverride) null else current.toRecurrenceRule(),

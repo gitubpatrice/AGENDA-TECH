@@ -23,6 +23,7 @@
     <string name="ics_export_ok">%1$d événements exportés</string>
     <string name="ics_import_ok">%1$d événements importés</string>
     <string name="ics_error">Impossible de lire le fichier agenda</string>
+    <string name="ics_import_too_many">Ce fichier contient plus d’événements que l’application n’en accepte (%1$d au maximum). Divisez-le et importez les parties.</string>
 
     <!-- Vue Mois -->
     <string name="month_today">Aujourd\'hui</string>
@@ -237,6 +238,7 @@
     <string name="calendar_delete_confirm_title">Supprimer le calendrier ?</string>
     <string name="calendar_delete_confirm_body">« %1$s » et tous ses événements seront définitivement supprimés.</string>
     <string name="db_reset_notice">Vos données n\'ont pas pu être déverrouillées (clé de sécurité de l\'appareil modifiée) et ont été réinitialisées.</string>
+    <string name="settings_reset_notice">Vos réglages n\'ont pas pu être lus et ont été réinitialisés. Si vous aviez un verrou d\'application, il a été désactivé — réactivez-le dans les Réglages.</string>
     <string name="settings_section_security">Sécurité</string>
     <string name="settings_lock_enabled">Verrouiller l\'application</string>
     <string name="settings_lock_enabled_sub">Exiger un code PIN ou la biométrie à l\'ouverture</string>

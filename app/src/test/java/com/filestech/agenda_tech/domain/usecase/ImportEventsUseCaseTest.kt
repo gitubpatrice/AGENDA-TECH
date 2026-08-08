@@ -1,8 +1,11 @@
 package com.filestech.agenda_tech.domain.usecase
 
+import com.filestech.agenda_tech.domain.ImportLimits
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 
 private const val ZONE = "Europe/Paris"
@@ -95,5 +98,34 @@ class ImportEventsUseCaseTest {
         val count = useCase(ics(vevent("u1", "RDV")), "Pas/Une/Zone")
 
         assertThat(count).isEqualTo(1)
+    }
+
+    // --- Audit S12 : un plafond sur le NOMBRE, pas seulement sur les octets ---
+
+    @Test
+    fun `a file over the event ceiling is refused whole, before a single row is written`() = runTest {
+        calendars.stored += Calendar(id = 1, name = "Perso", isDefault = true)
+        val tooMany = ics(
+            *Array(ImportLimits.MAX_EVENTS + 1) { vevent("u$it", "RDV $it") },
+        )
+
+        val thrown = assertThrows(ImportEventsUseCase.TooManyEvents::class.java) {
+            runBlocking { useCase(tooMany, ZONE) }
+        }
+
+        assertThat(thrown.found).isEqualTo(ImportLimits.MAX_EVENTS + 1)
+        // The whole point of refusing rather than truncating: nothing was written, so the user sees a
+        // refusal they can act on instead of a partial agenda that looks complete.
+        assertThat(events.rows).isEmpty()
+    }
+
+    @Test
+    fun `a file exactly at the ceiling is accepted`() = runTest {
+        // The boundary is where a cap gets it wrong, and refusing a legitimate file is the failure
+        // mode audit F4 already produced once on this very screen.
+        calendars.stored += Calendar(id = 1, name = "Perso", isDefault = true)
+        val atLimit = ics(*Array(ImportLimits.MAX_EVENTS) { vevent("u$it", "RDV $it") })
+
+        assertThat(useCase(atLimit, ZONE)).isEqualTo(ImportLimits.MAX_EVENTS)
     }
 }

@@ -418,4 +418,72 @@ class EventEditorViewModelTest {
         assertThat(vm.state.value.colorOverride).isEqualTo(CalendarColor.TOMATO)
         assertThat(vm.state.value.reminderMinutes).containsExactly(30)
     }
+
+    // --- Audit D2 : le fuseau d'un événement existant ne doit pas être écrasé ---
+
+    @Test
+    fun `saving an imported event keeps the zone it was authored in`() = runTest(dispatcher) {
+        // The whole point of the v6 repair migration is that a row imported from Outlook ends up with
+        // a zone every reader can resolve. Opening that event to add a reminder used to overwrite it
+        // with the device zone, which silently undid the repair — and, since the expander re-anchors
+        // recurring occurrences to this field, moved every future occurrence by an hour across the
+        // next DST transition.
+        val tokyo = "Asia/Tokyo"
+        eventRepo.rows[10] = seedEvent().copy(timeZoneId = tokyo)
+        val vm = viewModel(eventId = 10)
+        testScheduler.advanceUntilIdle()
+
+        vm.onAddReminder(15)
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(eventRepo.rows.getValue(10).timeZoneId).isEqualTo(tokyo)
+    }
+
+    @Test
+    fun `editing the time of an imported event still keeps its zone`() = runTest(dispatcher) {
+        // The times are typed and read back in the DEVICE zone — that part is right and unchanged.
+        // What must not follow is the label: the user moved the meeting, they did not move the series
+        // to another country.
+        eventRepo.rows[10] = seedEvent().copy(timeZoneId = "Asia/Tokyo")
+        val vm = viewModel(eventId = 10)
+        testScheduler.advanceUntilIdle()
+
+        vm.onStartTimeChange(11, 0)
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        val saved = eventRepo.rows.getValue(10)
+        assertThat(saved.timeZoneId).isEqualTo("Asia/Tokyo")
+        assertThat(saved.startUtcMillis).isEqualTo(at(2026, 7, 20, 11))
+    }
+
+    @Test
+    fun `a new event is authored in the device zone`() = runTest(dispatcher) {
+        // The other half: with nothing to preserve, the device zone is the right answer. A test that
+        // only pinned the first half would be satisfied by never writing the field at all.
+        val vm = viewModel()
+        vm.onTitleChange("Nouveau")
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(eventRepo.rows.values.single { it.title == "Nouveau" }.timeZoneId).isEqualTo(zone.id)
+    }
+
+    @Test
+    fun `an all-day event keeps the device zone its boundaries were computed in`() = runTest(dispatcher) {
+        // For an all-day row the zone is not a label but part of the arithmetic: the instants ARE
+        // midnight-to-midnight in this zone. Preserving a foreign zone beside device-zone boundaries
+        // would put the two out of step — the inconsistency DeviceEventMapper and IcsCodec avoid by
+        // anchoring all-day rows to the device zone on both sides.
+        eventRepo.rows[10] = seedEvent().copy(timeZoneId = "Asia/Tokyo", allDay = true)
+        val vm = viewModel(eventId = 10)
+        testScheduler.advanceUntilIdle()
+
+        vm.onAllDayChange(true)
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(eventRepo.rows.getValue(10).timeZoneId).isEqualTo(zone.id)
+    }
 }

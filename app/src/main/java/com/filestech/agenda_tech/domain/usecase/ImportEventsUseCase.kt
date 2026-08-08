@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.usecase
 
+import com.filestech.agenda_tech.domain.ImportLimits
 import com.filestech.agenda_tech.domain.ics.IcsCodec
 import com.filestech.agenda_tech.domain.ics.toEvent
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
@@ -17,12 +18,26 @@ class ImportEventsUseCase @Inject constructor(
     private val eventRepository: EventRepository,
     private val calendarRepository: CalendarRepository,
 ) {
+    /**
+     * The file holds more events than [ImportLimits.MAX_EVENTS].
+     *
+     * A distinct type, not a generic failure: the screen can then say *why* the file was refused, and
+     * "too large" is the one import failure the user can actually do something about.
+     */
+    class TooManyEvents(val found: Int) :
+        Exception("ics file holds $found events, over the ${ImportLimits.MAX_EVENTS} ceiling")
+
     suspend operator fun invoke(icsText: String, defaultZoneId: String): Int {
         val calendars = calendarRepository.observeAll().first()
         val targetId = (calendars.firstOrNull { it.isDefault } ?: calendars.firstOrNull())?.id ?: return 0
 
         val zone = runCatching { ZoneId.of(defaultZoneId) }.getOrDefault(ZoneId.systemDefault())
         val parsed = IcsCodec.decode(icsText, zone)
+        // Audit S12 — refused WHOLE, before a single row is written. The byte ceiling upstream bounds
+        // what is read into memory; it says nothing about how many rows reach the database, and 5 MiB
+        // of minimal VEVENT blocks is some 87 000 of them. Importing part of the file would look
+        // exactly like importing all of it.
+        if (parsed.size > ImportLimits.MAX_EVENTS) throw TooManyEvents(parsed.size)
 
         // FIAB-1 — idempotent re-import: an event whose VEVENT UID was already imported updates the
         // same row instead of adding a duplicate (events without a UID still insert). Same pattern

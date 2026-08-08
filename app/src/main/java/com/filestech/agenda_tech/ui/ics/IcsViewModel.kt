@@ -25,6 +25,14 @@ sealed interface IcsResult {
     data class Exported(val count: Int) : IcsResult
     data class Imported(val count: Int) : IcsResult
     data object Failed : IcsResult
+
+    /**
+     * The file was readable but holds more events than the app accepts (audit S12).
+     *
+     * Kept apart from [Failed] on purpose: it is the one import refusal the user can act on — split
+     * the file, or pick another — and "import failed" would tell them nothing.
+     */
+    data object TooManyEvents : IcsResult
 }
 
 /**
@@ -83,7 +91,10 @@ class IcsViewModel @Inject constructor(
         }
         _result.value = outcome.fold(
             onSuccess = { IcsResult.Imported(it) },
-            onFailure = { Timber.w("ICS import failed (%s)", it.javaClass.simpleName); IcsResult.Failed },
+            onFailure = { error ->
+                Timber.w("ICS import failed (%s)", error.javaClass.simpleName)
+                if (error is ImportEventsUseCase.TooManyEvents) IcsResult.TooManyEvents else IcsResult.Failed
+            },
         )
     }
 

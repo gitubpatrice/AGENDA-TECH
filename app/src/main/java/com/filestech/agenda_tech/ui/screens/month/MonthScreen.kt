@@ -68,6 +68,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.ui.CalendarScaffold
+import com.filestech.agenda_tech.domain.ImportLimits
 import com.filestech.agenda_tech.ui.ics.IcsResult
 import com.filestech.agenda_tech.ui.ics.IcsViewModel
 import com.filestech.agenda_tech.ui.navigation.CalendarView
@@ -120,6 +121,8 @@ fun MonthScreen(
         val message = when (val result = icsResult) {
             is IcsResult.Exported -> resources.getString(R.string.ics_export_ok, result.count)
             is IcsResult.Imported -> resources.getString(R.string.ics_import_ok, result.count)
+            IcsResult.TooManyEvents ->
+                resources.getString(R.string.ics_import_too_many, ImportLimits.MAX_EVENTS)
             IcsResult.Failed -> resources.getString(R.string.ics_error)
             null -> null
         }
