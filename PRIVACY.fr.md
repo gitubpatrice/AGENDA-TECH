@@ -26,6 +26,14 @@ Le développeur n'a **aucun accès** à ces données et n'en reçoit **aucune co
 
 ## Permissions demandées et pourquoi
 
+Cette liste est **exhaustive** : ce sont les onze permissions que porte l'APK publié, telles qu'on
+les lit dans son manifeste **fusionné**. Elle inclut donc celles qu'aucune ligne de notre code ne
+demande, mais qu'une bibliothèque a apportées avec elle — les taire aurait été plus flatteur et moins
+vrai. Un contrôle automatique refuse toute construction dont le manifeste fusionné s'écarterait de
+cette liste (`tools/check-manifest-permissions.py`, exécuté à chaque intégration continue).
+
+### Déclarées par l'application
+
 | Permission | Usage | Réseau ? |
 |---|---|---|
 | `READ_CALENDAR` | Importer, à votre demande, les événements **déjà présents** sur l'appareil (agenda Google/Exchange/local synchronisé par le système). **Lecture seule.** | Non |
@@ -33,6 +41,21 @@ Le développeur n'a **aucun accès** à ces données et n'en reçoit **aucune co
 | `USE_EXACT_ALARM` / `SCHEDULE_EXACT_ALARM` | Déclencher les rappels à l'heure exacte. | Non |
 | `RECEIVE_BOOT_COMPLETED` | Reprogrammer les rappels après un redémarrage. | Non |
 | `VIBRATE` | Vibration des rappels. | Non |
+
+### Apportées par les bibliothèques utilisées
+
+| Permission | Origine | Ce qu'elle sert **réellement** ici | Réseau ? |
+|---|---|---|---|
+| `USE_BIOMETRIC` | `androidx.biometric` | Déverrouiller l'application par empreinte ou visage, si vous activez le verrou. | Non |
+| `USE_FINGERPRINT` | `androidx.biometric` | Même chose sur Android 9 et antérieurs, où l'API biométrique moderne n'existe pas. | Non |
+| `WAKE_LOCK` | `androidx.work`, tirée par Glance (les widgets) | **Rien.** L'application ne planifie aucune tâche de fond. | Non |
+| `FOREGROUND_SERVICE` | `androidx.work`, tirée par Glance (les widgets) | **Rien.** L'application ne démarre aucun service au premier plan. | Non |
+| `com.filestech.agenda_tech.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | `androidx.core` | Permission **auto-attribuée**, de niveau « signature » : seule une application signée avec notre clé peut l'obtenir. Elle empêche les autres applications d'atteindre nos récepteurs internes. | Non |
+
+`WAKE_LOCK` et `FOREGROUND_SERVICE` ne couvrent aucun usage réel de l'application. Elles sont
+conservées parce que les retirer suppose de neutraliser l'initialiseur de `androidx.work`, ce qui doit
+d'abord être démontré sans effet sur les widgets. Tant que cette démonstration n'est pas faite, il
+vaut mieux une permission inutile **documentée** qu'un retrait qui casse un widget en silence.
 
 L'application ne demande **jamais** l'accès à la localisation, aux contacts, au micro, à la caméra,
 ni à Internet.

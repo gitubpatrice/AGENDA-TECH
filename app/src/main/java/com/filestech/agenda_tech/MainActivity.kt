@@ -64,6 +64,22 @@ class MainActivity : FragmentActivity() {
     /** Guards against two overlapping biometric prompts — see [showBiometricPrompt]. Main thread only. */
     private var biometricPromptInFlight = false
 
+    /**
+     * The latest value of [LockRepository.lockEnabled], readable **without suspending**.
+     *
+     * Audit F13 — [onStop] used to launch a coroutine to answer "is a lock configured?" before it
+     * could re-lock. The system takes the Recents snapshot *around* `onStop`, not after whatever it
+     * started has finished, so with "block screenshots" off and a PIN configured the window was still
+     * `UNLOCKED` — and therefore still without `FLAG_SECURE` — at the moment the snapshot was taken.
+     * The LOCK-2 guarantee stated in `SECURITY.md` ("the Recents snapshot can never leak") did not
+     * hold in exactly the configuration it was written for.
+     *
+     * Mirroring the flow into a field is what makes the decision synchronous. `@Volatile` because it
+     * is written from the collector's dispatcher and read on the Main thread.
+     */
+    @Volatile
+    private var lockConfigured = false
+
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }
 
@@ -85,6 +101,13 @@ class MainActivity : FragmentActivity() {
                 Toast.makeText(this@MainActivity, R.string.db_reset_notice, Toast.LENGTH_LONG).show()
             }
             if (lockRepository.isLockEnabled()) appLock.lock() else appLock.unlock()
+        }
+
+        // Kept up to date for [onStop], which cannot wait for a suspend read. Collected on
+        // lifecycleScope rather than repeatOnLifecycle on purpose: the value has to be current
+        // *while the Activity is stopped*, which is the one moment repeatOnLifecycle would not cover.
+        lifecycleScope.launch {
+            lockRepository.lockEnabled.collect { lockConfigured = it }
         }
 
         setContent {
@@ -122,9 +145,18 @@ class MainActivity : FragmentActivity() {
 
     override fun onStop() {
         super.onStop()
-        // Re-lock when the app leaves the foreground.
-        lifecycleScope.launch {
-            if (lockRepository.isLockEnabled()) appLock.lock()
+        // Audit F13 — re-lock when the app leaves the foreground, synchronously.
+        //
+        // FLAG_SECURE is raised here rather than left to the LaunchedEffect that normally owns it:
+        // that effect reacts to the lock state, so it can only run *after* the state has changed,
+        // which is one frame too late for a snapshot the system takes as we background. Raising the
+        // flag first and flipping the state second means the two orders agree.
+        //
+        // Nothing is cleared when no lock is configured: that is the user's "allow screenshots"
+        // preference, and honouring it is the whole reason the flag is not simply pinned on.
+        if (lockConfigured) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            appLock.lock()
         }
     }
 

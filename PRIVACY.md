@@ -26,6 +26,14 @@ The developer has **no access** to this data and receives **no copy** of it.
 
 ## Permissions requested, and why
 
+This list is **exhaustive**: it is the eleven permissions the published APK carries, as read from its
+**merged** manifest. That includes the ones no line of our own code asks for, which a library brought
+along with it — leaving those out would have been more flattering and less true. An automated check
+fails any build whose merged manifest departs from this list
+(`tools/check-manifest-permissions.py`, run on every continuous-integration build).
+
+### Declared by the app
+
 | Permission | Purpose | Network? |
 |---|---|---|
 | `READ_CALENDAR` | Import, at your request, the events **already present** on the device (Google/Exchange/local calendar synced by the system). **Read-only.** | No |
@@ -33,6 +41,20 @@ The developer has **no access** to this data and receives **no copy** of it.
 | `USE_EXACT_ALARM` / `SCHEDULE_EXACT_ALARM` | Fire reminders at the exact time. | No |
 | `RECEIVE_BOOT_COMPLETED` | Re-arm reminders after a reboot. | No |
 | `VIBRATE` | Vibration for reminders. | No |
+
+### Brought in by the libraries used
+
+| Permission | Comes from | What it actually does **here** | Network? |
+|---|---|---|---|
+| `USE_BIOMETRIC` | `androidx.biometric` | Unlock the app with a fingerprint or face, if you enable the app lock. | No |
+| `USE_FINGERPRINT` | `androidx.biometric` | The same, on Android 9 and earlier, where the modern biometric API does not exist. | No |
+| `WAKE_LOCK` | `androidx.work`, pulled in by Glance (the widgets) | **Nothing.** The app schedules no background work. | No |
+| `FOREGROUND_SERVICE` | `androidx.work`, pulled in by Glance (the widgets) | **Nothing.** The app starts no foreground service. | No |
+| `com.filestech.agenda_tech.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | `androidx.core` | A **self-granted**, signature-level permission: only an app signed with our key can hold it. It stops other apps from reaching our internal receivers. | No |
+
+`WAKE_LOCK` and `FOREGROUND_SERVICE` cover nothing the app does. They are kept because removing them
+means neutralising `androidx.work`'s initializer, which has to be shown harmless to the widgets first.
+Until that is shown, a documented useless permission beats a removal that quietly breaks a widget.
 
 The app **never** requests access to your location, contacts, microphone, camera, or the internet.
 

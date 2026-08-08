@@ -109,6 +109,33 @@ Deux garde-fous : le widget est **opt-in** (l'utilisateur choisit de le poser) ;
 titres sont masqués d'office dans le widget (LOCK-3)** — activer le verrou ne laisse donc jamais de
 titre lisible sur l'écran d'accueil.
 
+### Notification de rappel et verrou d'application — asymétrie assumée (F9)
+
+Le verrou d'application masque les titres dans le **widget**, mais **pas** dans la **notification de
+rappel**, qui continue d'afficher le titre de l'événement. Les deux surfaces répondent donc
+différemment à un même réglage. C'est un **arbitrage produit**, pas un oubli : il est écrit ici pour
+qu'il cesse d'en être un.
+
+**Décision retenue : garder le comportement actuel.**
+
+- Un rappel dont le titre est masqué ne dit plus ce qu'il rappelle. C'est la fonction principale du
+  produit, et la dégrader pour tous protégerait un scénario que les deux garde-fous ci-dessous
+  couvrent déjà.
+- L'écran de verrouillage de **l'appareil** est traité séparément et l'est correctement : la
+  visibilité des notifications y est restreinte, de sorte qu'un téléphone verrouillé posé sur une
+  table n'expose pas le titre.
+- Le widget et la notification ne sont pas des surfaces comparables. Le widget est **permanent** sur
+  l'écran d'accueil, visible de tous, sans action de personne ; la notification est **transitoire**,
+  déclenchée par un rappel que l'utilisateur a lui-même posé.
+
+**Ce que cela implique, et qu'il faut savoir** : sur un téléphone **déverrouillé** confié à
+quelqu'un, un rappel qui survient affiche le titre de l'événement, même si le verrou d'application
+est activé. Quiconque a besoin d'une confidentialité plus forte que cela doit s'appuyer sur le verrou
+de l'appareil, pas sur celui de l'application.
+
+À revisiter si un troisième cas d'usage vient s'ajouter — la bonne réponse serait alors probablement
+un réglage explicite, pas un masquage imposé.
+
 ## Import du calendrier de l'appareil (READ_CALENDAR)
 
 L'app peut copier ponctuellement les événements **déjà synchronisés localement** sur le téléphone

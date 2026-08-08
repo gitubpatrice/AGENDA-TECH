@@ -6,8 +6,6 @@ import android.content.Intent
 import com.filestech.agenda_tech.di.ApplicationScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Provider
 
@@ -29,8 +27,9 @@ import javax.inject.Provider
  *
  * `MainActivity` (`3b4da6f`) and `MainApplication` (`6aafe38`) were both moved to a `Provider` for
  * exactly this reason. The two receivers were the asymmetric twins nobody had fixed. A `Provider`
- * injects a factory, not the object, so the graph is built inside the coroutine below — off the main
- * thread, after `goAsync()` has already extended the deadline.
+ * injects a factory, not the object, so the graph is built inside the coroutine — off the main
+ * thread, after `goAsync()` has already extended the deadline. That sequence now lives in
+ * [rescheduleRemindersAsync], shared with [ExactAlarmPermissionReceiver].
  */
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
@@ -43,16 +42,6 @@ class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
-        val pendingResult = goAsync()
-        scope.launch {
-            try {
-                scheduler.get().rescheduleAll()
-                Timber.i("BootReceiver: reminders rescheduled after boot")
-            } catch (t: Throwable) {
-                Timber.w(t, "BootReceiver: failed to reschedule reminders")
-            } finally {
-                pendingResult.finish()
-            }
-        }
+        rescheduleRemindersAsync(scope, scheduler, reason = "boot completed")
     }
 }
