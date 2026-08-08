@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.backup
 
+import com.filestech.agenda_tech.core.time.TimeZones
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.Event
@@ -7,6 +8,7 @@ import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Weekday
 import kotlinx.serialization.json.Json
+import java.time.ZoneId
 
 /**
  * Pure translation between the domain models and the on-disk [BackupPayload], plus its JSON form.
@@ -109,7 +111,12 @@ object BackupCodec {
         gpsCoordinates = gpsCoordinates,
         startUtcMillis = startUtcMillis,
         endUtcMillis = endUtcMillis,
-        timeZoneId = timeZoneId,
+        // Audit F3 — the fourth ingestion path, and the only one that did not look at this field at
+        // all. Repaired rather than rejected, for the same reason `interval` is clamped just below:
+        // an .atbak written by an affected build is the user's own legitimate backup, and refusing it
+        // would punish them for a defect of ours. The clamp also closes the injection route — a
+        // hand-edited file could put a CRLF here, and this value reaches the .ics exporter.
+        timeZoneId = TimeZones.normalize(timeZoneId, ZoneId.systemDefault()),
         allDay = allDay,
         recurrence = rruleFreqRaw?.let { freqRaw ->
             RecurrenceRule(

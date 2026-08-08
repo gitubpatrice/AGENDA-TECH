@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.filestech.agenda_tech.core.crypto.AeadCipher
 import com.filestech.agenda_tech.core.crypto.KeystoreManager
+import com.filestech.agenda_tech.core.time.TimeZones
 import com.google.common.truth.Truth.assertThat
 import net.zetetic.database.sqlcipher.SQLiteDatabase
 import org.junit.After
@@ -12,14 +13,15 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.time.ZoneId
 
 /**
- * The four Room migrations (v1 → v5), driven through the **real** production path.
+ * The five Room migrations (v1 → v6), driven through the **real** production path.
  *
  * ## Why this test exists
  *
  * `d015632` recorded "pas de test MigrationTestHelper (aucune migration n'en a)" as a known,
- * non-blocking gap. That was accurate when there were no migrations. There are now four, and each runs
+ * non-blocking gap. That was accurate when there were no migrations. There are now five, and each runs
  * on a file holding the user's only copy of their agenda (`allowBackup=false`). A migration that
  * dropped a column, or that Room judged inconsistent with the entity definitions, would surface as a
  * crash on the *user's* device after an `adb install -r` — never here, because nothing ran them.
@@ -65,7 +67,7 @@ class MigrationsTest {
     }
 
     /**
-     * A row written at v1 must still be there at v5, with the columns each migration added present and
+     * A row written at v1 must still be there at v6, with the columns each migration added present and
      * null. That is what "additive" means, and it is the half a schema check cannot see: a migration
      * that recreated a table would validate perfectly and lose the agenda.
      *
@@ -130,6 +132,50 @@ class MigrationsTest {
         }
     }
 
+    /**
+     * v6 repairs `events.time_zone` where the `.ics` importer stored a name no reader could resolve.
+     *
+     * This is the one migration on this branch that rewrites existing rows, so it is also the one that
+     * has to prove it rewrites *only* what it claims: the canonical zone is left alone, and no
+     * instant moves. A repair that shifted the stored instants would look identical in the schema and
+     * would silently move every appointment in the agenda.
+     */
+    @Test
+    fun theV6MigrationRepairsUnresolvableTimeZonesAndTouchesNothingElse() {
+        seedVersion1Database()
+
+        factory.build(context).apply {
+            val zones = mutableMapOf<Long, String>()
+            val starts = mutableMapOf<Long, Long>()
+            openHelper.readableDatabase
+                .query("SELECT id, time_zone, start_utc_millis FROM events ORDER BY id")
+                .use { cursor ->
+                    while (cursor.moveToNext()) {
+                        zones[cursor.getLong(0)] = cursor.getString(1)
+                        starts[cursor.getLong(0)] = cursor.getLong(2)
+                    }
+                }
+
+            // Already canonical — the migration must not touch it.
+            assertThat(zones[1]).isEqualTo("Europe/Paris")
+            // A Windows zone name is repaired to the zone it denotes. Tokyo rather than a European one
+            // on purpose: it cannot be confused with the device's own zone, so the assertion still
+            // means something when this runs on a phone set to Paris.
+            assertThat(zones[2]).isEqualTo("Asia/Tokyo")
+            // Nothing resolves this one, so it falls back to the device zone — the same zone the
+            // importer used to compute the instant sitting next to it.
+            assertThat(zones[3]).isEqualTo(ZoneId.systemDefault().id)
+            assertThat(zones[4]).isEqualTo("Europe/Paris")
+
+            // Every value is now one the app can resolve — the whole point of the repair.
+            zones.values.forEach { assertThat(TimeZones.isCanonical(it)).isTrue() }
+
+            // And not one instant moved.
+            assertThat(starts.values.toSet()).containsExactly(SEED_START_MILLIS)
+            close()
+        }
+    }
+
     private fun AppDatabase.assertColumnsAreNull(vararg columns: String) {
         openHelper.readableDatabase
             .query("SELECT ${columns.joinToString(", ")} FROM events WHERE id = 1")
@@ -158,12 +204,14 @@ class MigrationsTest {
                 "INSERT INTO calendars (id, name, color, visible, is_default, created_at) " +
                     "VALUES (1, 'Perso', 0, 1, 1, 0)",
             )
-            v1.execSQL(
-                "INSERT INTO events (id, calendar_id, title, start_utc_millis, end_utc_millis, " +
-                    "time_zone, all_day, rrule_interval, rrule_by_weekdays, rrule_exdates, " +
-                    "created_at, updated_at) VALUES (1, 1, 'Consultation', $SEED_START_MILLIS, " +
-                    "$SEED_END_MILLIS, 'Europe/Paris', 0, 1, '', '', 0, 0)",
-            )
+            SEED_EVENTS.forEach { (id, zone) ->
+                v1.execSQL(
+                    "INSERT INTO events (id, calendar_id, title, start_utc_millis, end_utc_millis, " +
+                        "time_zone, all_day, rrule_interval, rrule_by_weekdays, rrule_exdates, " +
+                        "created_at, updated_at) VALUES ($id, 1, 'Consultation', $SEED_START_MILLIS, " +
+                        "$SEED_END_MILLIS, '$zone', 0, 1, '', '', 0, 0)",
+                )
+            }
             v1.execSQL("PRAGMA user_version = 1")
         }
     }
@@ -176,6 +224,18 @@ class MigrationsTest {
     private companion object {
         const val SEED_START_MILLIS = 1767225600000L
         const val SEED_END_MILLIS = 1767229200000L
+
+        /**
+         * Row id → the `time_zone` a v1 database holds. Row 1 is already canonical; the other three are
+         * the values the `.ics` importer really wrote before audit F3 — a Windows zone name from an
+         * Outlook export, and a name nothing at all can resolve.
+         */
+        val SEED_EVENTS = listOf(
+            1L to "Europe/Paris",
+            2L to "Tokyo Standard Time",
+            3L to "Not A Zone At All",
+            4L to "Romance Standard Time",
+        )
 
         val SIDECARS = listOf("", "-wal", "-shm", ".prerekey", "-wal.prerekey", "-shm.prerekey")
 

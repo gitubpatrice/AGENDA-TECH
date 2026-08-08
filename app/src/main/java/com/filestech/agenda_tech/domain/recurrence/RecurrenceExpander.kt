@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.recurrence
 
+import com.filestech.agenda_tech.core.time.TimeZones
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
@@ -246,8 +247,14 @@ class RecurrenceExpander @Inject constructor() {
         }
     }
 
+    /**
+     * Audit F3 — routed through the one resolver every other reader of this field uses, so a row this
+     * expander cannot resolve is exactly a row the exporter cannot resolve either. The fallback stays
+     * UTC and stays logged: unlike an import, there is no better guess available here, and a row that
+     * still needs it after the v6 repair migration is a row worth seeing in a log.
+     */
     private fun resolveZone(timeZoneId: String): ZoneId =
-        runCatching { ZoneId.of(timeZoneId) }.getOrElse {
+        TimeZones.resolveOrNull(timeZoneId) ?: run {
             Timber.w("RecurrenceExpander: unknown time zone '%s' — falling back to UTC", timeZoneId)
             ZoneId.of("UTC")
         }

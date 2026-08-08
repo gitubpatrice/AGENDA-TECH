@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.domain.device
 
 import com.filestech.agenda_tech.core.text.BidiSanitizer
+import com.filestech.agenda_tech.core.time.TimeZones
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.DeviceEvent
 import com.filestech.agenda_tech.domain.model.Event
@@ -62,9 +63,10 @@ object DeviceEventMapper {
             start = date.atStartOfDay(defaultZone).toInstant().toEpochMilli()
             end = date.plusDays(days).atStartOfDay(defaultZone).toInstant().toEpochMilli()
         } else {
-            zoneId = device.eventTimeZone
-                ?.let { tz -> runCatching { ZoneId.of(tz) }.getOrNull() }
-                ?: defaultZone
+            // Audit F3 — one resolver for every ingestion path. This one already validated the zone
+            // (it was the only one that did), but with its own rules: a device row synced from
+            // Exchange carries a Windows zone name, which it read as the device zone.
+            zoneId = TimeZones.resolve(device.eventTimeZone, defaultZone)
             start = device.dtStartUtcMillis
             end = device.dtEndUtcMillis
                 ?: device.durationRfc?.let { device.dtStartUtcMillis + parseDurationMillis(it) }

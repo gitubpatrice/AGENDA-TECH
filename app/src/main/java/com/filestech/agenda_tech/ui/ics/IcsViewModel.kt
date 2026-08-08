@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.filestech.agenda_tech.core.io.BoundedRead
 import com.filestech.agenda_tech.di.IoDispatcher
 import com.filestech.agenda_tech.domain.usecase.ExportEventsUseCase
 import com.filestech.agenda_tech.domain.usecase.ImportEventsUseCase
@@ -53,27 +54,36 @@ class IcsViewModel @Inject constructor(
         }
         _result.value = outcome.fold(
             onSuccess = { IcsResult.Exported(it) },
-            onFailure = { Timber.w(it, "ICS export failed"); IcsResult.Failed },
+            // Only the failure TYPE, never the throwable: the same rule NoOpReleaseTree sets and that
+            // the backup path already follows. What is being written here is the user's whole agenda,
+            // and a serialization or SQLite error quotes the offending input in its message.
+            onFailure = { Timber.w("ICS export failed (%s)", it.javaClass.simpleName); IcsResult.Failed },
         )
     }
 
+    /**
+     * Audit F4 — the ceiling now bounds the read itself ([BoundedRead]), instead of trusting the size
+     * the document provider declares. Asking first failed three ways: `openFileDescriptor` returning
+     * null skipped the check and read whatever came, a provider reporting a small size then serving
+     * gigabytes passed it, and a provider that honestly does not know reports `-1`, which the check
+     * refused — turning a legitimate file into "import failed". One correction covers all three,
+     * because none of them is about the size: they are about who is asked.
+     */
     fun import(uri: Uri) = viewModelScope.launch {
         val outcome = withContext(io) {
             runCatching {
-                // SEC-ICS1 — reject oversized files before loading them into memory (DoS guard).
-                context.contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
-                    val size = descriptor.statSize
-                    check(size in 0..MAX_ICS_BYTES) { "ics file too large: $size bytes" }
-                }
-                val text = context.contentResolver.openInputStream(uri)
-                    ?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
-                    ?: error("no input stream for $uri")
-                importEvents(text, ZoneId.systemDefault().id)
+                val stream = context.contentResolver.openInputStream(uri) ?: error("no input stream")
+                // Two distinct refusals, kept distinct: an unreadable pick and a file over the ceiling
+                // are different things to diagnose, and folding them into one elvis would have made
+                // "too large" report itself as "no input stream".
+                val bytes = stream.use { BoundedRead.readAtMost(it, MAX_ICS_BYTES) }
+                    ?: error("ics file exceeds $MAX_ICS_BYTES bytes")
+                importEvents(bytes.toString(Charsets.UTF_8), ZoneId.systemDefault().id)
             }
         }
         _result.value = outcome.fold(
             onSuccess = { IcsResult.Imported(it) },
-            onFailure = { Timber.w(it, "ICS import failed"); IcsResult.Failed },
+            onFailure = { Timber.w("ICS import failed (%s)", it.javaClass.simpleName); IcsResult.Failed },
         )
     }
 

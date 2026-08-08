@@ -39,6 +39,8 @@ abstract class AppDatabase : RoomDatabase() {
         // v3 (idempotent device import): calendars.source_id + events.source_uid.
         // v4 (import lookup index): index on calendars.source_id.
         // v5 (place details): events.address + postal_code + city + gps_coordinates.
-        const val SCHEMA_VERSION = 5
+        // v6 (time-zone repair): no schema change — repairs events.time_zone values written
+        //    unresolvable by the .ics importer before audit F3. See Migrations.MIGRATION_5_6.
+        const val SCHEMA_VERSION = 6
     }
 }

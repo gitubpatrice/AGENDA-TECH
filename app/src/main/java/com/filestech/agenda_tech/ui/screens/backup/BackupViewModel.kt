@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.core.crypto.wipe
 import com.filestech.agenda_tech.core.result.AppError
+import com.filestech.agenda_tech.core.io.BoundedRead
 import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.di.IoDispatcher
 import com.filestech.agenda_tech.domain.repository.ReminderRepository
@@ -25,7 +26,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.io.ByteArrayOutputStream
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -188,32 +188,19 @@ class BackupViewModel @Inject constructor(
         }
     }
 
-    // Reads the picked file, refusing anything implausibly large.
-    //
-    // The cap bounds the READ ITSELF, not the result: the restore picker has to accept every MIME
-    // type (there is none registered for .atbak), so a mis-tapped video is a normal thing to be
-    // handed. Reading it whole and *then* measuring it would be the very OOM the cap exists to stop.
+    // Reads the picked file, refusing anything implausibly large. The bounded read itself lives in
+    // BoundedRead, shared with the .ics importer: the two pickers face the same untrusted input and
+    // had grown two answers to it, of which only this one was correct (audit F4).
     //
     // Line comments, not KDoc: a wildcard MIME type carries the sequence that ends a block comment.
     private suspend fun readFile(uri: Uri): ByteArray? = withContext(io) {
         try {
             context.contentResolver.openInputStream(uri)?.use { input ->
-                // Hand-rolled rather than readBytes()/readNBytes(): the former is unbounded, and the
-                // latter is Java 9 — it does not exist before Android 13, while this app targets 8.0.
-                val out = ByteArrayOutputStream()
-                val chunk = ByteArray(READ_CHUNK_BYTES)
-                var total = 0L
-                while (true) {
-                    val read = input.read(chunk)
-                    if (read < 0) break
-                    total += read
-                    if (total > MAX_FILE_BYTES) {
+                BoundedRead.readAtMost(input, MAX_FILE_BYTES).also {
+                    if (it == null) {
                         Timber.w("Backup restore: file exceeds %d bytes — stopped reading", MAX_FILE_BYTES)
-                        return@use null
                     }
-                    out.write(chunk, 0, read)
                 }
-                out.toByteArray()
             }
         } catch (t: Throwable) {
             Timber.w(t, "Backup restore: cannot read %s", uri)
@@ -228,6 +215,5 @@ class BackupViewModel @Inject constructor(
          * than loaded.
          */
         const val MAX_FILE_BYTES = 16L * 1024 * 1024
-        const val READ_CHUNK_BYTES = 64 * 1024
     }
 }

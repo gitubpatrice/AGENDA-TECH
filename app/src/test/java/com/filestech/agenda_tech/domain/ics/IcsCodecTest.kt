@@ -348,6 +348,204 @@ class IcsCodecTest {
             .isEqualTo("SUMMARY:Rendez-vous\\nDESCRIPTION:injecté")
     }
 
+    // --- Files this codec did not write -------------------------------------
+    //
+    // Everything above round-trips our own output, which is exactly the shape of test that cannot see
+    // audit F3, F8 or F14: they are all defects in reading, or re-reading, what somebody else wrote.
+    // What follows is built from the forms Outlook, Exchange and Google Calendar actually emit.
+
+    @Test
+    fun `an Outlook file naming its zone the Windows way is read in that zone`() {
+        // Verbatim shape of an Outlook export: a VTIMEZONE block we do not parse, and a DTSTART whose
+        // TZID is a Windows zone name. ZoneId.of() rejects that name, so the importer fell back to the
+        // device zone for the instant and stored the raw string as the event's zone.
+        val decoded = IcsCodec.decode(OUTLOOK_FILE, paris).single()
+
+        assertThat(decoded.title).isEqualTo("Réunion projet")
+        assertThat(decoded.startUtcMillis).isEqualTo(parisMillis(2025, 6, 2, 14, 0))
+        // The stored zone is the zone the instant was computed in, and it is one every later reader
+        // resolves — the expander and the exporter both fell back to UTC on the raw Windows name.
+        assertThat(decoded.timeZoneId).isEqualTo("Europe/Paris")
+    }
+
+    @Test
+    fun `a Windows-named zone no longer moves the event on each export and re-import`() {
+        // Audit F3a. Export resolved the stored zone to UTC and wrote the wall-clock time in UTC under
+        // the original TZID; the re-import then read that time in the *device* zone. Every round trip
+        // therefore shifted the event by one whole offset — twice round, two hours in June.
+        val first = IcsCodec.decode(OUTLOOK_FILE, paris).single()
+        val second = IcsCodec.decode(IcsCodec.encode(listOf(first), now), paris).single()
+        val third = IcsCodec.decode(IcsCodec.encode(listOf(second), now), paris).single()
+
+        assertThat(second.startUtcMillis).isEqualTo(first.startUtcMillis)
+        assertThat(third.startUtcMillis).isEqualTo(first.startUtcMillis)
+        assertThat(third.timeZoneId).isEqualTo("Europe/Paris")
+    }
+
+    @Test
+    fun `a quoted TZID parameter names the same zone as an unquoted one`() {
+        val quoted = EXTERNAL_HEADER +
+            "BEGIN:VEVENT\r\n" +
+            "UID:quoted@example.com\r\n" +
+            "DTSTART;TZID=\"Europe/Paris\":20250602T140000\r\n" +
+            "DTEND;TZID=\"Europe/Paris\":20250602T150000\r\n" +
+            "SUMMARY:Quoted\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n"
+
+        val decoded = IcsCodec.decode(quoted, ZoneId.of("UTC")).single()
+        assertThat(decoded.timeZoneId).isEqualTo("Europe/Paris")
+        assertThat(decoded.startUtcMillis).isEqualTo(parisMillis(2025, 6, 2, 14, 0))
+    }
+
+    @Test
+    fun `every EXDATE line is honoured, not just the last one`() {
+        // Audit F8, found by both external reviewers. Properties were stored one per name, so of the
+        // three EXDATE lines Google Calendar writes for three cancelled occurrences, two were dropped
+        // and those occurrences came back to life on import.
+        val file = EXTERNAL_HEADER +
+            "BEGIN:VEVENT\r\n" +
+            "UID:weekly@example.com\r\n" +
+            "DTSTART;TZID=Europe/Paris:20250602T180000\r\n" +
+            "DTEND;TZID=Europe/Paris:20250602T190000\r\n" +
+            "RRULE:FREQ=WEEKLY;COUNT=6\r\n" +
+            "SUMMARY:Cours\r\n" +
+            "EXDATE;TZID=Europe/Paris:20250609T180000\r\n" +
+            "EXDATE;TZID=Europe/Paris:20250616T180000\r\n" +
+            "EXDATE;TZID=Europe/Paris:20250623T180000\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n"
+
+        val decoded = IcsCodec.decode(file, paris).single()
+
+        assertThat(decoded.recurrence?.exDatesUtcMillis).containsExactly(
+            parisMillis(2025, 6, 9, 18, 0),
+            parisMillis(2025, 6, 16, 18, 0),
+            parisMillis(2025, 6, 23, 18, 0),
+        )
+    }
+
+    @Test
+    fun `EXDATE lines are read each in its own zone`() {
+        // Why the lines are parsed separately rather than concatenated: each carries its own
+        // parameters, and merging them would read one line's instants in the other line's zone.
+        val file = EXTERNAL_HEADER +
+            "BEGIN:VEVENT\r\n" +
+            "UID:mixed@example.com\r\n" +
+            "DTSTART;TZID=Europe/Paris:20250602T180000\r\n" +
+            "DTEND;TZID=Europe/Paris:20250602T190000\r\n" +
+            "RRULE:FREQ=WEEKLY;COUNT=6\r\n" +
+            "SUMMARY:Cours\r\n" +
+            "EXDATE;TZID=Europe/Paris:20250609T180000\r\n" +
+            "EXDATE:20250616T160000Z\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n"
+
+        // 16:00 UTC is 18:00 in Paris in June — the same occurrence, named the other way.
+        assertThat(IcsCodec.decode(file, paris).single().recurrence?.exDatesUtcMillis).containsExactly(
+            parisMillis(2025, 6, 9, 18, 0),
+            parisMillis(2025, 6, 16, 18, 0),
+        )
+    }
+
+    @Test
+    fun `a repeated SUMMARY cannot override the one a reader would show`() {
+        val file = EXTERNAL_HEADER +
+            "BEGIN:VEVENT\r\n" +
+            "UID:dup@example.com\r\n" +
+            "DTSTART:20250601T080000Z\r\n" +
+            "SUMMARY:Dentiste\r\n" +
+            "SUMMARY:Autre chose\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n"
+
+        assertThat(IcsCodec.decode(file, paris).single().title).isEqualTo("Dentiste")
+    }
+
+    @Test
+    fun `a stored zone nothing can resolve cannot inject a property into the export`() {
+        // Audit F3c. TZID was written from the stored string, the one value that reached the output
+        // through neither escapeText nor a validator — and a hand-made .atbak carries that field
+        // verbatim into the database. The export is now written from the resolved ZoneId's id, which
+        // cannot hold a line break.
+        val event = IcsEvent(
+            title = "Rendez-vous",
+            description = null,
+            location = null,
+            startUtcMillis = parisMillis(2025, 6, 1, 9, 0),
+            endUtcMillis = parisMillis(2025, 6, 1, 10, 0),
+            timeZoneId = "Europe/Paris\r\nDESCRIPTION:injecté\r\nX-EVIL:1",
+            allDay = false,
+            recurrence = null,
+        )
+
+        val lines = contentLines(IcsCodec.encode(listOf(event), now))
+        assertThat(lines.none { it.startsWith("DESCRIPTION:") }).isTrue()
+        assertThat(lines.none { it.startsWith("X-EVIL") }).isTrue()
+        assertThat(lines.none { it.contains("injecté") }).isTrue()
+        // An unresolvable zone falls back to UTC, which is emitted as the plain "…Z" form rather than
+        // as TZID=Z — an id no reader understands.
+        assertThat(lines.single { it.startsWith("DTSTART") }).isEqualTo("DTSTART:20250601T070000Z")
+    }
+
+    @Test
+    fun `an emoji is never cut in half by the fold, at whatever offset it falls`() {
+        // Audit F14. The fold counted Kotlin Chars, which are UTF-16 code units: an emoji is two of
+        // them, and a fold landing between the two split the surrogate pair. toByteArray(UTF_8) maps
+        // an unpaired surrogate to '?', so the emoji left the exporter as "??" — silently, and with no
+        // way to recover it from the file.
+        //
+        // Two things this test had to be built around, both found by re-introducing the defect and
+        // watching an earlier version of it stay green:
+        //
+        //  - the assertion has to cross `toByteArray(UTF_8)`. The encoder's own String still holds the
+        //    unpaired surrogate; nothing is wrong until the exporter writes bytes, which is where
+        //    IcsViewModel.export does it.
+        //  - one title tests one offset. The split needs the boundary to fall exactly between two
+        //    units of one emoji, so the offset is swept instead of pinned — a single hand-picked title
+        //    lands on the boundary or misses it by luck, and a test that passes by luck is worse than
+        //    no test.
+        for (pad in 0..8) {
+            val title = "Anniversaire" + " ".repeat(pad) + "🎂".repeat(40)
+            val event = IcsEvent(
+                title = title,
+                description = null,
+                location = null,
+                startUtcMillis = parisMillis(2025, 6, 1, 9, 0),
+                endUtcMillis = parisMillis(2025, 6, 1, 10, 0),
+                timeZoneId = "Europe/Paris",
+                allDay = false,
+                recurrence = null,
+            )
+
+            val written = IcsCodec.encode(listOf(event), now)
+                .toByteArray(Charsets.UTF_8)
+                .toString(Charsets.UTF_8)
+
+            assertThat(written).doesNotContain("?")
+            assertThat(IcsCodec.decode(written, paris).single().title).isEqualTo(title)
+        }
+    }
+
+    @Test
+    fun `no exported line exceeds the 75 octets RFC 5545 allows`() {
+        // The bound RFC 5545 states is in octets, and it counts the space that opens a continuation
+        // line. Folding at 73 *characters* let a line of accented text run well past it.
+        val event = IcsEvent(
+            title = "Rendez-vous chez le médecin généraliste ".repeat(6),
+            description = "Ordre du jour très détaillé — ".repeat(10) + "🎂🎉🎁",
+            location = "Cabinet médical, 12 rue de l'Église, Saint-Étienne-de-Tinée",
+            startUtcMillis = parisMillis(2025, 6, 1, 9, 0),
+            endUtcMillis = parisMillis(2025, 6, 1, 10, 0),
+            timeZoneId = "Europe/Paris",
+            allDay = false,
+            recurrence = null,
+        )
+
+        val overLong = IcsCodec.encode(listOf(event), now)
+            .split("\r\n")
+            .filter { it.toByteArray(Charsets.UTF_8).size > 75 }
+        assertThat(overLong).isEmpty()
+        assertThat(roundTrip(event).title).isEqualTo(event.title)
+        assertThat(roundTrip(event).description).isEqualTo(event.description)
+    }
+
     /** Unfold [text] the way any RFC 5545 reader does, to count the content lines it really carries. */
     private fun contentLines(text: String): List<String> {
         val lines = mutableListOf<String>()
@@ -362,5 +560,39 @@ class IcsCodecTest {
             }
         }
         return lines
+    }
+
+    private companion object {
+        const val EXTERNAL_HEADER =
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Somebody Else//EN\r\nCALSCALE:GREGORIAN\r\n"
+
+        /**
+         * The shape Outlook and Exchange actually export: a VTIMEZONE block (which this codec does not
+         * parse, and does not need to) and a `TZID` naming the zone the Windows way.
+         */
+        const val OUTLOOK_FILE = EXTERNAL_HEADER +
+            "BEGIN:VTIMEZONE\r\n" +
+            "TZID:Romance Standard Time\r\n" +
+            "BEGIN:STANDARD\r\n" +
+            "DTSTART:16011028T030000\r\n" +
+            "TZOFFSETFROM:+0200\r\n" +
+            "TZOFFSETTO:+0100\r\n" +
+            "RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10\r\n" +
+            "END:STANDARD\r\n" +
+            "BEGIN:DAYLIGHT\r\n" +
+            "DTSTART:16010325T020000\r\n" +
+            "TZOFFSETFROM:+0100\r\n" +
+            "TZOFFSETTO:+0200\r\n" +
+            "RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3\r\n" +
+            "END:DAYLIGHT\r\n" +
+            "END:VTIMEZONE\r\n" +
+            "BEGIN:VEVENT\r\n" +
+            "UID:040000008200E00074C5B7101A82E00800000000@outlook.com\r\n" +
+            "DTSTAMP:20250520T101500Z\r\n" +
+            "DTSTART;TZID=Romance Standard Time:20250602T140000\r\n" +
+            "DTEND;TZID=Romance Standard Time:20250602T150000\r\n" +
+            "SUMMARY:Réunion projet\r\n" +
+            "END:VEVENT\r\n" +
+            "END:VCALENDAR\r\n"
     }
 }

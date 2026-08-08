@@ -2,11 +2,20 @@ package com.filestech.agenda_tech.data.local.db
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.filestech.agenda_tech.core.time.TimeZones
+import timber.log.Timber
+import java.time.ZoneId
 
 /**
- * Forward, additive Room migrations. MUST be additive (never rewrite existing rows) and MUST NOT
- * change the SQLCipher passphrase, so an `adb install -r` upgrade never re-prompts setup or loses
- * data.
+ * Forward Room migrations. They MUST NOT change the SQLCipher passphrase, so an `adb install -r`
+ * upgrade never re-prompts setup or loses data.
+ *
+ * They must also be **additive** — adding columns and indexes, never rewriting existing rows — with
+ * exactly one carved-out exception, [MIGRATION_5_6], which repairs a column this app had itself
+ * written unusable values into. The exception is narrow on purpose: it touches one column, only in
+ * rows where the stored value cannot be resolved at all, and it destroys nothing, because a value no
+ * reader can resolve is a value no reader is using. Any future migration that wants to rewrite rows
+ * has to justify itself the same way.
  */
 object Migrations {
 
@@ -67,5 +76,68 @@ object Migrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+    /**
+     * v6 (2026-08): repairs `events.time_zone` where an import stored a name nothing can resolve.
+     *
+     * ## What went wrong
+     *
+     * Audit F3 — the `.ics` importer stored the file's `TZID` string verbatim while computing the
+     * instant with the *device* zone whenever it could not resolve that string. Every `.ics` Outlook
+     * or Exchange produces names zones the Windows way (`Romance Standard Time`), so those rows kept a
+     * name that no later reader resolved: the expander fell back to UTC, which drifts a recurring
+     * occurrence by an hour across each DST boundary, and the exporter fell back to UTC too, moving
+     * the event by a whole offset on every export/import round trip.
+     *
+     * The importer is fixed, so no new row can be written this way. This exists because fixing the
+     * importer does nothing for the rows already stored — and those are the ones the user has.
+     *
+     * ## What it changes, and what it deliberately does not
+     *
+     * Only `time_zone`, and only where [TimeZones] cannot resolve the stored value. The instants are
+     * left exactly as they are: they were computed at import time and are the only record of what the
+     * file said, so recomputing them here would be guessing twice.
+     *
+     * A Windows name is repaired to the zone it denotes, which is the true fix. Anything else falls
+     * back to the device's current zone — the same zone the importer used to compute the instant, so
+     * the repaired label agrees with the instant that sits beside it. It is an approximation when the
+     * device has since changed zone, and a strictly better one than the UTC every reader was using.
+     *
+     * All-day rows are untouched by construction: the importer already stored a resolvable zone for
+     * them.
+     *
+     * The schema is unchanged, so Room's identity hash is unchanged and its validation is unaffected;
+     * the version bump exists only to give this repair a place to run exactly once.
+     */
+    private val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            val fallback = ZoneId.systemDefault()
+            val stored = mutableListOf<String>()
+            db.query("SELECT DISTINCT time_zone FROM events").use { cursor ->
+                while (cursor.moveToNext()) {
+                    if (!cursor.isNull(0)) stored += cursor.getString(0)
+                }
+            }
+            // Distinct values, not rows: a personal agenda holds a handful of zones however many
+            // events it has, and this runs while the database is being opened.
+            stored.filterNot(TimeZones::isCanonical).forEach { raw ->
+                val repaired = TimeZones.normalize(raw, fallback)
+                db.execSQL(
+                    "UPDATE events SET time_zone = ? WHERE time_zone = ?",
+                    arrayOf<Any>(repaired, raw),
+                )
+                // The raw value is a zone name from a calendar file, not agenda content — no title,
+                // location or note. It is also the only way to tell a repaired Windows name from a
+                // value that fell back.
+                Timber.i("Migration 5→6: unresolvable time zone '%s' repaired to '%s'", raw, repaired)
+            }
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(
+        MIGRATION_1_2,
+        MIGRATION_2_3,
+        MIGRATION_3_4,
+        MIGRATION_4_5,
+        MIGRATION_5_6,
+    )
 }
