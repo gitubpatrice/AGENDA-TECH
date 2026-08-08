@@ -145,8 +145,25 @@ class DatabaseFactory @Inject constructor(
             // Additive forward migrations only (cf. [Migrations]); the passphrase is unchanged
             // across bumps so `adb install -r` upgrades transparently. Downgrades are not
             // supported — we prefer a visible crash over a silent wipe of the user's agenda.
+            //
+            // There is deliberately NO call to any `fallbackToDestructive…` here, and that absence is
+            // load-bearing. This line used to read `.fallbackToDestructiveMigrationOnDowngrade(false)`
+            // and did the exact opposite of the sentence above it. Room 2.7 changed the signature: the
+            // boolean is `dropAllTables`, not an on/off switch. Disassembled from room-runtime 2.8.4:
+            //
+            //     putfield allowDestructiveMigrationOnDowngrade:Z   ← iconst_1  (UNCONDITIONAL)
+            //     putfield allowDestructiveMigrationForAllTables:Z  ← iload_1   (the argument)
+            //
+            // So calling it *armed* the destructive path whatever was passed, and `false` only asked
+            // Room to drop its own tables — which here is all three of them. Opening a v6 database with
+            // a build that expects v5 (an `adb install -r -d` while testing a migration is exactly the
+            // gesture) ran `DROP TABLE calendars/events/reminders`, silently, with `allowBackup=false`
+            // and no reset flag to tell the user afterwards.
+            //
+            // The builder's defaults are `requireMigration = true` and
+            // `allowDestructiveMigrationOnDowngrade = false`, so saying nothing gives the visible
+            // IllegalStateException the comment above promises.
             .addMigrations(*Migrations.ALL)
-            .fallbackToDestructiveMigrationOnDowngrade(false)
             .build()
         // SEC-1 — Room opens lazily on the first query, so nothing has run `PRAGMA key` yet at this
         // point. Touching the helper forces the real SQLCipher open here, inside build(), where a

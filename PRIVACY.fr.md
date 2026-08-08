@@ -89,8 +89,18 @@ votre appareil, d'une application à l'autre :
   l'application de cartes de votre téléphone. Rien d'autre n'est transmis, et rien ne part si vous
   ne touchez pas le repère. Ce que cette application de cartes fait ensuite de ces informations
   relève de sa propre politique de confidentialité.
-- **Son de rappel personnalisé** : si vous choisissez un fichier audio, l'application conserve
-  l'autorisation de le lire pour pouvoir le jouer au moment du rappel.
+- **Son de rappel** : vous choisissez une sonnerie parmi celles **déjà enregistrées sur l'appareil**,
+  via le sélecteur système. L'application mémorise l'identifiant de la sonnerie choisie et ne prend
+  **aucune autorisation d'accès persistante** sur vos fichiers — elle ne déclare ni
+  `READ_MEDIA_AUDIO` ni `READ_EXTERNAL_STORAGE`, elle ne pourrait donc pas en détenir. Si la sonnerie
+  devient illisible, le son par défaut du système est utilisé plutôt que le silence.
+
+  *(Ce paragraphe affirmait auparavant que l'application « conserve l'autorisation de lire » un
+  fichier audio choisi. C'était faux des deux côtés : le sélecteur est celui des sonneries système et
+  non un sélecteur de fichiers, et `takePersistableUriPermission` n'apparaît nulle part dans
+  l'application — le seul code voisin **relâche** une autorisation qu'une version antérieure aurait
+  pu prendre. Une politique qui se réclame d'être exhaustive doit se corriger à voix haute quand elle
+  ne l'est pas.)*
 
 ## Vos droits (RGPD)
 

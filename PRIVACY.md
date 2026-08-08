@@ -84,8 +84,17 @@ from one app to another:
   hands **those coordinates and the event's label** to your phone's maps app. Nothing else is sent,
   and nothing leaves if you don't tap the marker. What that maps app then does with the information
   is governed by its own privacy policy.
-- **Custom reminder sound**: if you pick an audio file, the app keeps permission to read it so it
-  can play it when the reminder fires.
+- **Reminder sound**: you choose a ringtone from those already registered on the device, through the
+  system ringtone picker. The app stores the identifier of the chosen ringtone and takes **no
+  persistent access permission** on your files — it declares neither `READ_MEDIA_AUDIO` nor
+  `READ_EXTERNAL_STORAGE`, so it could not hold one. If the chosen sound ever becomes unreadable, the
+  system default sound is used rather than silence.
+
+  *(This paragraph previously said the app "keeps permission to read" a picked audio file. That was
+  wrong in both halves — the picker is the system ringtone picker, not a file picker, and
+  `takePersistableUriPermission` appears nowhere in the app; the only related code releases a grant an
+  older build may have taken. A privacy policy that claims to be exhaustive has to be corrected out
+  loud when it is not.)*
 
 ## Your rights (GDPR)
 

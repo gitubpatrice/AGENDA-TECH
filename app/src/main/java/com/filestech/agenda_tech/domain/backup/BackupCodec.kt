@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.backup
 
+import com.filestech.agenda_tech.core.text.BidiSanitizer
 import com.filestech.agenda_tech.core.time.TimeZones
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
@@ -88,7 +89,7 @@ object BackupCodec {
 
     fun BackupCalendar.toDomain(): Calendar = Calendar(
         id = id,
-        name = name,
+        name = BidiSanitizer.stripAndCap(name),
         color = CalendarColor.fromRaw(colorRaw),
         isVisible = isVisible,
         isDefault = isDefault,
@@ -102,12 +103,25 @@ object BackupCodec {
     fun BackupEvent.toDomain(): Event = Event(
         id = id,
         calendarId = calendarId,
-        title = title,
-        description = description,
-        location = location,
-        address = address,
-        postalCode = postalCode,
-        city = city,
+        // Audit S7 — the `.atbak` was the ONE ingestion path that treated its text as trustworthy.
+        // `IcsCodec` and `DeviceEventMapper` both run every free-text field through BidiSanitizer;
+        // this one ran none. It is not a lesser input: the KDoc of `IcsCodec.dateProperty` already
+        // states that a hand-made .atbak carries its fields verbatim, which is exactly why the zone
+        // below is normalised. The same file, the same attacker, the six fields next to it.
+        //
+        // Concretely: a shared backup ("here's my agenda, password xxx") whose title holds a U+202E
+        // reverses how that title reads in the month view, the timeline, the HOME-SCREEN WIDGET and
+        // the reminder notification — the three surfaces SECURITY.md is careful about elsewhere. And
+        // the file cap is 16 MiB, so a multi-megabyte title is storable and then measured whole by
+        // every Compose Text that renders it.
+        //
+        // Nothing legitimate is lost: a real agenda has no bidi controls and no 4000-character title.
+        title = BidiSanitizer.stripAndCap(title),
+        description = description?.let(BidiSanitizer::stripAndCap),
+        location = location?.let(BidiSanitizer::stripAndCap),
+        address = address?.let(BidiSanitizer::stripAndCap),
+        postalCode = postalCode?.let(BidiSanitizer::stripAndCap),
+        city = city?.let(BidiSanitizer::stripAndCap),
         gpsCoordinates = gpsCoordinates,
         startUtcMillis = startUtcMillis,
         endUtcMillis = endUtcMillis,

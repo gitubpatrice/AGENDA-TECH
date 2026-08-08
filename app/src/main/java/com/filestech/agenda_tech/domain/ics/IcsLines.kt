@@ -100,6 +100,15 @@ internal object IcsLines {
             .replace("\r\n", "\\n")
             .replace("\r", "\\n")
             .replace("\n", "\\n")
+            // Audit S8 — U+2028, U+2029 and U+0085 are line terminators for `java.util.Scanner`, for
+            // `java.util.regex` outside UNIX_LINES, and for several iCalendar readers. They are inert
+            // for OUR unfold, which is exactly why no round-trip test ever saw them: the risk is
+            // entirely OUTGOING — a file the user exports and passes on, split by somebody else's
+            // reader into a property we never wrote. Same defect as the bare CR above, one Unicode
+            // block further out.
+            .replace(" ", "\\n")
+            .replace(" ", "\\n")
+            .replace("", "\\n")
             .replace(",", "\\,")
             .replace(";", "\\;")
 

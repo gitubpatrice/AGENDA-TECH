@@ -42,8 +42,17 @@ object BoundedRead {
 
     private const val CHUNK_BYTES = 64 * 1024
 
-    /** Consecutive zero-byte reads tolerated before the stream is declared unreadable. */
-    private const val MAX_EMPTY_READS = 64
+    /**
+     * Zero-byte reads tolerated **in total**, not in a row.
+     *
+     * Counting them consecutively was the first shape of this guard, and a stream can defeat it by
+     * yielding a single byte every 64 refusals: the counter resets, the loop keeps going, and the
+     * ceiling is only reached after `maxBytes × 64` round trips through Binder — hundreds of millions
+     * of them for a 5 MiB `.ics`. That is the very spin the guard exists to stop, merely slowed down.
+     * A well-behaved stream never returns 0 at all (`InputStream.read` must block until it has a byte,
+     * EOF or an exception), so any budget here is generosity; this one just cannot be reset away.
+     */
+    private const val MAX_EMPTY_READS = 4096
 
     /**
      * Everything [input] holds, or **null** as soon as it exceeds [maxBytes] — at which point nothing
@@ -54,7 +63,7 @@ object BoundedRead {
         val out = ByteArrayOutputStream()
         val chunk = ByteArray(CHUNK_BYTES)
         var total = 0L
-        var emptyReads = 0
+        var emptyReads = 0 // total, deliberately never reset
         while (true) {
             val read = input.read(chunk)
             if (read < 0) break
@@ -66,7 +75,6 @@ object BoundedRead {
                 // as a stream that cannot deliver: refused, like any other unreadable pick.
                 if (++emptyReads > MAX_EMPTY_READS) return null
             } else {
-                emptyReads = 0
                 total += read
                 if (total > maxBytes) return null
                 out.write(chunk, 0, read)

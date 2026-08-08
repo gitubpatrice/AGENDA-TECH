@@ -107,8 +107,16 @@
         </receiver>
 
         <!-- Audit F12 — re-arm the alarms when the user grants the exact-alarm permission back
-             (Android 12 only; USE_EXACT_ALARM cannot be revoked on 13+). A protected broadcast: only
-             the system can send it, so exporting it opens nothing to other apps. -->
+             (Android 12 only; USE_EXACT_ALARM cannot be revoked on 13+). Exported because the system
+             has to reach it.
+             This comment claimed the broadcast is protected, so that exporting opened nothing.
+             MESURÉ FAUX sur API 29 : la liste <protected-broadcast> est versionnée avec la plateforme
+             et cette action date d'API 31, donc n'importe quelle app peut atteindre le receiver sur
+             API 26-30. La garde est donc DANS le corps du receiver, pas ici — voir son KDoc.
+             Note au passage : l'android:permission du BootReceiver ci-dessus ne protège rien non plus,
+             RECEIVE_BOOT_COMPLETED étant de protectionLevel "normal" et donc accordée à qui la
+             demande. Ce qui protège BootReceiver, c'est que BOOT_COMPLETED, elle, est bien une
+             diffusion protégée — vérifié sur le même appareil. -->
         <receiver
             android:name=".system.alarm.ExactAlarmPermissionReceiver"
             android:exported="true">

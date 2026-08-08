@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.util.Locale
 
 class IcsCodecTest {
 
@@ -614,6 +615,69 @@ class IcsCodecTest {
         assertThat(overLong).isEmpty()
         assertThat(roundTrip(event).title).isEqualTo(event.title)
         assertThat(roundTrip(event).description).isEqualTo(event.description)
+    }
+
+    @Test
+    fun `a Unicode line separator in a title cannot forge a property in somebody else's reader`() {
+        // Audit S8. U+2028/U+2029/U+0085 are inert for our own unfold — which is why every existing
+        // round-trip test stayed green — but they terminate a line for java.util.Scanner, for
+        // java.util.regex outside UNIX_LINES, and for several iCalendar readers. The exposure is
+        // outgoing: a file the user exports and passes on.
+        val event = IcsEvent(
+            title = "Rendez-vous DESCRIPTION:injecté X-EVIL:1SUMMARY:usurpé",
+            description = null,
+            location = null,
+            startUtcMillis = parisMillis(2025, 6, 1, 9, 0),
+            endUtcMillis = parisMillis(2025, 6, 1, 10, 0),
+            timeZoneId = "Europe/Paris",
+            allDay = false,
+            recurrence = null,
+        )
+
+        val exported = IcsCodec.encode(listOf(event), now)
+
+        // Not one of the three survives into the file, so no reader — whatever it splits on — can see
+        // a line break where we did not write one.
+        assertThat(exported).doesNotContain(" ")
+        assertThat(exported).doesNotContain(" ")
+        assertThat(exported).doesNotContain("")
+        assertThat(contentLines(exported).count { it.startsWith("SUMMARY:") }).isEqualTo(1)
+        assertThat(contentLines(exported).none { it.startsWith("DESCRIPTION:") }).isTrue()
+        assertThat(contentLines(exported).none { it.startsWith("X-EVIL") }).isTrue()
+    }
+
+    @Test
+    fun `an ics file reads the same under a locale with its own casing rules`() {
+        // A security review claimed the nine `uppercase()`/`lowercase()` calls in this codec break
+        // under tr-TR (dotless I), which would mean `uid`, `tzid` and `daily` stop matching and the
+        // same file means two different things depending on the phone's language.
+        //
+        // REFUTED, and pinned: Kotlin's argument-less `uppercase()`/`lowercase()` are
+        // locale-independent by design (`Locale.ROOT`) — that is the whole reason they replaced
+        // `toUpperCase()`/`toLowerCase()`. The trap is real; it is already avoided. This test fails
+        // loudly the day someone "fixes" one of them to `uppercase(Locale.getDefault())`.
+        val lowerCased = EXTERNAL_HEADER +
+            "BEGIN:VEVENT\r\n" +
+            "uid:turkish@example.com\r\n" +
+            "dtstart;tzid=Europe/Paris:20250602T140000\r\n" +
+            "dtend;tzid=Europe/Paris:20250602T150000\r\n" +
+            "summary:Réunion\r\n" +
+            "rrule:freq=daily;count=3\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n"
+
+        val previous = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"))
+            val decoded = IcsCodec.decode(lowerCased, ZoneId.of("UTC")).single()
+            assertThat(decoded.title).isEqualTo("Réunion")
+            assertThat(decoded.uid).isEqualTo("turkish@example.com")
+            assertThat(decoded.timeZoneId).isEqualTo("Europe/Paris")
+            assertThat(decoded.startUtcMillis).isEqualTo(parisMillis(2025, 6, 2, 14, 0))
+            assertThat(decoded.recurrence?.freq).isEqualTo(RecurrenceFreq.DAILY)
+            assertThat(decoded.recurrence?.count).isEqualTo(3)
+        } finally {
+            Locale.setDefault(previous)
+        }
     }
 
     /** Unfold [text] the way any RFC 5545 reader does, to count the content lines it really carries. */
