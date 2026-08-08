@@ -8,7 +8,7 @@
 ## 1. Où en est le dépôt
 
 **Branche : `fix/audit-2026-08-08`**, partant de `main` = `893b683` = tag `v0.5.4`.
-Arbre **propre**, rien à pousser, **19 commits**, gate **verte**.
+Arbre **propre**, rien à pousser, **23 commits**, gate **verte**.
 
 | Commit | Lot | Contenu |
 |---|---|---|
@@ -31,10 +31,13 @@ Arbre **propre**, rien à pousser, **19 commits**, gate **verte**.
 | `846401b` | — | Point de reprise |
 | `1570ac0` | **L** | 3ᵉ passe d'audit, **sur mes propres correctifs** : trois régressions à moi, dont un test qui épinglait un défaut |
 | `29e41a9` | **M** | Relecture **Gemini** enfin obtenue : `TZID=Z` corrigé, six constats réfutés |
+| `d0282d7` | — | Point de reprise |
+| `1f0729f` | **N** | SEC-6 + DR-9 : le plafond d'import était **par agenda** et la troncature muette |
+| `3ca7f54` | **O** | Le logo du splash était **découpé en cercle** — coins arrondis rétablis |
 
-**État vérifié** : `assembleDebug` OK · **313 tests JVM**, 0 échec · **lint 0** · **detekt 0** ·
+**État vérifié** : `assembleDebug` OK · **316 tests JVM**, 0 échec · **lint 0** · **detekt 0** ·
 **15 tests instrumentés verts** sur Galaxy S9 · manifeste fusionné à 11 permissions, contrôle OK ·
-lancement réel sur appareil sans crash.
+lancement réel sur appareil sans crash · splash vérifié **par capture d'écran avant/après**.
 
 **Tous les lots du plan sont faits.** Ce qui reste est listé au §2.
 
@@ -90,24 +93,43 @@ Les trois plus lourds, tous vérifiés par moi avant correction :
 résolvent tous sur la tzdb **réelle** du S9 — `TimeZonesDeviceTest`. Les garder est plus sûr que de les
 moderniser : `Europe/Kyiv` n'existe qu'à partir de tzdb 2022b, donc absent des Android que l'app vise.
 
-### R2 ter — la 3ᵉ passe d'audit (`1570ac0`) : ce qui reste, consigné et NON fait
+### R2 ter — la 3ᵉ passe d'audit : traitée, sauf **deux** points assumés
 
 Les deux plongées relancées **sur mes propres correctifs** ont rendu 23 constats. Trois régressions
-étaient de moi et sont corrigées ; le motif dominant est écrit dans le corps du commit — *chaque
-correctif traitait sa moitié constatée et laissait la moitié conséquente*.
+étaient de moi (`1570ac0`), les deux derniers points de code sont faits (`1f0729f`). Le motif dominant
+est écrit dans le corps de `1570ac0` : *chaque correctif traitait sa moitié constatée et laissait la
+moitié conséquente*.
 
-Quatre points restent, chacun écrit **là où il se lit** en plus d'ici :
+**Deux points restent, tous deux assumés et écrits là où ils se lisent :**
 
-| # | Ce que c'est | Pourquoi ce n'est pas fait |
+| # | Ce que c'est | Pourquoi |
 |---|---|---|
-| **SEC-6** | La troncature de l'import depuis l'agenda de l'appareil n'est **pas signalée à l'utilisateur** (le témoin est un `Timber.w`, inerte en release) | Le dire suppose de remonter le fait jusqu'à l'écran d'import — un travail d'interface, pas un correctif |
-| **SEC-3 / DR-3** | Le diagnostic de migration n'est **pas lisible sur une version publiée** | Idem : demande une entrée dans l'écran « À propos » |
-| **SEC-12 / DR-9** | Le plafond porte sur **un import**, pas sur l'agenda ; côté appareil il porte même par **calendrier source** | Arbitrage : fermer suppose un `COUNT(*)` avant écriture, et chaque répétition exige une action de l'utilisateur |
-| **DR-7** | Un aller-retour par « journée entière » **perd définitivement** le fuseau d'auteur | Le garder proprement demande une colonne dédiée, donc une migration |
+| **SEC-1** | Sur API 26-30, n'importe quelle app peut atteindre `ExactAlarmPermissionReceiver` par intent explicite et **démarrer notre processus**, ce qui ouvre la base (`MainApplication.onCreate`). Ma garde dans `onReceive` n'économise que la passe de replanification | Fermer suppose `android:enabled="false"` + `setComponentEnabledSetting` à chaque démarrage à froid, pour une nuisance (CPU/batterie, aucune divulgation) sur API 26-30 seulement. **Soumis à relecture externe** — voir R4 |
+| **SEC-3** | `MigrationTrace` écrit en release mais ne se relit qu'en debug : elle sert là où on ne peut pas la lire | L'exposer dans « À propos » signifie du stockage en clair hors du conteneur chiffré. **Soumis à relecture externe** — voir R4 |
 
-⚠️ **À porter au portefeuille** : `fallbackToDestructiveMigrationOnDowngrade(Boolean)` a le même piège
-partout. **SMS Tech** est en Kotlin natif avec Room et migrations additives.
-`grep -rn "fallbackToDestructive" j:pplications\sms_tech` avant sa prochaine release — une minute.
+**DR-7** (l'aller-retour « journée entière » perd le fuseau d'auteur) a été **examiné et écarté** :
+cocher « journée entière » détruit déjà l'heure de l'événement, donc perdre le fuseau avec elle est
+cohérent, et revenir en arrière ne peut pas restaurer une information que l'utilisateur a lui-même
+effacée. Soumis quand même à relecture, au cas où le raisonnement aurait un trou.
+
+### R4 — relecture lancée sur la crypto de sauvegarde et les points ouverts
+
+`prompts/PROMPT-RELECTURE-CRYPTO-ET-POINTS-OUVERTS.md` est prêt et versionné. Il couvre :
+
+1. **`BackupEnvelope` / `AeadCipher` / `KeystoreManager` / `PinHasher`** — le morceau le plus sensible
+   du dépôt et **le seul qui n'a jamais reçu de plongée dédiée**. Le `.atbak` est l'unique moyen de
+   sauvegarde, son mot de passe n'est stocké nulle part.
+2. Les trois points ci-dessus (SEC-1, SEC-3, DR-7), soumis comme des **questions**, pas comme des
+   constats.
+
+À lancer avec les deux fournisseurs :
+
+```bash
+python ~/.claude/tools/audit-ia.py --provider gpt --model gpt-5.2   --prompt prompts/PROMPT-RELECTURE-CRYPTO-ET-POINTS-OUVERTS.md   --out audits/ia-externe/rapport-gpt-crypto-<date>.md   app/src/main/java/com/filestech/agenda_tech/core/crypto/*.kt   app/src/main/java/com/filestech/agenda_tech/system/alarm/ExactAlarmPermissionReceiver.kt   app/src/main/java/com/filestech/agenda_tech/core/prefs/MigrationTrace.kt   app/src/main/java/com/filestech/agenda_tech/ui/screens/editor/EventEditorViewModel.kt
+```
+
+Idem `--provider gemini`. **Jamais audité non plus** : le widget Glance et le chemin de notification,
+qui rendent du contenu d'agenda **hors de l'application**.
 
 ### R3 — ce que l'audit a laissé de côté, sciemment
 
