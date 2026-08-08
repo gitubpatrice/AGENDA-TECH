@@ -291,6 +291,8 @@
     <string name="backup_restored">Restauré : %1$d calendrier(s), %2$d événement(s), %3$d rappel(s).</string>
     <string name="backup_bad_password">Mot de passe incorrect, ou fichier endommagé.</string>
     <string name="backup_not_a_backup">Ce fichier n\'est pas une sauvegarde Agenda Tech.</string>
+    <string name="backup_too_new">Cette sauvegarde a été créée par une version plus récente d\'Agenda Tech. Mettez l\'application à jour pour la restaurer — ne supprimez pas le fichier.</string>
+    <string name="backup_damaged">C\'est bien une sauvegarde Agenda Tech, mais elle est incomplète ou endommagée. Essayez une autre copie — conservez ce fichier.</string>
     <string name="backup_failed">La sauvegarde a échoué. Aucune donnée n\'a été modifiée.</string>
     <string name="backup_working_restore">Déchiffrement en cours…</string>
 

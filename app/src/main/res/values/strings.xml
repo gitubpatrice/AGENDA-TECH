@@ -291,6 +291,8 @@
     <string name="backup_restored">Restored: %1$d calendar(s), %2$d event(s), %3$d reminder(s).</string>
     <string name="backup_bad_password">Wrong password, or damaged file.</string>
     <string name="backup_not_a_backup">This file is not an Agenda Tech backup.</string>
+    <string name="backup_too_new">This backup was written by a newer version of Agenda Tech. Update the app to restore it — do not delete the file.</string>
+    <string name="backup_damaged">This is an Agenda Tech backup, but it is incomplete or damaged. Try another copy — keep this file.</string>
     <string name="backup_failed">The backup failed. No data was changed.</string>
     <string name="backup_working_restore">Decrypting…</string>
 

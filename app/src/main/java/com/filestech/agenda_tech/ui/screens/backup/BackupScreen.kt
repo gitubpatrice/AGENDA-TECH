@@ -187,6 +187,8 @@ private fun backupMessages(message: BackupMessage?): String? = when (message) {
         stringResource(R.string.backup_restored, message.calendars, message.events, message.reminders)
     BackupMessage.BadPasswordOrFile -> stringResource(R.string.backup_bad_password)
     BackupMessage.NotABackup -> stringResource(R.string.backup_not_a_backup)
+    BackupMessage.BackupTooNew -> stringResource(R.string.backup_too_new)
+    BackupMessage.BackupDamaged -> stringResource(R.string.backup_damaged)
     BackupMessage.PasswordTooShort -> stringResource(R.string.backup_password_too_short)
     BackupMessage.Failed -> stringResource(R.string.backup_failed)
     null -> null

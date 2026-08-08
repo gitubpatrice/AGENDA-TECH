@@ -59,8 +59,12 @@ class BackupEnvelope @Inject constructor(
      * The caller's [password] is wiped.
      */
     fun open(password: CharArray, file: ByteArray): Outcome<ByteArray> {
-        val header = parseHeader(file)
-            ?: run { password.wipe(); return Outcome.Failure(AppError.Crypto("not an Agenda Tech backup")) }
+        val what = recognise(file)
+        if (what !is Recognition.Openable) {
+            password.wipe()
+            return Outcome.Failure(AppError.Crypto(refusalReason(what)))
+        }
+        val header = what.header
         val key = deriveKey(password, header.salt, header.iterations)
             ?: return Outcome.Failure(AppError.Crypto("key derivation failed"))
         return try {
@@ -71,8 +75,34 @@ class BackupEnvelope @Inject constructor(
         }
     }
 
-    /** True when [file] at least *looks* like an `.atbak` — used to reject a wrong pick before asking for a password. */
-    fun isRecognised(file: ByteArray): Boolean = parseHeader(file) != null
+    /**
+     * What [file] turned out to be, decided on header bytes alone — before any key is derived, so
+     * the answer reveals nothing about the password.
+     *
+     * The four cases are kept apart because they call for **four different things from the user**,
+     * and collapsing them is how a correct backup gets thrown away: told "this is not a backup"
+     * about the only copy of their agenda, a reasonable person deletes the file.
+     */
+    sealed interface Recognition {
+        /** No magic bytes: the user picked something that was never an `.atbak`. */
+        data object NotABackup : Recognition
+
+        /**
+         * Ours by its magic bytes, but the envelope version or the KDF id is one this build cannot
+         * read. The file is intact — **this app is too old for it**. The user must update, not
+         * re-export and certainly not delete.
+         */
+        data object UnsupportedVersion : Recognition
+
+        /** Ours, of a version we read, but the header does not hold up: truncated or out of range. */
+        data object Malformed : Recognition
+
+        /** Ours, and the header holds up. Only the password is left to check. */
+        class Openable internal constructor(internal val header: Header) : Recognition
+    }
+
+    /** @see Recognition */
+    fun recognise(file: ByteArray): Recognition = parseHeader(file)
 
     private fun deriveKey(password: CharArray, salt: ByteArray, iterations: Int): SecretKey? {
         val spec = PBEKeySpec(password, salt, iterations, KEY_BITS)
@@ -102,33 +132,53 @@ class BackupEnvelope @Inject constructor(
             put(salt)
         }.array()
 
-    // Guard clauses over an untrusted header: each `return null` rejects one specific malformation, and
+    /**
+     * The log-facing half of [Recognition]. The user-facing half lives in the UI, in three separate
+     * strings — the whole point of the split is that these three do not become one sentence again.
+     */
+    private fun refusalReason(what: Recognition): String = when (what) {
+        Recognition.NotABackup -> "not an Agenda Tech backup"
+        Recognition.UnsupportedVersion -> "backup written by a newer Agenda Tech"
+        Recognition.Malformed -> "backup header is truncated or out of range"
+        is Recognition.Openable -> error("Openable is not a refusal")
+    }
+
+    // Guard clauses over an untrusted header: each `return` rejects one specific malformation, and
     // naming them separately is what makes a hostile file refusable without a single ambiguous branch.
     @Suppress("ReturnCount")
-    private fun parseHeader(file: ByteArray): Header? {
+    private fun parseHeader(file: ByteArray): Recognition {
+        // The magic is asked first and alone: it is the only question whose honest answer is "you
+        // picked the wrong file". Every check after it is about a file that IS ours, and must never
+        // be reported as if it belonged to someone else.
+        if (file.size < MAGIC.size) return Recognition.NotABackup
+        if (!file.copyOfRange(0, MAGIC.size).contentEquals(MAGIC)) return Recognition.NotABackup
+
         // Everything up to and including the saltLen byte: magic(5) + envVersion + kdfId + saltLen (3)
         // + iterations(4). The salt itself follows.
         val preSalt = MAGIC.size + 3 + Int.SIZE_BYTES
-        if (file.size < preSalt) return null
-        if (!file.copyOfRange(0, MAGIC.size).contentEquals(MAGIC)) return null
+        if (file.size < preSalt) return Recognition.Malformed
         // Split from the wrap(): on the Android platform signature `position()` returns `Buffer`,
         // which would erase the ByteBuffer type and the typed getters with it.
         val buf = ByteBuffer.wrap(file)
         buf.position(MAGIC.size)
-        if (buf.get() != ENVELOPE_VERSION) return null
-        if (buf.get() != KDF_PBKDF2_HMAC_SHA256) return null
+        // The class KDoc promises this format can move to another KDF "without invalidating files
+        // already written". That promise has a mirror image nothing was enforcing: an *older* build
+        // meeting a *newer* file. It used to answer "this is not an Agenda Tech backup" — about a
+        // perfectly intact backup, to a user for whom it is the only copy of their agenda.
+        if (buf.get() != ENVELOPE_VERSION) return Recognition.UnsupportedVersion
+        if (buf.get() != KDF_PBKDF2_HMAC_SHA256) return Recognition.UnsupportedVersion
         val iterations = buf.int
         // A hostile file could ask for billions of rounds and hang the app until the user force-quits.
         // The floor matters just as much: it would silently produce a key nobody had to work for.
-        if (iterations !in MIN_ITERATIONS..MAX_ITERATIONS) return null
+        if (iterations !in MIN_ITERATIONS..MAX_ITERATIONS) return Recognition.Malformed
         val saltLen = buf.get().toInt()
-        if (saltLen !in MIN_SALT_BYTES..MAX_SALT_BYTES) return null
-        if (file.size < preSalt + saltLen) return null
+        if (saltLen !in MIN_SALT_BYTES..MAX_SALT_BYTES) return Recognition.Malformed
+        if (file.size < preSalt + saltLen) return Recognition.Malformed
         val salt = ByteArray(saltLen).also(buf::get)
-        return Header(salt = salt, iterations = iterations, size = preSalt + saltLen)
+        return Recognition.Openable(Header(salt = salt, iterations = iterations, size = preSalt + saltLen))
     }
 
-    private data class Header(val salt: ByteArray, val iterations: Int, val size: Int)
+    internal data class Header(val salt: ByteArray, val iterations: Int, val size: Int)
 
     private fun SecretKey.wipeIfPossible() {
         // SecretKeySpec copies the bytes in and hands a fresh copy back from `encoded`, so there is no

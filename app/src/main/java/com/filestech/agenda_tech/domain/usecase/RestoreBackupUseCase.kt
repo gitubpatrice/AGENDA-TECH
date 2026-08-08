@@ -41,11 +41,14 @@ class RestoreBackupUseCase @Inject constructor(
     data class Result(val calendars: Int, val events: Int, val reminders: Int)
 
     /**
-     * True when [file] carries the `.atbak` magic bytes. Decided before any key is derived, so it
-     * lets the UI reject a wrong pick ("that is not a backup") without asking for a password, and
-     * without that answer revealing anything about the password.
+     * What [file] is, decided before any key is derived — so the UI can turn away a wrong pick
+     * without asking for a password, and without that answer revealing anything about the password.
+     *
+     * Returns the four cases apart rather than a boolean: "damaged" and "written by a newer Agenda
+     * Tech" are both real backups, and telling their owner they are not is what gets them deleted.
+     * @see BackupEnvelope.Recognition
      */
-    fun isRecognised(file: ByteArray): Boolean = envelope.isRecognised(file)
+    fun recognise(file: ByteArray): BackupEnvelope.Recognition = envelope.recognise(file)
 
     suspend operator fun invoke(password: CharArray, file: ByteArray): Outcome<Result> =
         withContext(io) {

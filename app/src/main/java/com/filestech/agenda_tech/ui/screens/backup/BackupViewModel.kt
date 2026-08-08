@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.filestech.agenda_tech.core.crypto.BackupEnvelope
 import com.filestech.agenda_tech.core.crypto.wipe
 import com.filestech.agenda_tech.core.result.AppError
 import com.filestech.agenda_tech.core.io.BoundedRead
@@ -46,6 +47,12 @@ sealed interface BackupMessage {
     /** Wrong password *or* damaged file — the two are cryptographically indistinguishable. */
     data object BadPasswordOrFile : BackupMessage
     data object NotABackup : BackupMessage
+
+    /** A real `.atbak`, written by a newer Agenda Tech than this one. The app is what must change. */
+    data object BackupTooNew : BackupMessage
+
+    /** A real `.atbak` whose header is truncated or out of range. Says so, rather than disowning it. */
+    data object BackupDamaged : BackupMessage
     data object PasswordTooShort : BackupMessage
     data object Failed : BackupMessage
 }
@@ -93,21 +100,35 @@ class BackupViewModel @Inject constructor(
     }
 
     /**
-     * Reads the picked file and decides whether it is even a backup, **before** the password is
-     * asked for. A wrong pick (a photo, a PDF) is answered on its magic bytes alone, so the user is
-     * never made to type a password only to be told the file was never openable.
+     * Reads the picked file and decides what it is, **before** the password is asked for. A wrong
+     * pick (a photo, a PDF) is answered on its magic bytes alone, so the user is never made to type
+     * a password only to be told the file was never openable.
      *
-     * Safe to answer honestly: the magic bytes are checked before any key is derived, so "not a
-     * backup" reveals nothing about the password.
+     * Safe to answer honestly: everything here is decided before any key is derived, so none of the
+     * four answers reveals anything about the password.
+     *
+     * The three refusals are kept distinct because they ask for three different things. Two of them
+     * are about a file that **is** a backup — one this build is too old to read, or one that arrived
+     * damaged — and both used to be answered "this is not an Agenda Tech backup". With
+     * `allowBackup=false` that `.atbak` may be the only copy of the agenda in existence, so a
+     * refusal phrased as a disowning is an instruction to delete it.
      */
     fun onRestoreFilePicked(uri: Uri) = viewModelScope.launch {
         val file = readFile(uri)
-        _state.value = when {
-            file == null -> BackupUiState(message = BackupMessage.Failed)
-            !restoreBackup.isRecognised(file) -> BackupUiState(message = BackupMessage.NotABackup)
-            else -> {
-                pendingRestoreFile = file
-                BackupUiState(awaitingRestorePassword = true)
+        _state.value = if (file == null) {
+            BackupUiState(message = BackupMessage.Failed)
+        } else {
+            when (restoreBackup.recognise(file)) {
+                is BackupEnvelope.Recognition.Openable -> {
+                    pendingRestoreFile = file
+                    BackupUiState(awaitingRestorePassword = true)
+                }
+                BackupEnvelope.Recognition.UnsupportedVersion ->
+                    BackupUiState(message = BackupMessage.BackupTooNew)
+                BackupEnvelope.Recognition.Malformed ->
+                    BackupUiState(message = BackupMessage.BackupDamaged)
+                BackupEnvelope.Recognition.NotABackup ->
+                    BackupUiState(message = BackupMessage.NotABackup)
             }
         }
     }

@@ -73,22 +73,25 @@ class BackupEnvelopeTest {
         val file = sealed()
         writeInt(file, ITERATIONS_OFFSET, Int.MAX_VALUE)
 
-        assertThat(envelope.isRecognised(file)).isFalse()
+        assertThat(envelope.recognise(file)).isEqualTo(BackupEnvelope.Recognition.Malformed)
         assertThat(envelope.open(password(), file)).isInstanceOf(Outcome.Failure::class.java)
     }
 
     @Test
     fun `a foreign file is not recognised as a backup`() {
-        assertThat(envelope.isRecognised("this is a text file, not a backup".toByteArray())).isFalse()
-        assertThat(envelope.isRecognised(ByteArray(0))).isFalse()
-        assertThat(envelope.isRecognised(sealed())).isTrue()
+        assertThat(envelope.recognise("this is a text file, not a backup".toByteArray()))
+            .isEqualTo(BackupEnvelope.Recognition.NotABackup)
+        assertThat(envelope.recognise(ByteArray(0))).isEqualTo(BackupEnvelope.Recognition.NotABackup)
+        assertThat(envelope.recognise(sealed())).isInstanceOf(BackupEnvelope.Recognition.Openable::class.java)
     }
 
     @Test
     fun `a truncated file is rejected rather than crashing`() {
         val truncated = sealed().copyOfRange(0, 20)
 
-        assertThat(envelope.isRecognised(truncated)).isFalse()
+        // Malformed and NOT NotABackup: it still carries our magic bytes, and the user is not going
+        // to be told their damaged backup was never a backup.
+        assertThat(envelope.recognise(truncated)).isEqualTo(BackupEnvelope.Recognition.Malformed)
         assertThat(envelope.open(password(), truncated)).isInstanceOf(Outcome.Failure::class.java)
     }
 
@@ -114,6 +117,58 @@ class BackupEnvelopeTest {
         assertThat(envelope.seal("short".toCharArray(), secret)).isInstanceOf(Outcome.Success::class.java)
     }
 
+    @Test
+    fun `a backup from a newer Agenda Tech is not disowned as "not a backup"`() {
+        // The defect this pins: parseHeader collapsed "wrong magic" and "version I cannot read" into
+        // one null, the UI turned that into "this file is not an Agenda Tech backup", and with
+        // allowBackup=false that .atbak can be the ONLY copy of the user's agenda. Being told it is
+        // not a backup is an instruction to delete it.
+        val fromTheFuture = sealed()
+        fromTheFuture[ENVELOPE_VERSION_OFFSET] = 0x02
+
+        assertThat(envelope.recognise(fromTheFuture))
+            .isEqualTo(BackupEnvelope.Recognition.UnsupportedVersion)
+    }
+
+    @Test
+    fun `a backup written with a KDF this build does not know is reported the same way`() {
+        // Same promise, other half: the class KDoc says the KDF may change "without invalidating
+        // files already written". An older build meeting the newer KDF must say so, not disown it.
+        val argon2 = sealed()
+        argon2[KDF_ID_OFFSET] = 0x02
+
+        assertThat(envelope.recognise(argon2)).isEqualTo(BackupEnvelope.Recognition.UnsupportedVersion)
+    }
+
+    @Test
+    fun `the four verdicts stay distinct — one byte apart must not collapse into one answer`() {
+        // Guards the whole point of splitting them: a single mapping mistake and the three refusals
+        // become the same message again, silently.
+        val notOurs = "this is a text file, not a backup".toByteArray()
+        val tooNew = sealed().also { it[ENVELOPE_VERSION_OFFSET] = 0x7F }
+        val damaged = sealed().copyOfRange(0, 20)
+        val fine = sealed()
+
+        assertThat(envelope.recognise(notOurs)).isEqualTo(BackupEnvelope.Recognition.NotABackup)
+        assertThat(envelope.recognise(tooNew)).isEqualTo(BackupEnvelope.Recognition.UnsupportedVersion)
+        assertThat(envelope.recognise(damaged)).isEqualTo(BackupEnvelope.Recognition.Malformed)
+        assertThat(envelope.recognise(fine)).isInstanceOf(BackupEnvelope.Recognition.Openable::class.java)
+    }
+
+    @Test
+    fun `a file from a newer version still wipes the password and never derives a key`() {
+        // open() must refuse on the header alone: deriving a key would cost a second of CPU to reach
+        // a conclusion already available, and the password must not survive the refusal.
+        val fromTheFuture = sealed()
+        fromTheFuture[ENVELOPE_VERSION_OFFSET] = 0x02
+        val secret = password()
+
+        val outcome = envelope.open(secret, fromTheFuture)
+
+        assertThat(outcome).isInstanceOf(Outcome.Failure::class.java)
+        assertThat(secret).isEqualTo(CharArray(secret.size) { ' ' })
+    }
+
     private fun writeInt(file: ByteArray, offset: Int, value: Int) {
         file[offset] = (value ushr 24).toByte()
         file[offset + 1] = (value ushr 16).toByte()
@@ -123,6 +178,8 @@ class BackupEnvelopeTest {
 
     private companion object {
         // Header layout: magic(5) | envVersion(1) | kdfId(1) | iterations(4) | saltLen(1) | salt(16)
+        const val ENVELOPE_VERSION_OFFSET = 5
+        const val KDF_ID_OFFSET = 6
         const val ITERATIONS_OFFSET = 7
         const val SALT_OFFSET = 12
     }
