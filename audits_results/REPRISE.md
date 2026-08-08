@@ -8,7 +8,7 @@
 ## 1. Où en est le dépôt
 
 **Branche : `fix/audit-2026-08-08`**, partant de `main` = `893b683` = tag `v0.5.4`.
-Arbre **propre**, rien à pousser, **27 commits**, gate **verte**.
+Arbre **propre**, rien à pousser, **29 commits**, gate **verte**.
 
 | Commit | Lot | Contenu |
 |---|---|---|
@@ -39,8 +39,10 @@ Arbre **propre**, rien à pousser, **27 commits**, gate **verte**.
 | `8a4474c` | **Q** | Trois arbitrages que j'avais mal tranchés (receiver, trace de migration, widget) |
 | `205f0c3` | **R** | L'écran de sauvegarde **annonçait un échec pendant qu'il remplaçait l'agenda** |
 | `a81454e` | **S** | F5-ter : une série pathologique désarmait les rappels derrière elle |
+| `3689b33` | — | Point de reprise |
+| `18fd03d` | **T** | **F5-quater** : F5-ter, écrit une heure plus tôt, décimait les agendas homogènes |
 
-**État vérifié** : `assembleDebug` OK · **322 tests JVM**, 0 échec · **lint 0** · **detekt 0** ·
+**État vérifié** : `assembleDebug` OK · **323 tests JVM**, 0 échec · **lint 0** · **detekt 0** ·
 **15 tests instrumentés verts** sur Galaxy S9 · manifeste fusionné à 11 permissions, contrôle OK ·
 lancement réel sur appareil sans crash · splash vérifié **par capture d'écran avant/après**.
 
@@ -166,6 +168,21 @@ d'expansion n'est pas réarmée par la passe de redémarrage.
 
 **Vérifié mécaniquement au passage** : 278 clés de chaînes, **zéro orpheline**, zéro callback vide
 réel — aucune fonctionnalité non câblée.
+
+### R6 — la plongée interne qui a rattrapé les deux relectures externes
+
+Lot T. Une plongée `android-code-quality-deep-dive` sur les **quatre commits de la soirée** a trouvé
+**1 HAUT + 5 MOYENS**, dont une régression dans un correctif vieux d'une heure.
+
+**Le HAUT est le plus instructif de tout l'audit** : F5-ter divisait l'allocation d'expansion
+`total / n`. Les deux relecteurs externes avaient validé ce correctif. Aucun n'a fait l'arithmétique :
+la division n'est clémente qu'avec une population **hétérogène**. Sur une population homogène — mille
+rappels sur des séries quotidiennes de trois ans — la part tombe sous le besoin de chacun et **aucun**
+rappel n'est armé, là où le budget partagé en armait 90 %. Corrigé par deux plafonds (passe +
+par rappel), avec un test qui tombe si l'on remet la division.
+
+**À retenir pour la suite** : deux relectures externes concordantes ne remplacent pas une vérification
+arithmétique. Elles ont trouvé le défaut de F5-bis ; elles ont approuvé son correctif défectueux.
 
 ### R3 — ce que l'audit a laissé de côté, sciemment
 
