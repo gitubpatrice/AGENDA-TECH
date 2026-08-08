@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The logo as the splash screen should draw it: inside the circular safe zone, so nothing clips it.
+
+  WHY THIS FILE EXISTS
+  `ic_launcher_foreground` is a rounded square that fills its whole canvas — which is right for the
+  launcher, where the system mask is a squircle on most devices and the mark reads edge to edge (the
+  dock shows exactly that). The splash is not the launcher: it draws the icon inside a CIRCLE, so the
+  four corners of a full-bleed square are cut off and the brand mark arrives on screen as a disc.
+  Measured on the Galaxy S9 before this change.
+
+  The fix is geometry, not a new asset. A square inscribed in a circle has a side of 1/sqrt(2) of the
+  diameter, i.e. about 71 % — so an inset of ~15 % per side is the mathematical minimum. 16 % is used
+  here for a margin, and because it is the value the rest of the portfolio already uses for the same
+  reason (Notes Tech insets its adaptive foreground by 16 %).
+
+  Deliberately NOT applied to `mipmap/ic_launcher`: the launcher mask is a squircle, the full-bleed
+  mark fits it, and insetting there would shrink the icon on the home screen for no reason. One asset,
+  two framings, each sized for the shape that will actually clip it.
+-->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_launcher_foreground"
+    android:inset="16%" />
