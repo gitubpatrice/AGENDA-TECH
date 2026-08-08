@@ -8,7 +8,7 @@
 ## 1. Où en est le dépôt
 
 **Branche : `fix/audit-2026-08-08`**, partant de `main` = `893b683` = tag `v0.5.4`.
-Arbre **propre**, rien à pousser, **7 commits**, gate **verte**.
+Arbre **propre**, rien à pousser, **11 commits**, gate **verte**.
 
 | Commit | Lot | Contenu |
 |---|---|---|
@@ -19,9 +19,15 @@ Arbre **propre**, rien à pousser, **7 commits**, gate **verte**.
 | `0d90527` | **B'** | Correctifs issus des relectures externes **sur mon propre lot B** |
 | `c0e4603` | **C** | F2 — les deux receivers construisaient la base sur le thread principal |
 | `a181882` | **D** | F5 budget · F16 overrides vivants · F7 alarmes orphelines |
+| `dbde5c7` | — | Ce point de reprise |
+| `dd84ad7` | **E** | F3 fuseaux Outlook + migration v6 · F4 lecture bornée · F8 EXDATE · F14 pliage |
+| `7612866` | **G** | C0-1 les 11 permissions dans `PRIVACY` · F9 dans `SECURITY.md` · F13 · F12 |
+| `cfe9985` | **H** | Relecture GPT des lots C/D/E : mon lot D **annulait des alarmes vivantes** |
 
-**État vérifié** : `assembleDebug` OK · **259 tests JVM**, 0 échec · **lint 0** · **detekt 0** ·
-**7 tests instrumentés verts** sur Galaxy S9.
+**État vérifié** : `assembleDebug` OK · **293 tests JVM**, 0 échec · **lint 0** · **detekt 0** ·
+**10 tests instrumentés verts** sur Galaxy S9 · manifeste fusionné à 11 permissions, contrôle OK.
+
+**Tous les lots du plan sont faits.** Ce qui reste est listé au §2.
 
 ⚠️ **Aucune release en cours.** `version.properties` est **intact** (`versionCode=51`,
 `versionName=0.5.4`). Ne rien bumper. Le hook de fin de turn a signalé un « contexte version-bump » :
@@ -30,6 +36,45 @@ c'est un **faux positif**, déclenché par `build.gradle.kts` modifié pour des 
 ---
 
 ## 2. Ce qui reste à faire
+
+> Les lots A, B, C, D, E, F, G et H sont **faits**. Ce qui suit est ce qui reste après eux — le détail
+> historique des lots E et G est conservé plus bas, en archive, parce qu'il documente le raisonnement.
+
+### R1 — la branche n'a jamais été poussée, donc la CI n'a jamais tourné
+
+Le lot F a écrit `.github/workflows/ci.yml` (gate + assertion « zéro réseau » + tests instrumentés sur
+émulateur). **Rien de tout cela n'a jamais été exécuté par GitHub**, puisque la branche est restée
+locale. Ce qui est vérifié, c'est la porte **locale** et le script de permissions lancé à la main.
+
+Un `git push` sur `fix/audit-2026-08-08` déclencherait la CI et rendrait ces trois assertions réelles.
+C'est une action **sortante** : demander à Patrice avant.
+
+### R2 — la relecture Gemini des lots A, F, B, C, D, E reste due
+
+`gemini-3.1-pro-preview` a répondu **503** à chaque tentative, y compris après le lot H (le
+2026-08-08 en fin de parcours). Aucun modèle Pro de repli n'existe. Ces lots n'ont donc **qu'un
+relecteur externe sur deux**. À relancer dès que le modèle redevient joignable :
+
+```bash
+python ~/.claude/tools/audit-ia.py --provider gemini \
+  --prompt prompts/PROMPT-RELECTURE-LOT-CDE.md \
+  --out audits/ia-externe/rapport-gemini-lot-CDE-<date>.md <fichiers entiers>
+```
+
+### R3 — ce que l'audit a laissé de côté, sciemment
+
+- **`WAKE_LOCK` / `FOREGROUND_SERVICE`** sont dans l'APK et ne couvrent aucun usage. Les retirer
+  suppose de neutraliser l'initialiseur de `androidx.work` et de **prouver** que les widgets Glance
+  n'en souffrent pas. Documentées en attendant (`PRIVACY.md`).
+- **F12** (révocation `SCHEDULE_EXACT_ALARM`) est traité en défense sans regret, **jamais reproduit** :
+  aucun appareil API 31-32 disponible. Si un tel appareil apparaît, c'est le moment de trancher.
+- **La table CLDR Windows → IANA** est vérifiée mécaniquement (chaque valeur résout, sur la JVM ET sur
+  la tzdb réelle du S9), mais **l'exactitude sémantique d'un appariement** ne l'est que par lecture.
+  Les zones européennes et les plus courantes ont été relues à l'œil ; les exotiques non.
+
+---
+
+## 2 bis. Archive — le détail des lots E et G, tels qu'ils ont été planifiés
 
 ### Lot E — durcir l'import `.ics` (la seule entrée de données externes)
 
@@ -70,8 +115,7 @@ doit apporter les premiers cas construits à partir de **fichiers réels** (TZID
 
 ### Relectures externes restant à faire
 
-Une relecture **GPT + Gemini sur les lots C, D et E** une fois E terminé — plutôt que de multiplier les
-passes partielles.
+*(Fait pour GPT au lot H, `cfe9985`. Voir R2 pour Gemini.)*
 
 ---
 
@@ -138,15 +182,21 @@ production**, ce qui exerce plus, pas moins.
 1. **Vérifier avant d'affirmer.** Mes noms de colonnes v1 étaient faux, mes rulesets detekt étaient
    faux, ma prémisse sur le processus du widget était fausse, mon `runCatching` n'attrapait pas ce que
    je croyais. Chaque fois, la vérification a corrigé.
-2. **Sabotage systématique.** Un test vert ne prouve rien tant qu'on ne l'a pas vu échouer. Fait 4 fois
-   sur cette branche (clé nulle, migration retirée, ancien `catch` fourre-tout, budget débranché).
+2. **Sabotage systématique.** Un test vert ne prouve rien tant qu'on ne l'a pas vu échouer. Fait
+   **quinze fois** sur cette branche.
 3. **Relire ses propres correctifs.** Mon correctif du CRITIQUE ne couvrait que **la moitié du trajet
-   cryptographique** — trouvé par deux relecteurs indépendants. C'est la raison d'être de la règle.
-4. **Git** : stager **fichier par fichier**, jamais `git add -A`. Messages via **`-F fichier`**, jamais
+   cryptographique** — trouvé par deux relecteurs indépendants. Et mon lot D, qui corrigeait un
+   défaut, en a introduit un plus grave : le budget partagé faisait **annuler** les rappels suivants
+   au lieu de les laisser tranquilles. Chaque lot de correctifs est un lot de code neuf.
+4. **Le sabotage teste les tests, la relecture teste le code.** Trois de mes tests étaient verts avec
+   le correctif retiré (emoji sur la `String` au lieu des octets, un seul offset au lieu d'un
+   balayage, un `;` entre guillemets qui n'influençait rien). **Aucun relecteur externe ne l'a vu.**
+   Inversement, aucun sabotage n'aurait trouvé que `+02:00` casse l'analyseur. Les deux, toujours.
+5. **Git** : stager **fichier par fichier**, jamais `git add -A`. Messages via **`-F fichier`**, jamais
    `-m` (les accents y sont mangés).
-5. **Ne pas modifier l'arbre de travail pendant qu'un auditeur le lit** — c'est ce qui a produit le faux
+6. **Ne pas modifier l'arbre de travail pendant qu'un auditeur le lit** — c'est ce qui a produit le faux
    positif « C1 » de `ed19126`.
-6. **Jamais de baseline detekt.** La politique du lot A nomme des **règles** avec leur motif, pas des
+7. **Jamais de baseline detekt.** La politique du lot A nomme des **règles** avec leur motif, pas des
    instances : c'est auditable et le compte ne peut pas dériver.
 
 ### Appareils
@@ -191,6 +241,7 @@ Un rapport vide ou absent est un **ÉCHEC**, jamais un « rien à signaler ».
 | [lot 1](2026-08-08-lot1-audit-par-motifs.md) | L'audit par les 4 motifs : 1 CRITIQUE, 7 MAJEURS, 3 MINEURS, **et ce qui a été cherché et NON trouvé** |
 | [lot 2](2026-08-08-lot2-tri-relectures-et-plan.md) | Tri des relectures + le plan en 6 lots + les 3 décisions de Patrice |
 | [lot 3](2026-08-08-lot3-journal-des-relectures-et-correctifs.md) | Journal des relectures sur mes propres correctifs |
+| [lot 4](2026-08-08-lot4-tri-relecture-lots-CDE.md) | Tri de la relecture GPT des lots C/D/E : **6 constats retenus, 6 réfutés ou assumés avec leurs raisons** |
 | `audits/ia-externe/` | Les 3 rapports bruts (GPT lot 1, GPT lots A+F, GPT lot B) + Gemini lot 1 |
 | `prompts/` | Les prompts de relecture, versionnés parce que leur qualité décide de celle des rapports |
 
