@@ -143,9 +143,18 @@ internal object IcsLines {
      * produced `DTSTART;TZID=+02:00:20260808T100000` — and [parse] split on the FIRST colon, so it
      * read the parameter as `TZID=+02` and the value as `00:20260808T100000`, which parses as
      * nothing. The event was silently dropped, by our own reader, from our own export.
+     *
+     * **Precondition: [value] must not contain a DQUOTE.** RFC 5545 §3.2 offers no way to escape one
+     * inside a quoted value, so a `"` here would produce a malformed parameter — and a `"` followed by
+     * a `:` would forge a second one. The only caller today passes a `ZoneId.id`, whose grammar
+     * excludes it, and the `require` keeps that true for the next caller instead of leaving it to be
+     * rediscovered: the first person to reach for this on a `CN=` or `LANGUAGE=` taken from an
+     * imported file would otherwise open the injection this function exists to close (audit S10).
      */
-    fun quoteParam(value: String): String =
-        if (value.any { it == ':' || it == ';' || it == ',' }) "\"$value\"" else value
+    fun quoteParam(value: String): String {
+        require(!value.contains('"')) { "parameter value must not contain a double quote" }
+        return if (value.any { it == ':' || it == ';' || it == ',' }) "\"$value\"" else value
+    }
 
     /** Split one unfolded content line into its name, parameters and raw value; null if malformed. */
     fun parse(line: String): IcsProperty? {

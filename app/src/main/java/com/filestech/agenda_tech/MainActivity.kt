@@ -172,14 +172,34 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    /**
+     * Audit S5 — raises `FLAG_SECURE` one lifecycle step earlier than the re-lock.
+     *
+     * `onStop` was already synchronous (F13), but "synchronous" only orders our own two statements.
+     * `Window.addFlags` reaches WindowManagerService through `requestLayout()`, i.e. on the **next**
+     * traversal, while the task snapshot is taken by WMS around the same transition. That the flag
+     * wins that race was never measured, and `SECURITY.md` was claiming the snapshot "can never leak".
+     *
+     * `onPause` precedes `onStop` by several frames in every path, which gives the traversal time to
+     * land. Raising the flag here costs nothing — a system dialog is enough to trigger `onPause`, and
+     * the `LaunchedEffect` clears it again on resume when the preference allows.
+     *
+     * **Locking** stays in `onStop` on purpose: the biometric prompt goes through `onPause`, so
+     * re-locking here would fight the very unlock the user just started.
+     */
+    override fun onPause() {
+        super.onPause()
+        if (lockConfigured != false) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+    }
+
     override fun onStop() {
         super.onStop()
         // Audit F13 — re-lock when the app leaves the foreground, synchronously.
         //
-        // FLAG_SECURE is raised here rather than left to the LaunchedEffect that normally owns it:
+        // FLAG_SECURE is raised again rather than left to the LaunchedEffect that normally owns it:
         // that effect reacts to the lock state, so it can only run *after* the state has changed,
-        // which is one frame too late for a snapshot the system takes as we background. Raising the
-        // flag first and flipping the state second means the two orders agree.
+        // which is one frame too late. [onPause] has already raised it; this is the belt to that
+        // brace, and it costs one idempotent call.
         //
         // Nothing is cleared when no lock is configured: that is the user's "allow screenshots"
         // preference, and honouring it is the whole reason the flag is not simply pinned on.
@@ -230,16 +250,25 @@ class MainActivity : FragmentActivity() {
                     ContextCompat.getMainExecutor(this@MainActivity),
                     object : BiometricPrompt.AuthenticationCallback() {
                         override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                            if (biometricGate.verify(result.cryptoObject?.cipher)) {
-                                appLock.unlock()
-                            } else {
-                                // The prompt said yes but the crypto could not run: precisely the case
-                                // the CryptoObject exists to catch. Stay locked; the PIN is on screen.
-                                Toast.makeText(
-                                    this@MainActivity,
-                                    R.string.lock_biometric_failed,
-                                    Toast.LENGTH_LONG,
-                                ).show()
+                            // Audit S6 — this callback is delivered on the Main executor, and
+                            // `verify()` runs `cipher.doFinal` on an AndroidKeyStore key: another IPC
+                            // to keystore2. The comment twenty lines above says every Keystore call in
+                            // this app stays off the Main thread; this one did not, so the claim was
+                            // false at the moment it mattered most — the tap that unlocks the app.
+                            val cipherUsed = result.cryptoObject?.cipher
+                            lifecycleScope.launch {
+                                val ok = withContext(Dispatchers.IO) { biometricGate.verify(cipherUsed) }
+                                if (ok) {
+                                    appLock.unlock()
+                                } else {
+                                    // The prompt said yes but the crypto could not run: precisely the
+                                    // case the CryptoObject exists to catch. Stay locked; PIN is on screen.
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        R.string.lock_biometric_failed,
+                                        Toast.LENGTH_LONG,
+                                    ).show()
+                                }
                             }
                         }
                     },

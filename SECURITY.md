@@ -54,6 +54,19 @@ quoi qu'il arrive) : c'est un **gate UI**, il ne modifie pas la posture crypto d
   bloquer l'app. L'échéance persistée est en horloge murale, donc déplaçable par l'utilisateur —
   elle est **bornée à un palier** au rechargement : avancer l'heure fait sauter au plus une
   attente, jamais le compteur de tentatives.
+- **Une tentative = une opération atomique (audit S16, v0.5.5).** Le back-off, la vérification du PIN
+  et l'enregistrement du résultat se déroulent désormais **sous un même verrou**
+  (`AppLockManager.attemptPin`). Auparavant la décision était coupée en deux par les ~100 ms de
+  PBKDF2, verrou relâché : toute tentative lancée dans cet intervalle lisait un back-off nul et
+  obtenait son essai. Le compteur restait juste, mais le back-off n'était appliqué à aucune d'elles —
+  une rafale d'appuis obtenait donc plusieurs essais par fenêtre de 60 s.
+- **Réinitialisation des réglages : dite, jamais silencieuse (audit S15, v0.5.5).** Le fichier de
+  préférences porte `lock_enabled` et l'enveloppe du PIN. S'il devient illisible (coupure pendant une
+  écriture, secteur corrompu, ou un octet modifié par quiconque a un accès fichier ponctuel), il est
+  remplacé par des valeurs par défaut — et **le verrou d'application se retrouve désactivé**. Il n'est
+  pas restaurable : l'enveloppe du PIN est morte avec le fichier, et verrouiller sans rien à saisir
+  serait la seule issue pire. L'application **le signale explicitement au démarrage suivant**, pour
+  que personne ne continue à faire confiance à une protection qui n'est plus là.
 - **Ré-authentification (LOCK-6).** Désactiver le verrou ou changer le PIN exige d'abord la saisie
   du PIN actuel.
 - **Biométrie : Classe 3 uniquement (audit F3, v0.5.3).** `BiometricPrompt` n'accepte plus que
@@ -93,9 +106,26 @@ quoi qu'il arrive) : c'est un **gate UI**, il ne modifie pas la posture crypto d
 
 - `FLAG_SECURE` est posé par défaut sur l'`Activity` : pas d'aperçu dans les Récents, capture
   d'écran bloquée. Un réglage « confidentialité » permet de l'assouplir, **mais** il est
-  **forcé actif** tant que le verrou est activé ou non résolu (LOCK-2) : l'écran de saisie du PIN et
-  l'aperçu Récents capturé lors du passage en arrière-plan ne peuvent jamais fuiter, quel que soit
-  le réglage utilisateur.
+  **forcé actif** dans deux cas (LOCK-2) : tant que le verrou **garde effectivement l'écran**
+  (application verrouillée) et tant que son état n'est **pas encore résolu** au démarrage.
+
+  ⚠️ Une fois le PIN saisi, votre réglage « autoriser les captures » **reprend la main** : c'est le
+  comportement voulu, et ce n'était pas ce que ce paragraphe disait. Il annonçait « forcé actif tant
+  que le verrou est activé », ce qui se lit naturellement comme « tant que la fonction verrou est
+  activée dans les réglages » — un utilisateur pouvait donc croire ses captures bloquées alors
+  qu'elles ne l'étaient pas (audit S14).
+
+- **Passage en arrière-plan.** `FLAG_SECURE` est levé dès `onPause`, un cycle de vie **avant** le
+  re-verrouillage, et de nouveau à `onStop`. La raison est une course qui n'avait jamais été
+  mesurée : `Window.addFlags` n'atteint le gestionnaire de fenêtres qu'au traversal suivant, tandis
+  que l'instantané de tâche est capturé par le système autour de cette même transition. Lever le
+  drapeau plus tôt donne au traversal le temps d'arriver.
+
+  ⚠️ Ce paragraphe affirmait auparavant que l'aperçu Récents « ne peut jamais fuiter ». Une garantie
+  absolue posée sur une course non mesurée n'en est pas une (audit S5). Ce qui est vrai et vérifiable
+  aujourd'hui : le drapeau est levé au **premier** point du cycle de vie que l'application contrôle
+  après avoir quitté le premier plan, et le verrouillage, lui, est **synchrone** depuis F13 — il ne
+  dépend plus d'une lecture disque qui se terminait après la capture.
 
 ### Widget écran d'accueil (limitation connue)
 
@@ -163,8 +193,23 @@ C'est la **seule** permission dangereuse de l'app, et elle **ne trahit pas** la 
 
 ## Contenu importé et expansion des récurrences
 
-Un `.ics` et un calendrier système sont tous deux du **contenu tiers** : ils sont traités comme
-hostiles, y compris une fois en base.
+Un `.ics`, un calendrier système **et une sauvegarde `.atbak`** sont tous du **contenu tiers** : ils
+sont traités comme hostiles, y compris une fois en base.
+
+⚠️ Le `.atbak` manquait à cette liste, et le code suivait la liste (audit S7, v0.5.5). C'est pourtant
+le format qui porte **tout** l'agenda, et une sauvegarde arrive volontiers d'ailleurs — « voilà mon
+agenda partagé, mot de passe xxx ». Son fuseau était normalisé mais ses six champs de texte libre ne
+passaient par aucun nettoyage : un `U+202E` dans un titre inversait sa lecture dans la vue mois, la
+timeline, **le widget de l'écran d'accueil** et la notification de rappel. Le nettoyage anti-Bidi et
+le plafond de longueur s'y appliquent désormais comme aux deux autres.
+
+- **Plafond sur le NOMBRE d'événements (audit S12, v0.5.5).** Les plafonds d'import étaient tous en
+  **octets** — 5 Mio pour un `.ics`, 16 Mio pour un `.atbak` — ce qui borne la mémoire mais pas le
+  nombre de lignes écrites : 5 Mio de blocs `VEVENT` minimaux font environ 87 000 événements.
+  `ImportLimits.MAX_EVENTS` donne une réponse unique et partagée. Un **fichier** choisi par
+  l'utilisateur est refusé **en bloc** avec un message — en importer une partie ressemble exactement
+  à l'importer en entier — tandis que l'agenda **de l'appareil**, qui est un fournisseur vivant sans
+  fichier à rendre, reste tronqué mais le **journalise** au lieu de se taire.
 
 - **`INTERVAL` borné (audit F1/F5/F7, v0.5.3).** Un intervalle absurde faisait lever une
   `DateTimeException` non rattrapée dans `RecurrenceExpander` : toutes les vues et le widget

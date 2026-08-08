@@ -164,7 +164,7 @@ class DatabaseFactory @Inject constructor(
             // The builder's defaults are `requireMigration = true` and
             // `allowDestructiveMigrationOnDowngrade = false`, so saying nothing gives the visible
             // IllegalStateException the comment above promises.
-            .addMigrations(*Migrations.ALL)
+            .addMigrations(*Migrations.all(context))
             .build()
         // SEC-1 — Room opens lazily on the first query, so nothing has run `PRAGMA key` yet at this
         // point. Touching the helper forces the real SQLCipher open here, inside build(), where a

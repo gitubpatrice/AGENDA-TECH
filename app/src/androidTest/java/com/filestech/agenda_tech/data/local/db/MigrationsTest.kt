@@ -166,6 +166,12 @@ class MigrationsTest {
             // importer used to compute the instant sitting next to it.
             assertThat(zones[3]).isEqualTo(ZoneId.systemDefault().id)
             assertThat(zones[4]).isEqualTo("Europe/Paris")
+            // Audit D7 — row 4 is the fully discriminating one only on a device whose zone is NOT
+            // Europe/Paris; on the reference S9 (set to Paris) rows 3 and 4 coincide and the pair
+            // stops telling "fell back" from "repaired". Row 2 carries that burden instead — Asia/Tokyo
+            // can be neither the device zone nor a coincidence — and this assertion says out loud that
+            // the repair is a mapping and not a blanket "everything becomes the device zone".
+            assertThat(zones[2]).isNotEqualTo(ZoneId.systemDefault().id)
 
             // Every value is now one the app can resolve — the whole point of the repair.
             zones.values.forEach { assertThat(TimeZones.isCanonical(it)).isTrue() }
@@ -174,6 +180,105 @@ class MigrationsTest {
             assertThat(starts.values.toSet()).containsExactly(SEED_START_MILLIS)
             close()
         }
+    }
+
+    /**
+     * Audit D1 — the regression test for the line that armed what it claimed to forbid.
+     *
+     * `.fallbackToDestructiveMigrationOnDowngrade(false)` set `allowDestructiveMigrationOnDowngrade`
+     * unconditionally (the boolean is `dropAllTables`, not a switch), so opening this database with a
+     * build that expects an older schema ran `DROP TABLE calendars/events/reminders`. Silently, with
+     * `allowBackup=false`, and with no reset flag afterwards because it is not our code doing the
+     * erasing.
+     *
+     * Stamping a version *above* the app's is the same situation from Room's point of view — it has no
+     * migration for the step down and must refuse. What is asserted is both halves: that opening
+     * fails, AND that the rows are still there afterwards.
+     */
+    @Test
+    fun aDatabaseFromTheFutureRefusesToOpenInsteadOfBeingWiped() {
+        seedVersion1Database()
+        factory.build(context).apply {
+            openHelper.writableDatabase.execSQL("PRAGMA user_version = 99")
+            close()
+        }
+
+        runCatching { factory.build(context).close() }.let { attempt ->
+            assertThat(attempt.isFailure).isTrue()
+        }
+
+        // The agenda survived the refusal — which is the whole point of refusing.
+        val key = keyManager.getOrCreatePassphrase()
+        SQLiteDatabase.openOrCreateDatabase(
+            context.getDatabasePath(AppDatabase.DATABASE_NAME).absolutePath, key, null, null,
+        ).use { db ->
+            db.query("SELECT COUNT(*) FROM events").use { cursor ->
+                assertThat(cursor.moveToFirst()).isTrue()
+                assertThat(cursor.getInt(0)).isEqualTo(SEED_EVENTS.size)
+            }
+        }
+    }
+
+    /** The chain must land on the version the app declares, or the next upgrade replays it. */
+    @Test
+    fun theUserVersionIsStampedAtTheSchemaVersionTheAppDeclares() {
+        seedVersion1Database()
+        factory.build(context).apply {
+            openHelper.readableDatabase.query("PRAGMA user_version").use { cursor ->
+                assertThat(cursor.moveToFirst()).isTrue()
+                assertThat(cursor.getInt(0)).isEqualTo(AppDatabase.SCHEMA_VERSION)
+            }
+            close()
+        }
+    }
+
+    /**
+     * Audit D7 — the v6 repair must be idempotent, and nothing exercised a second open.
+     *
+     * Reasoning says it is: [TimeZones.normalize] always returns a `ZoneId.id`, which by construction
+     * satisfies `isCanonical`, so a replay finds nothing left to repair. This proves it on the real
+     * tzdb of a real device, which is where the reasoning could have been wrong.
+     */
+    @Test
+    fun reopeningTheDatabaseDoesNotRepairAnythingASecondTime() {
+        seedVersion1Database()
+        factory.build(context).close()
+        val afterFirst = readZones()
+
+        factory.build(context).close()
+
+        assertThat(readZones()).isEqualTo(afterFirst)
+    }
+
+    /** A fresh install never runs a migration; it must still come out at v6 with the tables Room wants. */
+    @Test
+    fun aDatabaseCreatedFromScratchIsAlreadyAtTheCurrentVersion() {
+        // No seeding: this is the path every new user takes, and no test walked it.
+        factory.build(context).apply {
+            openHelper.readableDatabase.query("PRAGMA user_version").use { cursor ->
+                assertThat(cursor.moveToFirst()).isTrue()
+                assertThat(cursor.getInt(0)).isEqualTo(AppDatabase.SCHEMA_VERSION)
+            }
+            val tables = mutableSetOf<String>()
+            openHelper.readableDatabase
+                .query("SELECT name FROM sqlite_master WHERE type = 'table'")
+                .use { cursor -> while (cursor.moveToNext()) tables += cursor.getString(0) }
+            assertThat(tables).containsAtLeast("calendars", "events", "reminders")
+            close()
+        }
+    }
+
+    private fun readZones(): Map<Long, String> {
+        val zones = mutableMapOf<Long, String>()
+        val key = keyManager.getOrCreatePassphrase()
+        SQLiteDatabase.openOrCreateDatabase(
+            context.getDatabasePath(AppDatabase.DATABASE_NAME).absolutePath, key, null, null,
+        ).use { db ->
+            db.query("SELECT id, time_zone FROM events ORDER BY id").use { cursor ->
+                while (cursor.moveToNext()) zones[cursor.getLong(0)] = cursor.getString(1)
+            }
+        }
+        return zones
     }
 
     private fun AppDatabase.assertColumnsAreNull(vararg columns: String) {

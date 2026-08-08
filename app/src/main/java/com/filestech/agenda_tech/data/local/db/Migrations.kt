@@ -1,7 +1,9 @@
 package com.filestech.agenda_tech.data.local.db
 
+import android.content.Context
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.filestech.agenda_tech.core.prefs.MigrationTrace
 import com.filestech.agenda_tech.core.time.TimeZones
 import timber.log.Timber
 import java.time.ZoneId
@@ -11,7 +13,7 @@ import java.time.ZoneId
  * upgrade never re-prompts setup or loses data.
  *
  * They must also be **additive** — adding columns and indexes, never rewriting existing rows — with
- * exactly one carved-out exception, [MIGRATION_5_6], which repairs a column this app had itself
+ * exactly one carved-out exception, [migration5to6], which repairs a column this app had itself
  * written unusable values into. The exception is narrow on purpose: it touches one column, only in
  * rows where the stored value cannot be resolved at all, and it destroys nothing, because a value no
  * reader can resolve is a value no reader is using. Any future migration that wants to rewrite rows
@@ -104,10 +106,15 @@ object Migrations {
      * record of what the file said, so recomputing them here would be guessing twice.
      *
      * Cost, since this runs while the database is being opened and possibly inside a boot broadcast:
-     * one pass for the `DISTINCT`, then one `UPDATE` per **distinct unusable value** — not per row.
-     * A personal agenda holds a handful of zones however many events it has, and the realistic worst
-     * case (a whole calendar imported from one Outlook export) is a single bad value, hence two passes
-     * over a table measured in thousands of rows.
+     * one full scan for the `DISTINCT`, then **one scan per distinct unusable value** — there is no
+     * index on `time_zone`, so each `UPDATE … WHERE time_zone = ?` walks the table. That is k+1 scans
+     * for k bad values, not two; an earlier wording said "two passes", which is only true for k = 1
+     * (audit D5). No index is added for it: it would serve one migration, once, and cost every write
+     * for ever after.
+     *
+     * The numbers stay small either way. A personal agenda holds a handful of zones however many
+     * events it has, k is realistically 1 — a whole calendar imported from a single Outlook export —
+     * and k is 0 for anyone who never imported a `.ics`, in which case not one `UPDATE` runs.
      *
      * A Windows name is repaired to the zone it denotes, which is the true fix. Anything else falls
      * back to the device's current zone — the same zone the importer used to compute the instant, so
@@ -120,7 +127,7 @@ object Migrations {
      * The schema is unchanged, so Room's identity hash is unchanged and its validation is unaffected;
      * the version bump exists only to give this repair a place to run exactly once.
      */
-    private val MIGRATION_5_6 = object : Migration(5, 6) {
+    private fun migration5to6(context: Context) = object : Migration(5, 6) {
         override fun migrate(db: SupportSQLiteDatabase) {
             val fallback = ZoneId.systemDefault()
             val stored = mutableListOf<String>()
@@ -131,25 +138,37 @@ object Migrations {
             }
             // Distinct values, not rows: a personal agenda holds a handful of zones however many
             // events it has, and this runs while the database is being opened.
-            stored.filterNot(TimeZones::isCanonical).forEach { raw ->
+            val repairs = stored.filterNot(TimeZones::isCanonical).map { raw ->
                 val repaired = TimeZones.normalize(raw, fallback)
                 db.execSQL(
                     "UPDATE events SET time_zone = ? WHERE time_zone = ?",
                     arrayOf<Any>(repaired, raw),
                 )
-                // The raw value is a zone name from a calendar file, not agenda content — no title,
-                // location or note. It is also the only way to tell a repaired Windows name from a
-                // value that fell back.
                 Timber.i("Migration 5→6: unresolvable time zone '%s' repaired to '%s'", raw, repaired)
+                "$raw->$repaired"
+            }
+            // Audit D3 — the Timber line above is a debug-only witness: `NoOpReleaseTree` drops
+            // everything in release, and its `log` is empty. On the builds users run there was no
+            // trace at all of what this migration overwrote, on the one migration in this repo that
+            // destroys information. Zone names and counts only — never agenda content.
+            if (repairs.isNotEmpty()) {
+                MigrationTrace.record(context, "v6 time-zone repair: " + repairs.joinToString(", "))
             }
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(
+    /**
+     * The forward chain, in order.
+     *
+     * Takes a [Context] because [migration5to6] leaves a durable trace of what it overwrote (audit
+     * D3) and a Room migration is handed no context of its own. The four purely additive ones ignore
+     * it — they add columns and indexes and have nothing to report.
+     */
+    fun all(context: Context): Array<Migration> = arrayOf(
         MIGRATION_1_2,
         MIGRATION_2_3,
         MIGRATION_3_4,
         MIGRATION_4_5,
-        MIGRATION_5_6,
+        migration5to6(context),
     )
 }

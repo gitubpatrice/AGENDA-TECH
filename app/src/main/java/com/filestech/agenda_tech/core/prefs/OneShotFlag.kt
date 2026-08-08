@@ -38,7 +38,7 @@ value class OneShotFlag(private val key: String) {
     }
 
     companion object {
-        private const val PREFS = "agendatech_db"
+        internal const val PREFS = "agendatech_db"
 
         /** The agenda was wiped after an unrecoverable database-key failure. */
         val DATABASE_RESET = OneShotFlag("db_reset_pending")
