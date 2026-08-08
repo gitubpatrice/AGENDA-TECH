@@ -106,9 +106,15 @@ internal object IcsLines {
             // entirely OUTGOING — a file the user exports and passes on, split by somebody else's
             // reader into a property we never wrote. Same defect as the bare CR above, one Unicode
             // block further out.
-            .replace(" ", "\\n")
-            .replace(" ", "\\n")
-            .replace("", "\\n")
+            // Written as escapes, not as the characters themselves: two of the three are
+            // invisible in an editor, and an external reviewer read the third as U+2026 (an
+            // ellipsis) and reported that this line corrupts every "..." in a title. It does not
+            // — measured, the bytes were always U+2028/U+2029/U+0085 — but a source line no
+            // reader can check is a source line that invites the wrong conclusion. The test
+            // `an ellipsis survives the export untouched` pins the refutation.
+            .replace("\u2028", "\\n")
+            .replace("\u2029", "\\n")
+            .replace("\u0085", "\\n")
             .replace(",", "\\,")
             .replace(";", "\\;")
 

@@ -647,6 +647,54 @@ class IcsCodecTest {
     }
 
     @Test
+    fun `an ellipsis survives the export untouched`() {
+        // Pins a refutation. An external reviewer read the invisible U+0085 in `escapeText` as U+2026
+        // and reported that every "…" in a title is turned into an escaped line break. Measured false
+        // — the bytes were always U+2028/U+2029/U+0085 — but the only durable answer to "is that
+        // character the one you think it is" is a test, not a second reading of the same invisible
+        // glyph. The source now spells them as `\u….` escapes for the same reason.
+        val event = IcsEvent(
+            title = "À suivre… et la suite",
+            description = null,
+            location = null,
+            startUtcMillis = parisMillis(2025, 6, 1, 9, 0),
+            endUtcMillis = parisMillis(2025, 6, 1, 10, 0),
+            timeZoneId = "Europe/Paris",
+            allDay = false,
+            recurrence = null,
+        )
+
+        val exported = IcsCodec.encode(listOf(event), now)
+        assertThat(contentLines(exported).single { it.startsWith("SUMMARY:") })
+            .isEqualTo("SUMMARY:À suivre… et la suite")
+        assertThat(roundTrip(event).title).isEqualTo("À suivre… et la suite")
+    }
+
+    @Test
+    fun `an event stored as Z exports as the plain UTC form, not as TZID=Z`() {
+        // Found by external review. `ZoneId.of("Z")` is valid, so `"Z"` passes `isCanonical` and can
+        // legitimately reach the exporter — a `.ics` carrying `TZID=Z` produces exactly that. The
+        // branch matched on the literal id `"UTC"`, so this event was written `TZID=Z`, which is the
+        // unreadable id the UTC fallback exists to avoid, reached from the other side.
+        val event = IcsEvent(
+            title = "Zoulou",
+            description = null,
+            location = null,
+            startUtcMillis = parisMillis(2025, 6, 1, 10, 0),
+            endUtcMillis = parisMillis(2025, 6, 1, 11, 0),
+            timeZoneId = "Z",
+            allDay = false,
+            recurrence = null,
+        )
+
+        val lines = contentLines(IcsCodec.encode(listOf(event), now))
+        assertThat(lines.single { it.startsWith("DTSTART") }).isEqualTo("DTSTART:20250601T080000Z")
+        assertThat(lines.none { it.contains("TZID=Z") }).isTrue()
+        // And it still round-trips to a usable zone rather than being dropped.
+        assertThat(roundTrip(event).startUtcMillis).isEqualTo(event.startUtcMillis)
+    }
+
+    @Test
     fun `an ics file reads the same under a locale with its own casing rules`() {
         // A security review claimed the nine `uppercase()`/`lowercase()` calls in this codec break
         // under tr-TR (dotless I), which would mean `uid`, `tzid` and `daily` stop matching and the

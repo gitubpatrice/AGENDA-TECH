@@ -99,7 +99,13 @@ object IcsCodec {
                 val date = Instant.ofEpochMilli(utcMillis).atZone(zone).toLocalDate()
                 "$name;VALUE=DATE:${date.format(DATE_STAMP)}"
             }
-            zone.id == "UTC" -> "$name:${utcStamp(utcMillis)}"
+            // Compared on the RULES, not on the id string. An external reviewer pointed out that
+            // `zone.id == "UTC"` misses an event stored as `"Z"` — which `ZoneId.of` accepts, which
+            // `isCanonical` therefore approves, and which a `.ics` carrying `TZID=Z` produces. Such an
+            // event exported as `TZID=Z`: the very unreadable id the fallback below was chosen to
+            // avoid, reached from the other direction. `normalized()` folds every fixed-zero-offset
+            // spelling — `UTC`, `Z`, `Etc/UTC`, `GMT` — onto the plain `…Z` form every reader knows.
+            zone.normalized() == ZoneOffset.UTC -> "$name:${utcStamp(utcMillis)}"
             else -> {
                 val local = Instant.ofEpochMilli(utcMillis).atZone(zone).toLocalDateTime()
                 "$name;TZID=${IcsLines.quoteParam(zone.id)}:${local.format(LOCAL_STAMP)}"
