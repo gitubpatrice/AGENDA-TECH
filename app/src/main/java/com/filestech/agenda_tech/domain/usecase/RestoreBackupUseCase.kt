@@ -13,6 +13,7 @@ import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.repository.BackupRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -79,6 +80,10 @@ class RestoreBackupUseCase @Inject constructor(
     } catch (t: Throwable) {
         // Covers malformed JSON, an unknown format version, and domain invariants rejected in
         // Event's init (e.g. end before start) — all "this file is not usable", none of them a crash.
+        // The cause is logged rather than dropped: the message the user gets is deliberately vague
+        // (it must not describe an untrusted file back to them), so the log is the only place left
+        // that can say *why* a restore was refused.
+        Timber.w(t, "Backup restore: file rejected while decoding")
         Outcome.Failure(AppError.Validation("backup file is not readable"))
     }
 

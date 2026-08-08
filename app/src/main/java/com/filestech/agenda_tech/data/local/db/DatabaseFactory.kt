@@ -53,6 +53,9 @@ class DatabaseFactory @Inject constructor(
         }
     }
 
+    // The only spread in the codebase, and it is Room's own vararg API (`addMigrations(vararg …)`):
+    // the copy detekt warns about is one array of a handful of migrations, made once per process.
+    @Suppress("SpreadOperator")
     private fun open(context: Context, raw: ByteArray): AppDatabase {
         // SQLCipher stores this array by reference and needs it for the lifetime of the pool, so it
         // gets its own copy rather than the caller's (which is wiped as soon as build() returns).

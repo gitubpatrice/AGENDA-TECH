@@ -170,8 +170,11 @@ class EventEditorViewModel @Inject constructor(
     }
 
     fun onAddReminder(minutesBefore: Int) = _state.update {
-        if (minutesBefore in it.reminderMinutes) it
-        else it.copy(reminderMinutes = (it.reminderMinutes + minutesBefore).sorted())
+        if (minutesBefore in it.reminderMinutes) {
+            it
+        } else {
+            it.copy(reminderMinutes = (it.reminderMinutes + minutesBefore).sorted())
+        }
     }
 
     fun onRemoveReminder(minutesBefore: Int) = _state.update {

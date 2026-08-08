@@ -130,6 +130,11 @@ class RecurrenceExpander @Inject constructor() {
      * honouring `COUNT` (which counts `EXDATE`d instances), `UNTIL` (inclusive), and the scan cap.
      * Unbounded for open-ended rules — the caller stops it (window / first-match).
      */
+    // Four `break`s and one `continue`, each enforcing a *different* bound: the per-event scan cap,
+    // the shared pass budget, RFC 5545 `COUNT`, RFC 5545 `UNTIL`, and the `EXDATE` skip. Collapsing
+    // them into a single exit condition would hide which limit actually stopped a series — and each
+    // of these bounds exists because a specific defect got through (audits F1/F5/F7 and F8).
+    @Suppress("LoopWithTooManyJumpStatements")
     private fun occurrenceStarts(
         event: Event,
         rule: RecurrenceRule,

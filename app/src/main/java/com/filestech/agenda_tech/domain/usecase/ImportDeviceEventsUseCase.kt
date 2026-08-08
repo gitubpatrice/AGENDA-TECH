@@ -100,8 +100,15 @@ class ImportDeviceEventsUseCase @Inject constructor(
                     val rule = ev.recurrence
                     val withEx = if (rule != null) {
                         val extra = exByMasterDeviceId[de.deviceId].orEmpty()
-                        if (extra.isEmpty()) ev
-                        else ev.copy(recurrence = rule.copy(exDatesUtcMillis = (rule.exDatesUtcMillis + extra).distinct()))
+                        if (extra.isEmpty()) {
+                            ev
+                        } else {
+                            ev.copy(
+                                recurrence = rule.copy(
+                                    exDatesUtcMillis = (rule.exDatesUtcMillis + extra).distinct(),
+                                ),
+                            )
+                        }
                     } else {
                         ev
                     }
