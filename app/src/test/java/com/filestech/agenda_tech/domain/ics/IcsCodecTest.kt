@@ -459,6 +459,76 @@ class IcsCodecTest {
     }
 
     @Test
+    fun `an empty first SUMMARY does not throw the event away`() {
+        // External review of this lot: plain first-wins turns a concatenated or machine-merged export
+        // whose first SUMMARY is an empty placeholder into a dropped event — where the last-wins rule
+        // it replaced would have imported it. First USABLE line, not first line.
+        val file = EXTERNAL_HEADER +
+            "BEGIN:VEVENT\r\n" +
+            "UID:blankfirst@example.com\r\n" +
+            "DTSTART:20250601T080000Z\r\n" +
+            "SUMMARY:\r\n" +
+            "SUMMARY:Dentiste\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n"
+
+        assertThat(IcsCodec.decode(file, paris).single().title).isEqualTo("Dentiste")
+    }
+
+    @Test
+    fun `a fixed-offset zone survives the round-trip instead of dropping the event`() {
+        // External review of this lot, CONFIRMÉ. TimeZones accepts a fixed offset on purpose, so
+        // `+02:00` is a value this codec can be asked to export. Written unquoted it produced
+        // `DTSTART;TZID=+02:00:20250601T100000`, and parsePropertyLine split on the FIRST colon: the
+        // parameter became `TZID=+02` and the value `00:20250601T100000`, which parses as nothing.
+        // Our own reader dropped the event, from our own export.
+        val event = IcsEvent(
+            title = "Décalé",
+            description = null,
+            location = null,
+            startUtcMillis = parisMillis(2025, 6, 1, 10, 0),
+            endUtcMillis = parisMillis(2025, 6, 1, 11, 0),
+            timeZoneId = "+02:00",
+            allDay = false,
+            recurrence = null,
+        )
+
+        val exported = IcsCodec.encode(listOf(event), now)
+        // RFC 5545 §3.2 requires the quotes as soon as the value holds a colon.
+        assertThat(contentLines(exported).single { it.startsWith("DTSTART") })
+            .isEqualTo("DTSTART;TZID=\"+02:00\":20250601T100000")
+
+        val decoded = IcsCodec.decode(exported, paris).single()
+        assertThat(decoded.startUtcMillis).isEqualTo(event.startUtcMillis)
+        assertThat(decoded.timeZoneId).isEqualTo("+02:00")
+    }
+
+    @Test
+    fun `a quoted parameter value cannot smuggle a parameter of its own`() {
+        // The parameter split has to honour quotes for the same reason the value split does — being
+        // quote-aware for one delimiter and blind for the other is half a reader.
+        //
+        // This is not tidiness. Splitting on every `;` lets a value that is quoted *precisely so that
+        // it may contain one* be cut into extra parameters, and the reader then obeys them. Here a
+        // harmless X- parameter smuggles `VALUE=DATE`, which makes the event all-day AND makes the
+        // date-time parse fail — so the event is dropped outright.
+        //
+        // The first version of this test used `X-ODD="a;b"` and stayed green with the fix removed:
+        // the split produced garbage parameters that happened to affect nothing. Measured, then made
+        // discriminating.
+        val file = EXTERNAL_HEADER +
+            "BEGIN:VEVENT\r\n" +
+            "UID:semi@example.com\r\n" +
+            "DTSTART;X-ODD=\"junk;VALUE=DATE;more\";TZID=Europe/Paris:20250602T140000\r\n" +
+            "SUMMARY:Point-virgule\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n"
+
+        val decoded = IcsCodec.decode(file, ZoneId.of("UTC")).single()
+        assertThat(decoded.allDay).isFalse()
+        assertThat(decoded.timeZoneId).isEqualTo("Europe/Paris")
+        assertThat(decoded.startUtcMillis).isEqualTo(parisMillis(2025, 6, 2, 14, 0))
+    }
+
+    @Test
     fun `a stored zone nothing can resolve cannot inject a property into the export`() {
         // Audit F3c. TZID was written from the stored string, the one value that reached the output
         // through neither escapeText nor a validator — and a hand-made .atbak carries that field

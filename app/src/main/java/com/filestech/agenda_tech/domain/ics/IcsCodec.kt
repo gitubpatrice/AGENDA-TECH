@@ -22,19 +22,13 @@ import java.time.format.DateTimeFormatter
  * enough for our own round-trip and for well-known zones in other apps), and VALARM/reminders are
  * not exported. Import is tolerant: unknown properties are ignored, lines are unfolded, and both
  * UTC (`…Z`), zoned (`TZID=`) and floating date-times are accepted.
+ *
+ * The **line syntax** it is written in — folding, unfolding, TEXT escaping, parameter quoting,
+ * splitting a content line — lives in [IcsLines]. This object owns only what a calendar means.
  */
 object IcsCodec {
 
     private const val PRODID = "-//Files Tech//Agenda Tech//EN"
-    private const val CRLF = "\r\n"
-
-    /**
-     * RFC 5545 §3.1 bounds a content line to 75 **octets** excluding the line break, and the space
-     * that opens a continuation line counts toward its own 75. 73 leaves room for that space and a
-     * margin, and it is what this codec has always emitted for ASCII — the unit here changed from
-     * characters to octets (audit F14), not the width.
-     */
-    private const val FOLD_LIMIT_OCTETS = 73
 
     private val UTC_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
     private val LOCAL_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss")
@@ -55,12 +49,12 @@ object IcsCodec {
         out.appendContentLine("PRODID:$PRODID")
         out.appendContentLine("CALSCALE:GREGORIAN")
         events.forEachIndexed { index, event -> appendVEvent(out, event, index, nowUtcMillis) }
-        out.append("END:VCALENDAR").append(CRLF)
+        out.append("END:VCALENDAR").append(IcsLines.CRLF)
         return out.toString()
     }
 
     private fun StringBuilder.appendContentLine(line: String) {
-        append(fold(line)).append(CRLF)
+        append(IcsLines.fold(line)).append(IcsLines.CRLF)
     }
 
     private fun appendVEvent(out: StringBuilder, event: IcsEvent, index: Int, nowUtcMillis: Long) {
@@ -73,13 +67,13 @@ object IcsCodec {
         // Audit F2/F4 - the UID is attacker-controlled on any imported event and was the one TEXT
         // value written raw: real newlines in it became content lines, so an exported .ics could
         // carry whole VEVENTs the attacker wrote, under the user's name.
-        out.appendContentLine("UID:${escapeText(uid)}")
+        out.appendContentLine("UID:${IcsLines.escapeText(uid)}")
         out.appendContentLine("DTSTAMP:${utcStamp(nowUtcMillis)}")
         out.appendContentLine(dateProperty("DTSTART", event.startUtcMillis, event))
         out.appendContentLine(dateProperty("DTEND", event.endUtcMillis, event))
-        out.appendContentLine("SUMMARY:${escapeText(event.title)}")
-        event.description?.takeIf { it.isNotBlank() }?.let { out.appendContentLine("DESCRIPTION:${escapeText(it)}") }
-        event.location?.takeIf { it.isNotBlank() }?.let { out.appendContentLine("LOCATION:${escapeText(it)}") }
+        out.appendContentLine("SUMMARY:${IcsLines.escapeText(event.title)}")
+        event.description?.takeIf { it.isNotBlank() }?.let { out.appendContentLine("DESCRIPTION:${IcsLines.escapeText(it)}") }
+        event.location?.takeIf { it.isNotBlank() }?.let { out.appendContentLine("LOCATION:${IcsLines.escapeText(it)}") }
         event.recurrence?.let { rule ->
             out.appendContentLine("RRULE:${encodeRRule(rule)}")
             if (rule.exDatesUtcMillis.isNotEmpty()) {
@@ -93,7 +87,7 @@ object IcsCodec {
      * Audit F3c — the `TZID` parameter is written from the **resolved** zone's id, never from the
      * stored string. The stored string is attacker-reachable (a hand-made `.atbak` carries the field
      * verbatim) and was the one place a value went into the output without passing through either
-     * [escapeText] or a validator: a zone id holding a CRLF ended the content line and turned the rest
+     * [IcsLines.escapeText] or a validator: a zone id holding a CRLF ended the content line and turned the rest
      * into properties of the attacker's choosing, inside a file the user then shares. A [ZoneId] id
      * cannot contain one. This also removes the last way the emitted offset and the emitted zone name
      * could disagree, since both now come from the same [ZoneId].
@@ -108,7 +102,7 @@ object IcsCodec {
             zone.id == "UTC" -> "$name:${utcStamp(utcMillis)}"
             else -> {
                 val local = Instant.ofEpochMilli(utcMillis).atZone(zone).toLocalDateTime()
-                "$name;TZID=${zone.id}:${local.format(LOCAL_STAMP)}"
+                "$name;TZID=${IcsLines.quoteParam(zone.id)}:${local.format(LOCAL_STAMP)}"
             }
         }
     }
@@ -126,59 +120,6 @@ object IcsCodec {
     private fun utcStamp(utcMillis: Long): String =
         Instant.ofEpochMilli(utcMillis).atZone(ZoneOffset.UTC).format(UTC_STAMP)
 
-    /**
-     * RFC 5545 TEXT escaping.
-     *
-     * Audit F9/F10/F11 - a carriage return has to be neutralised too. Escaping only LF left a bare
-     * CR in the output, which every unfolder treats as a line break: a CR in a title (pasted text,
-     * a device-imported event) silently split the content line and turned the remainder into a
-     * forged property. CRLF is collapsed first so a real line break becomes one escape, not two.
-     */
-    private fun escapeText(text: String): String =
-        text.replace("\\", "\\\\")
-            .replace("\r\n", "\\n")
-            .replace("\r", "\\n")
-            .replace("\n", "\\n")
-            .replace(",", "\\,")
-            .replace(";", "\\;")
-
-    /**
-     * Fold a content line to ≤ [FOLD_LIMIT_OCTETS] octets, continuation lines prefixed with a space.
-     *
-     * Audit F14 — this counted Kotlin `Char`s, which are UTF-16 code *units*. An emoji is two of them
-     * (a surrogate pair), so a fold landing between the two split the pair; the halves are not
-     * characters, and `toByteArray(UTF_8)` maps an unpaired surrogate to `?`. An emoji at the wrong
-     * offset in a title therefore came out of the exporter as `??` — silent, and unrecoverable from
-     * the file. Counting octets and stepping by whole code points is also what RFC 5545 asks for: it
-     * bounds the line in octets and forbids folding inside a multi-octet character.
-     */
-    private fun fold(line: String): String {
-        val builder = StringBuilder(line.length + line.length / FOLD_LIMIT_OCTETS + 1)
-        var octets = 0
-        var index = 0
-        while (index < line.length) {
-            val codePoint = line.codePointAt(index)
-            val chars = Character.charCount(codePoint)
-            val width = utf8Length(codePoint)
-            if (octets > 0 && octets + width > FOLD_LIMIT_OCTETS) {
-                builder.append(CRLF).append(' ')
-                octets = 0
-            }
-            builder.append(line, index, index + chars)
-            octets += width
-            index += chars
-        }
-        return builder.toString()
-    }
-
-    /** Octets [codePoint] occupies in UTF-8. */
-    private fun utf8Length(codePoint: Int): Int = when {
-        codePoint < 0x80 -> 1
-        codePoint < 0x800 -> 2
-        codePoint < 0x10000 -> 3
-        else -> 4
-    }
-
     // --- Decode --------------------------------------------------------------
 
     /**
@@ -193,7 +134,7 @@ object IcsCodec {
      * SUMMARY does not get to have its later copy override the one a reader would show.
      */
     fun decode(text: String, defaultZone: ZoneId): List<IcsEvent> {
-        val lines = unfold(text)
+        val lines = IcsLines.unfold(text)
         val events = ArrayList<IcsEvent>()
         var current: MutableMap<String, MutableList<IcsProperty>>? = null
         for (line in lines) {
@@ -204,7 +145,7 @@ object IcsCodec {
                     current = null
                 }
                 current != null -> {
-                    val property = parsePropertyLine(line) ?: continue
+                    val property = IcsLines.parse(line) ?: continue
                     current.getOrPut(property.name) { ArrayList() } += property
                 }
             }
@@ -216,8 +157,16 @@ object IcsCodec {
 
     private fun parseVEvent(props: Map<String, List<IcsProperty>>, defaultZone: ZoneId): IcsEvent? {
         // SEC-ICS3 — an event with no usable title is dropped (matches the editor's non-blank rule).
-        val summary = props.first("SUMMARY")?.value?.let(::unescapeText)?.let(::sanitizeText)
-            ?.takeIf { it.isNotBlank() } ?: return null
+        //
+        // The FIRST USABLE line, not simply the first: external review pointed out that plain
+        // first-wins turns a file whose first SUMMARY is an empty placeholder — concatenated or
+        // machine-merged exports do produce those — into a dropped event, where the previous
+        // last-wins rule would have imported it. Skipping blanks keeps the tolerance without giving
+        // an appended line the power to override a title a reader would already have shown.
+        val summary = props["SUMMARY"].orEmpty()
+            .firstNotNullOfOrNull { property ->
+                sanitizeText(IcsLines.unescapeText(property.value)).takeIf { it.isNotBlank() }
+            } ?: return null
         val dtStart = props.first("DTSTART") ?: return null
         val start = parseDateTime(dtStart, defaultZone) ?: return null
         val dtEnd = props.first("DTEND")
@@ -238,8 +187,8 @@ object IcsCodec {
             ?.let { parseRRule(it.value, props["EXDATE"].orEmpty(), defaultZone) }
         return IcsEvent(
             title = summary,
-            description = props.first("DESCRIPTION")?.value?.let(::unescapeText)?.let(::sanitizeText),
-            location = props.first("LOCATION")?.value?.let(::unescapeText)?.let(::sanitizeText),
+            description = props.first("DESCRIPTION")?.value?.let(IcsLines::unescapeText)?.let(::sanitizeText),
+            location = props.first("LOCATION")?.value?.let(IcsLines::unescapeText)?.let(::sanitizeText),
             startUtcMillis = start,
             endUtcMillis = maxOf(end, start),
             timeZoneId = zoneId,
@@ -248,7 +197,7 @@ object IcsCodec {
             // Audit F2/F4 - UID bypassed the sanitiser every other imported string goes through.
             // Line breaks and control characters are dropped outright: never legitimate in a UID,
             // and they are the injection primitive.
-            uid = props.first("UID")?.value?.let(::unescapeText)
+            uid = props.first("UID")?.value?.let(IcsLines::unescapeText)
                 ?.filterNot { it == '\n' || it == '\r' || it.isISOControl() }
                 ?.let(::sanitizeText)
                 ?.takeIf { it.isNotBlank() },
@@ -314,45 +263,6 @@ object IcsCodec {
         )
     }.getOrNull()
 
-    private fun parsePropertyLine(line: String): IcsProperty? {
-        val colon = line.indexOf(':')
-        if (colon <= 0) return null
-        val head = line.substring(0, colon)
-        val value = line.substring(colon + 1)
-        val headParts = head.split(";")
-        val name = headParts.first().uppercase()
-        // RFC 5545 §3.2 lets a parameter value be quoted, and a producer may quote it even when it
-        // need not. Unquoting here rather than at each reader keeps `TZID="Europe/Paris"` and
-        // `TZID=Europe/Paris` the same parameter, which is what every reader below assumes.
-        val params = headParts.drop(1).mapNotNull {
-            val kv = it.split("=", limit = 2)
-            if (kv.size == 2) kv[0].uppercase() to kv[1].removeSurrounding("\"") else null
-        }.toMap()
-        return IcsProperty(name, params, value)
-    }
-
-    /**
-     * Join RFC 5545 folded lines (a following line starting with space/tab continues the previous).
-     *
-     * SEC-ICS1 — accumulates each logical line in a [StringBuilder] rather than repeatedly
-     * concatenating immutable strings, so a maliciously deep fold stays O(n) instead of O(n²).
-     */
-    private fun unfold(text: String): List<String> {
-        val rawLines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
-        val result = ArrayList<String>()
-        var current: StringBuilder? = null
-        for (raw in rawLines) {
-            if ((raw.startsWith(" ") || raw.startsWith("\t")) && current != null) {
-                current.append(raw, 1, raw.length)
-            } else {
-                current?.let { result += it.toString() }
-                current = if (raw.isNotEmpty()) StringBuilder(raw) else null
-            }
-        }
-        current?.let { result += it.toString() }
-        return result
-    }
-
     /**
      * SEC-ICS2 — strip Unicode bidirectional-control characters from imported free text and cap its
      * length. An imported `.ics` is untrusted; without the strip an RLO/LRO override could spoof how
@@ -361,28 +271,6 @@ object IcsCodec {
      */
     private fun sanitizeText(text: String): String = BidiSanitizer.stripAndCap(text)
 
-    private fun unescapeText(text: String): String {
-        val out = StringBuilder(text.length)
-        var i = 0
-        while (i < text.length) {
-            val c = text[i]
-            if (c == '\\' && i + 1 < text.length) {
-                when (text[i + 1]) {
-                    'n', 'N' -> out.append('\n')
-                    ',' -> out.append(',')
-                    ';' -> out.append(';')
-                    '\\' -> out.append('\\')
-                    else -> out.append(text[i + 1])
-                }
-                i += 2
-            } else {
-                out.append(c)
-                i++
-            }
-        }
-        return out.toString()
-    }
-
     /**
      * The zone an event is exported in. The fallback is `ZoneId.of("UTC")` and not [ZoneOffset.UTC]
      * even though they denote the same instant: their ids differ (`UTC` vs `Z`), and [dateProperty]
@@ -390,6 +278,4 @@ object IcsCodec {
      * an unresolvable zone was exported as `TZID=Z`, which no reader understands.
      */
     private fun zoneOf(event: IcsEvent): ZoneId = TimeZones.resolve(event.timeZoneId, ZoneId.of("UTC"))
-
-    private data class IcsProperty(val name: String, val params: Map<String, String>, val value: String)
 }

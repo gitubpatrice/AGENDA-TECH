@@ -93,9 +93,21 @@ object Migrations {
      *
      * ## What it changes, and what it deliberately does not
      *
-     * Only `time_zone`, and only where [TimeZones] cannot resolve the stored value. The instants are
-     * left exactly as they are: they were computed at import time and are the only record of what the
-     * file said, so recomputing them here would be guessing twice.
+     * Only `time_zone`, and only where the stored value is **not already canonical** — that is, where
+     * a later reader would not get back exactly what is stored by resolving it. That covers both a
+     * value nothing resolves and one that resolves only after trimming or unquoting; both are values
+     * every reader has to re-interpret, and the point of the repair is that none of them should have
+     * to. (Stated this way after external review: an earlier wording said "only where it cannot be
+     * resolved", which is not what [TimeZones.isCanonical] tests.)
+     *
+     * The instants are left exactly as they are: they were computed at import time and are the only
+     * record of what the file said, so recomputing them here would be guessing twice.
+     *
+     * Cost, since this runs while the database is being opened and possibly inside a boot broadcast:
+     * one pass for the `DISTINCT`, then one `UPDATE` per **distinct unusable value** — not per row.
+     * A personal agenda holds a handful of zones however many events it has, and the realistic worst
+     * case (a whole calendar imported from one Outlook export) is a single bad value, hence two passes
+     * over a table measured in thousands of rows.
      *
      * A Windows name is repaired to the zone it denotes, which is the true fix. Anything else falls
      * back to the device's current zone — the same zone the importer used to compute the instant, so

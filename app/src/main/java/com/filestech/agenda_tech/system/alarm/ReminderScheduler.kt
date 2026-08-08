@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.annotation.VisibleForTesting
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.Reminder
 import com.filestech.agenda_tech.domain.recurrence.ExpansionBudget
@@ -39,6 +40,14 @@ class ReminderScheduler @Inject constructor(
     private val reminderRepository: ReminderRepository,
 ) {
 
+    /**
+     * The budget [rescheduleAll] gives its pass. A `@VisibleForTesting` seam, as in [AppLockManager]:
+     * the real ceiling is a million iterations, which no test can reach in reasonable time, and the
+     * behaviour that has to be pinned is precisely what happens **once it is spent**.
+     */
+    @VisibleForTesting
+    internal var newPassBudget: () -> ExpansionBudget = { ExpansionBudget() }
+
     /** (Re)schedule every reminder of one event — call after creating/editing it. */
     suspend fun rescheduleEvent(eventId: Long) {
         val event = eventRepository.getById(eventId) ?: return
@@ -65,7 +74,7 @@ class ReminderScheduler @Inject constructor(
      */
     suspend fun rescheduleAll() {
         val now = System.currentTimeMillis()
-        val budget = ExpansionBudget()
+        val budget = newPassBudget()
         val overrides = eventRepository.observeOverrides().first()
         val excludedByParent = overrides
             .groupBy { it.recurrenceParentId }
@@ -176,6 +185,26 @@ class ReminderScheduler @Inject constructor(
             budget,
         )
         if (fire == null) {
+            // Audit F5-bis, found by external review of lot D — and introduced BY lot D.
+            //
+            // `null` used to mean one thing: the series has no occurrence left, so the alarm should
+            // go. Adding a budget gave it a second meaning — "we stopped looking" — without teaching
+            // this caller to tell them apart. With a budget SHARED across the whole pass, exhausting
+            // it on one pathological series made `computeNextFire` return null for every reminder
+            // after it, and each of those was then CANCELLED. A reboot could therefore silently
+            // disarm the rest of the user's reminders, permanently: nothing re-arms them until the
+            // event is edited.
+            //
+            // That is the opposite of the trade the budget was introduced for. Truncating a
+            // pathological tail means leaving those alarms alone, not destroying them. When the
+            // budget is spent we cannot conclude anything about the series, so we conclude nothing.
+            if (budget?.isExhausted == true) {
+                Timber.w(
+                    "ReminderScheduler: expansion budget spent — reminder %d left as it is, not cancelled",
+                    reminder.id,
+                )
+                return
+            }
             cancel(reminder.id)
             return
         }

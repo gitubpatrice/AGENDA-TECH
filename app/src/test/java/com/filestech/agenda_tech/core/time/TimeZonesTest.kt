@@ -3,6 +3,7 @@ package com.filestech.agenda_tech.core.time
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
 import java.time.ZoneId
+import java.util.Locale
 
 /**
  * Audit F3 — the resolver every ingestion path now shares.
@@ -104,6 +105,30 @@ class TimeZonesTest {
         val hostile = "Europe/Paris\r\nDESCRIPTION:injecté"
         assertThat(TimeZones.resolveOrNull(hostile)).isNull()
         assertThat(TimeZones.normalize(hostile, paris)).isEqualTo("Europe/Paris")
+    }
+
+    @Test
+    fun `a Windows name still resolves under a locale with its own casing rules`() {
+        // External review raised the Turkish dotless-I: under tr-TR, java.lang.String.toLowerCase()
+        // maps 'I' to 'ı', which would miss every ASCII key here — "Israel Standard Time",
+        // "India Standard Time", "Iran Standard Time".
+        //
+        // Refuted, and pinned so it stays refuted: Kotlin's `lowercase()` is locale-independent by
+        // design (it is `Locale.ROOT`), precisely because `toLowerCase()` was not. The trap is real,
+        // it is just already avoided — and a future "fix" to `lowercase(Locale.getDefault())` would
+        // walk straight into it, which is what this test exists to stop.
+        val previous = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"))
+            assertThat(TimeZones.resolve("Israel Standard Time", ZoneId.of("UTC")))
+                .isEqualTo(ZoneId.of("Asia/Jerusalem"))
+            assertThat(TimeZones.resolve("India Standard Time", ZoneId.of("UTC")))
+                .isEqualTo(ZoneId.of("Asia/Calcutta"))
+            assertThat(TimeZones.resolve("IRAN STANDARD TIME", ZoneId.of("UTC")))
+                .isEqualTo(ZoneId.of("Asia/Tehran"))
+        } finally {
+            Locale.setDefault(previous)
+        }
     }
 
     // --- isCanonical, which decides what the v6 migration touches ------------

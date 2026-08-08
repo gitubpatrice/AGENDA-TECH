@@ -66,6 +66,37 @@ class BoundedReadTest {
         assertThat(BoundedRead.readAtMost(dribbling, 100_000)).isEqualTo(bytes)
     }
 
+    @Test
+    fun `a stream that keeps returning zero bytes is refused instead of spinning for ever`() {
+        // External review: InputStream.read is contractually not allowed to return 0 for a non-empty
+        // buffer, but the stream comes from an arbitrary document provider through wrappers we do not
+        // control. One that does it turned the loop into a spin with no exit — the import would sit
+        // on "in progress" for ever and hold an IO thread. This test would not terminate at all
+        // without the guard, which is the strongest form the assertion can take.
+        val stuck = object : InputStream() {
+            override fun read(): Int = 0
+            override fun read(b: ByteArray, off: Int, len: Int): Int = 0
+        }
+        assertThat(BoundedRead.readAtMost(stuck, 1_000_000)).isNull()
+    }
+
+    @Test
+    fun `an occasional zero-byte read does not abort a legitimate file`() {
+        // The guard must count CONSECUTIVE empty reads, not empty reads. A provider that hiccups
+        // between chunks is normal; treating one hiccup as failure would refuse a good file.
+        val bytes = ByteArray(3000) { (it % 251).toByte() }
+        val hiccuping = object : InputStream() {
+            private val source = ByteArrayInputStream(bytes)
+            private var next = 0
+            override fun read(): Int = source.read()
+            override fun read(b: ByteArray, off: Int, len: Int): Int {
+                next++
+                return if (next % 2 == 1) 0 else source.read(b, off, minOf(len, 500))
+            }
+        }
+        assertThat(BoundedRead.readAtMost(hiccuping, 100_000)).isEqualTo(bytes)
+    }
+
     /** An input stream with no end, counting how many bytes it was actually asked to hand over. */
     private class CountingEndlessStream : InputStream() {
         var served = 0L
