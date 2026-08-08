@@ -42,6 +42,9 @@ object GeoLink {
      * Tolerant on purpose: accepts `44.05,5.04`, `44.05 ; 5.04`, `44,05 / 5,04` is NOT accepted (a
      * decimal comma is ambiguous with the separator), and rejects anything out of range.
      */
+    // Guard clauses, one per way a coordinate string can be unusable. Each `return null` is a distinct
+    // rejection reason; merging them would only hide which one fired.
+    @Suppress("ReturnCount")
     private fun parseCoordinates(raw: String?): Pair<Double, Double>? {
         val text = raw?.trim().orEmpty()
         if (text.isEmpty()) return null

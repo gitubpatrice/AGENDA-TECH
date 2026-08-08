@@ -102,15 +102,33 @@ class DatabaseFactory @Inject constructor(
      * The one path that erases. Kept in its own function so the call site reads as a decision rather
      * than as a fallback: the previous code's shape was what let "reset" become the answer to
      * everything.
+     *
+     * ## The order of the three steps is the whole point (found in external review)
+     *
+     * It used to be `destroyKeyFile()` → `deleteDatabase()` → `markResetPending()`, which left a window
+     * that could brick the app permanently: killed or powered off between the first two steps, the device
+     * keeps an **encrypted database with no key**. On the next launch `getOrCreatePassphrase()` sees no
+     * key file, mints a brand-new one, and SQLCipher then cannot open the existing file. That surfaces as
+     * an exception which is *not* a [DatabaseKeyManager.Failure], so nothing resets it — a permanent
+     * failure loop, with the reset flag never even raised.
+     *
+     * The order below has no such window:
+     *  1. **Flag first.** A reset the user is not told about is the one outcome worse than the reset.
+     *     Interrupted here, nothing has been destroyed and the worst case is one spurious notice, which
+     *     is consumed once and self-corrects.
+     *  2. **Then the database.** Interrupted here, the key file still matches nothing — and Room simply
+     *     creates a fresh database under the existing key on the next launch. Recoverable.
+     *  3. **Then the key file.** Interrupted here, there is no database and no key: the next launch
+     *     generates both. Recoverable.
      */
     private fun resetAfterUnrecoverableKey(
         context: Context,
         cause: DatabaseKeyManager.Failure,
     ): ByteArray {
         Timber.e(cause, "DB key is unrecoverable — resetting the local database")
-        keyManager.destroyKeyFile()
-        context.deleteDatabase(AppDatabase.DATABASE_NAME)
         markResetPending(context)
+        context.deleteDatabase(AppDatabase.DATABASE_NAME)
+        keyManager.destroyKeyFile()
         // Fresh key; a second failure here is a truly broken device and must surface.
         return keyManager.getOrCreatePassphrase()
     }

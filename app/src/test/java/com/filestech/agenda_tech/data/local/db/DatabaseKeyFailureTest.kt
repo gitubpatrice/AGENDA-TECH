@@ -2,6 +2,9 @@ package com.filestech.agenda_tech.data.local.db
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
+import java.security.KeyStoreException
+import java.security.ProviderException
+import javax.crypto.AEADBadTagException
 
 /**
  * The classification that decides whether the user's agenda gets erased.
@@ -61,20 +64,96 @@ class DatabaseKeyFailureTest {
 
     /**
      * The guard against the failure mode this whole class exists to prevent: a new [Failure] subtype
-     * added later, defaulting to "erase", because that is what the old code did for everything.
+     * added later and defaulting to "erase", because that is what the old code did for everything.
      *
-     * Kotlin's exhaustive `when` over a sealed hierarchy is what makes this checkable — adding a subtype
-     * without extending this list stops compiling, which is the point.
+     * The guard is the **exhaustive `when`** in [expectedPolicyFor], not the list below. External review
+     * caught that an earlier version of this test claimed a hard-coded `listOf(...)` would "stop
+     * compiling" when a subtype was added — it would not, and the comment saying so was exactly the kind
+     * of lying doc this audit found six times elsewhere in the repo. A `when` over a sealed hierarchy,
+     * used as an expression, genuinely does fail to compile: adding a fifth [Failure] forces whoever adds
+     * it to state, here, whether it may erase the user's agenda.
      */
     @Test
-    fun `exactly two of the four failure kinds are allowed to erase the agenda`() {
+    fun `every failure kind states its policy, and only two of them may erase`() {
         val all = listOf(
             DatabaseKeyManager.Failure.KeystoreInvalidated(),
             DatabaseKeyManager.Failure.WrapCorrupted(),
             DatabaseKeyManager.Failure.Io(),
             DatabaseKeyManager.Failure.KeystoreUnavailable(),
         )
+        all.forEach { failure ->
+            assertThat(failure.dataIsUnrecoverable).isEqualTo(expectedPolicyFor(failure))
+        }
         assertThat(all.count { it.dataIsUnrecoverable }).isEqualTo(2)
-        assertThat(all.count { !it.dataIsUnrecoverable }).isEqualTo(2)
+    }
+
+    /**
+     * The compile-time guard. Deliberately a `when` **without** an `else`: a new [Failure] subtype breaks
+     * this build until its destroy-or-preserve policy is written down here.
+     */
+    private fun expectedPolicyFor(failure: DatabaseKeyManager.Failure): Boolean = when (failure) {
+        is DatabaseKeyManager.Failure.KeystoreInvalidated -> true
+        is DatabaseKeyManager.Failure.WrapCorrupted -> true
+        is DatabaseKeyManager.Failure.Io -> false
+        is DatabaseKeyManager.Failure.KeystoreUnavailable -> false
+    }
+
+    // --- The classification that closed the second half of F1 --------------------------------------
+    //
+    // Found by BOTH external reviewers, independently, on the first version of the F1 fix: obtaining a
+    // usable `SecretKey` handle does not mean the Keystore can then run the GCM operation.
+    // `Cipher.init` / `doFinal` on an AndroidKeyStore key can fail transiently, and `AeadCipher` wraps
+    // every one of those into the same `AppError.Crypto`. Mapping them all to `WrapCorrupted` — which is
+    // classified unrecoverable — meant a transient crypto error erased the agenda: the very defect F1 set
+    // out to remove, one layer further down.
+    //
+    // These tests are the non-regression guard for that. They run on the JVM because
+    // `classifyCryptoFailure` is pure — which is exactly why the decision was worth extracting from the
+    // Keystore plumbing it used to be buried in.
+
+    @Test
+    fun `a failed GCM tag is real corruption — the passphrase is gone`() {
+        val failure = DatabaseKeyManager.classifyCryptoFailure(AEADBadTagException("tag mismatch"))
+        assertThat(failure).isInstanceOf(DatabaseKeyManager.Failure.WrapCorrupted::class.java)
+        assertThat(failure.dataIsUnrecoverable).isTrue()
+    }
+
+    @Test
+    fun `a malformed blob is real corruption`() {
+        // What AeadCipher's own `require()` calls raise: unsupported version byte, blob too short.
+        val failure =
+            DatabaseKeyManager.classifyCryptoFailure(IllegalArgumentException("Unsupported AEAD version"))
+        assertThat(failure).isInstanceOf(DatabaseKeyManager.Failure.WrapCorrupted::class.java)
+        assertThat(failure.dataIsUnrecoverable).isTrue()
+    }
+
+    @Test
+    fun `a provider failure during the cipher operation must NOT erase anything`() {
+        // The case both reviewers found. keystore2 busy, StrongBox cold, an OEM provider refusing the
+        // operation — none of it is evidence about the bytes on disk.
+        val failure = DatabaseKeyManager.classifyCryptoFailure(ProviderException("keystore2 busy"))
+        assertThat(failure).isInstanceOf(DatabaseKeyManager.Failure.KeystoreUnavailable::class.java)
+        assertThat(failure.dataIsUnrecoverable).isFalse()
+    }
+
+    @Test
+    fun `a keystore exception during the cipher operation must NOT erase anything`() {
+        val failure = DatabaseKeyManager.classifyCryptoFailure(KeyStoreException("operation failed"))
+        assertThat(failure).isInstanceOf(DatabaseKeyManager.Failure.KeystoreUnavailable::class.java)
+        assertThat(failure.dataIsUnrecoverable).isFalse()
+    }
+
+    @Test
+    fun `an unrecognised cause defaults to NOT erasing`() {
+        // The rule the whole fix rests on: unknown means "this attempt failed", never "the key is gone".
+        val unknown = DatabaseKeyManager.classifyCryptoFailure(IllegalStateException("who knows"))
+        assertThat(unknown.dataIsUnrecoverable).isFalse()
+        assertThat(DatabaseKeyManager.classifyCryptoFailure(null).dataIsUnrecoverable).isFalse()
+    }
+
+    @Test
+    fun `the classified failure carries its cause, so the refusal can still be diagnosed`() {
+        val cause = ProviderException("keystore2 busy")
+        assertThat(DatabaseKeyManager.classifyCryptoFailure(cause).cause).isSameInstanceAs(cause)
     }
 }

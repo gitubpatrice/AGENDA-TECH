@@ -106,6 +106,10 @@ class RestoreBackupUseCase @Inject constructor(
      * None of this is reachable by a file the app itself wrote — it guards against a corrupted,
      * truncated or hand-edited one.
      */
+    // A chain of guard clauses returning the FIRST problem found. That shape is why an untrusted file is
+    // refused whole rather than half-applied; folding them into nested conditions would make the refusal
+    // harder to read, not safer. Suppressed here rather than by raising the threshold repo-wide.
+    @Suppress("ReturnCount")
     private fun validate(calendars: List<Calendar>, events: List<Event>): String? {
         // Room treats id 0 on an autoGenerate primary key as "unset" and silently assigns a fresh
         // rowid — every calendarId/parentId pointing at 0 would then dangle, with no error raised.

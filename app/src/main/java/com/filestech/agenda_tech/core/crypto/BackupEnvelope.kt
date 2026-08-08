@@ -102,6 +102,9 @@ class BackupEnvelope @Inject constructor(
             put(salt)
         }.array()
 
+    // Guard clauses over an untrusted header: each `return null` rejects one specific malformation, and
+    // naming them separately is what makes a hostile file refusable without a single ambiguous branch.
+    @Suppress("ReturnCount")
     private fun parseHeader(file: ByteArray): Header? {
         // Everything up to and including the saltLen byte: magic(5) + envVersion + kdfId + saltLen (3)
         // + iterations(4). The salt itself follows.

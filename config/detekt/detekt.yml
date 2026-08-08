@@ -117,11 +117,14 @@ style:
     maxDestructuringEntries: 5
   ReturnCount:
     active: true
-    # Three functions exceed 4, and all three are guard-clause chains that return the FIRST problem
-    # they find: RestoreBackupUseCase.validate, BackupEnvelope.parseHeader, GeoLink.parseCoordinates.
-    # That shape is why an untrusted file is refused whole instead of half-applied — folding them into
-    # nested conditions would make the refusal harder to read, not safer.
-    max: 10
+    # Left at the value this repo chose. Raising it to 10 for the three guard-clause chains that exceed
+    # it (RestoreBackupUseCase.validate, BackupEnvelope.parseHeader, GeoLink.parseCoordinates) was the
+    # wrong instrument, and a reviewer was right to call it: ReturnCount describes CONTROL FLOW, not
+    # layout, so a global threshold would have stopped reporting any future function with up to ten exit
+    # points across all 132 files — to excuse three named ones. Those three carry a targeted
+    # `@Suppress("ReturnCount")` with the reason on the spot, exactly like
+    # `RecurrenceExpander.occurrenceStarts` does for its loop.
+    max: 4
   UnusedPrivateMember:
     active: true
   UnusedImports:
