@@ -12,6 +12,7 @@ import com.filestech.agenda_tech.security.AppLockManager
 import com.filestech.agenda_tech.security.BiometricGate
 import com.filestech.agenda_tech.system.notifications.ReminderNotifier
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -59,6 +60,8 @@ class SettingsViewModel @Inject constructor(
     }
 
     /** Seconds the user must wait before the next re-auth attempt (0 when not throttled). */
+    private var tickerJob: Job? = null
+
     private val _throttleSeconds = MutableStateFlow(0)
     val throttleSeconds: StateFlow<Int> = _throttleSeconds.asStateFlow()
 
@@ -67,27 +70,44 @@ class SettingsViewModel @Inject constructor(
      * SEC-1 — routed through the shared [AppLockManager] so this path is under the SAME brute-force
      * back-off as the lock screen (an attacker past biometrics must not be able to guess the PIN
      * here without limit).
+     *
+     * Audit SEC-2 — "the SAME" is finally true. S16 made the lock screen's attempt atomic and left
+     * this one split across `throttleRemainingMs` → ~100 ms of PBKDF2 with no lock held →
+     * `registerFailedAttempt`, which is exactly the shape S16 removed, on the one screen where the
+     * lock can be **switched off**. The claim above was written before S16 and became false with it —
+     * the asymmetric-twin motif, produced by the correction of that very motif.
      */
-    suspend fun verifyPin(pin: String): Boolean {
-        if (appLock.throttleRemainingMs() > 0) {
-            startThrottleTicker()
-            return false
+    suspend fun verifyPin(pin: String): Boolean =
+        when (val attempt = appLock.attemptPin { lockRepository.verifyPin(pin) }) {
+            is AppLockManager.Attempt.Accepted -> true
+            is AppLockManager.Attempt.Rejected -> {
+                showThrottle(attempt.throttleMs)
+                false
+            }
+            is AppLockManager.Attempt.Throttled -> {
+                showThrottle(attempt.remainingMs)
+                false
+            }
         }
-        val ok = lockRepository.verifyPin(pin)
-        if (ok) {
-            appLock.resetAttempts()
-        } else {
-            appLock.registerFailedAttempt()
-            startThrottleTicker()
-        }
-        return ok
+
+    /**
+     * Publishes [remainingMs] before suspending, then ticks it down — identical to
+     * [com.filestech.agenda_tech.ui.lock.LockViewModel]. The ticker's own first read suspends, so
+     * without this the button re-enabled one dispatch before the countdown appeared: the very window
+     * S16 was about to close on the other screen.
+     */
+    private fun showThrottle(remainingMs: Long) {
+        if (remainingMs > 0) _throttleSeconds.value = ceil(remainingMs / MILLIS_PER_SECOND).toInt()
+        startThrottleTicker()
     }
 
+    /** Replaced, never stacked: one wrong PIN used to leak one coroutine (audit SEC-10). */
     private fun startThrottleTicker() {
-        viewModelScope.launch {
+        tickerJob?.cancel()
+        tickerJob = viewModelScope.launch {
             var remaining = appLock.throttleRemainingMs()
             while (remaining > 0) {
-                _throttleSeconds.value = ceil(remaining / 1000.0).toInt()
+                _throttleSeconds.value = ceil(remaining / MILLIS_PER_SECOND).toInt()
                 delay(THROTTLE_TICK_MS)
                 remaining = appLock.throttleRemainingMs()
             }
@@ -134,6 +154,7 @@ class SettingsViewModel @Inject constructor(
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
+        const val MILLIS_PER_SECOND = 1000.0
         const val THROTTLE_TICK_MS = 500L
     }
 }

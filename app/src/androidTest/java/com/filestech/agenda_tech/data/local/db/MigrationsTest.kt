@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.filestech.agenda_tech.core.crypto.AeadCipher
 import com.filestech.agenda_tech.core.crypto.KeystoreManager
+import com.filestech.agenda_tech.core.prefs.MigrationTrace
 import com.filestech.agenda_tech.core.time.TimeZones
 import com.google.common.truth.Truth.assertThat
 import net.zetetic.database.sqlcipher.SQLiteDatabase
@@ -36,7 +37,7 @@ import java.time.ZoneId
  *
  * What replaces it is stronger, not weaker. A v1 database is built by hand from the DDL Room itself
  * exported to `app/schemas/…/1.json`, then handed to [DatabaseFactory], which applies
- * [Migrations.ALL] against real SQLCipher with the real Keystore-wrapped key. **Room validates the
+ * [Migrations.all] against real SQLCipher with the real Keystore-wrapped key. **Room validates the
  * resulting schema itself**: if a migration and the entities disagree, opening throws
  * `IllegalStateException("Migration didn't properly handle…")`. So schema validation is still asserted
  * — by the same code that will run on the user's phone, rather than by a helper using a fake key on a
@@ -203,12 +204,21 @@ class MigrationsTest {
             close()
         }
 
-        runCatching { factory.build(context).close() }.let { attempt ->
-            assertThat(attempt.isFailure).isTrue()
-        }
+        val attempt = runCatching { factory.build(context).close() }
+        assertThat(attempt.isFailure).isTrue()
+
+        // Audit DR-10 — remettre la version APRÈS l'assertion et avant tout autre test. Ces tests
+        // opèrent sur `agendatech.db`, c'est-à-dire le fichier RÉEL de l'app debug installée : un
+        // processus de test tué ici laissait le téléphone avec une app qui ne s'ouvre plus jamais.
+        // `clearDatabaseFiles()` en @After suffit désormais, mais l'estampille est retirée tout de
+        // suite plutôt qu'à la fin — le test qui prouve qu'on ne perd plus l'agenda ne doit pas
+        // pouvoir, en s'interrompant, rendre l'app inutilisable.
+        val key = keyManager.getOrCreatePassphrase()
+        SQLiteDatabase.openOrCreateDatabase(
+            context.getDatabasePath(AppDatabase.DATABASE_NAME).absolutePath, key, null, null,
+        ).use { db -> db.execSQL("PRAGMA user_version = ${AppDatabase.SCHEMA_VERSION}") }
 
         // The agenda survived the refusal — which is the whole point of refusing.
-        val key = keyManager.getOrCreatePassphrase()
         SQLiteDatabase.openOrCreateDatabase(
             context.getDatabasePath(AppDatabase.DATABASE_NAME).absolutePath, key, null, null,
         ).use { db ->
@@ -248,6 +258,27 @@ class MigrationsTest {
         factory.build(context).close()
 
         assertThat(readZones()).isEqualTo(afterFirst)
+    }
+
+    /**
+     * The v6 repair leaves a readable record of what it overwrote (audit D3) — and that record is
+     * worth nothing if nothing ever reads it. `MigrationTrace.read` had no caller at all under a KDoc
+     * claiming "read by tests and by hand" (audit DR-3); this is the test half of that sentence.
+     *
+     * It also pins DR-2: the note must describe a repair that actually committed, so it is asserted
+     * after a successful open rather than from inside the migration, where it used to be written.
+     */
+    @Test
+    fun theV6RepairLeavesATraceOfWhatItOverwrote() {
+        seedVersion1Database()
+        factory.build(context).close()
+
+        val trace = MigrationTrace.read(context)
+        assertThat(trace).isNotNull()
+        assertThat(trace).contains("v6 time-zone repair")
+        // The Windows name and what it became — the pair that tells a repair from a fallback, which
+        // is the exact question the trace exists to answer.
+        assertThat(trace).contains("Tokyo Standard Time->Asia/Tokyo")
     }
 
     /** A fresh install never runs a migration; it must still come out at v6 with the tables Room wants. */

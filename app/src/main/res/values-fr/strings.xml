@@ -238,6 +238,8 @@
     <string name="calendar_delete_confirm_title">Supprimer le calendrier ?</string>
     <string name="calendar_delete_confirm_body">« %1$s » et tous ses événements seront définitivement supprimés.</string>
     <string name="db_reset_notice">Vos données n\'ont pas pu être déverrouillées (clé de sécurité de l\'appareil modifiée) et ont été réinitialisées.</string>
+    <string name="startup_failure_title">Agenda Tech ne peut pas ouvrir vos données</string>
+    <string name="startup_failure_body">Votre agenda est toujours là et n\'a pas été modifié. Cela vient en général d\'une version plus ancienne de l\'application installée par-dessus une plus récente : la base de données est plus récente que ce que cette version sait lire. Réinstaller la version plus récente rétablit l\'accès. L\'application n\'efface volontairement rien d\'elle-même.</string>
     <string name="settings_reset_notice">Vos réglages n\'ont pas pu être lus et ont été réinitialisés. Si vous aviez un verrou d\'application, il a été désactivé — réactivez-le dans les Réglages.</string>
     <string name="settings_section_security">Sécurité</string>
     <string name="settings_lock_enabled">Verrouiller l\'application</string>

@@ -17,12 +17,22 @@ import android.content.Context
  * diagnosed: the old value was gone and nothing said how many rows had fallen back to the device zone
  * for want of a better answer.
  *
- * This is diagnostic only — nothing reads it in the UI. It is meant to be pulled off a device:
+ * ## How it is read, honestly (audit DR-3 / SEC-3)
  *
- * ```
- * adb shell run-as com.filestech.agenda_tech.debug \
- *   cat shared_prefs/agendatech_db.xml
- * ```
+ * An earlier version of this KDoc prescribed
+ * `adb shell run-as com.filestech.agenda_tech.debug cat shared_prefs/agendatech_db.xml`. `run-as`
+ * requires `android:debuggable`, and the identifier quoted carries the `.debug` suffix — so the
+ * procedure only ever worked on the build where `Timber` already worked, i.e. the one build that did
+ * **not** have the problem D3 set out to fix. The gap was moved, not closed. Worse, `read` had no
+ * caller at all, under a KDoc claiming "read by tests and by hand".
+ *
+ * So the claim is now the modest one that is true: this is a **reproduction aid on a test device**.
+ * When someone reports a wrong time zone after the update, the way to see what the migration did is
+ * to reproduce it on a debug build with their `.atbak`, where both this and `Timber` are readable.
+ * [read] is exercised by `MigrationsTest`, so it is no longer dead code with a false comment.
+ *
+ * Making it readable on a *release* build would mean a diagnostic entry in the About screen. That is
+ * recorded here as a choice not made, rather than implied by a procedure that does not run.
  *
  * ## What may go in it
  *

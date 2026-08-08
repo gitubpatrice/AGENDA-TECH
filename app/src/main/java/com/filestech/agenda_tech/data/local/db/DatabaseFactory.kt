@@ -3,6 +3,7 @@ package com.filestech.agenda_tech.data.local.db
 import android.content.Context
 import androidx.room.Room
 import com.filestech.agenda_tech.core.crypto.wipe
+import com.filestech.agenda_tech.core.prefs.MigrationTrace
 import com.filestech.agenda_tech.core.prefs.OneShotFlag
 import net.zetetic.database.sqlcipher.SQLiteDatabase
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
@@ -164,12 +165,16 @@ class DatabaseFactory @Inject constructor(
             // The builder's defaults are `requireMigration = true` and
             // `allowDestructiveMigrationOnDowngrade = false`, so saying nothing gives the visible
             // IllegalStateException the comment above promises.
-            .addMigrations(*Migrations.all(context))
+            .addMigrations(*Migrations.all())
             .build()
         // SEC-1 — Room opens lazily on the first query, so nothing has run `PRAGMA key` yet at this
         // point. Touching the helper forces the real SQLCipher open here, inside build(), where a
         // keying failure is still attributable instead of surfacing later as an unrelated DAO crash.
         db.openHelper.writableDatabase
+        // Audit DR-2 — la transaction de migration est acquittée à ce point seulement. Écrire
+        // la trace depuis `migrate()` la rendait durable AVANT le changement qu'elle décrit :
+        // un échec de validation postérieur laissait une trace affirmant une réparation annulée.
+        Migrations.consumePendingTrace()?.let { MigrationTrace.record(context, it) }
         return db
     }
 

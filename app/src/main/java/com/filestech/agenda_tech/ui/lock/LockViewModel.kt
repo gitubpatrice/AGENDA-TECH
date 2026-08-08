@@ -66,13 +66,6 @@ class LockViewModel @Inject constructor(
         _wrongPin.value = false
     }
 
-    fun onBiometricSuccess() {
-        viewModelScope.launch {
-            appLock.resetAttempts()
-            appLock.unlock()
-        }
-    }
-
     /**
      * Shows [remainingMs] straight away, then ticks it down.
      *

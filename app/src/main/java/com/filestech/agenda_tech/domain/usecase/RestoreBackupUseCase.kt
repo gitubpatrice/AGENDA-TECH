@@ -64,7 +64,13 @@ class RestoreBackupUseCase @Inject constructor(
         val payload = BackupCodec.decodeFromJson(plaintext.toString(Charsets.UTF_8))
         val calendars = payload.calendars.map { it.toDomain() }
         val events = payload.events.map { it.toDomain() }
+        val reminderCount = payload.events.sumOf { it.reminderMinutes.size }
         val problem = validate(calendars, events)
+            // Audit DR-8 — les rappels ne sont pas portés par `Event`, donc ce contrôle ne peut pas
+            // vivre dans `validate`. Il refuse le fichier de la même façon et au même moment : avant
+            // la moindre écriture. `BackupViewModel` arme une alarme par rappel juste après.
+            ?: reminderCount.takeIf { it > ImportLimits.MAX_REMINDERS }
+                ?.let { "backup holds $it reminders, over the ${ImportLimits.MAX_REMINDERS} ceiling" }
         if (problem != null) {
             Outcome.Failure(AppError.Validation(problem))
         } else {
@@ -119,6 +125,9 @@ class RestoreBackupUseCase @Inject constructor(
         // whole function exists: half an agenda looks exactly like a whole one.
         if (events.size > ImportLimits.MAX_EVENTS) {
             return "backup holds ${events.size} events, over the ${ImportLimits.MAX_EVENTS} ceiling"
+        }
+        if (calendars.size > ImportLimits.MAX_CALENDARS) {
+            return "backup holds ${calendars.size} calendars, over the ${ImportLimits.MAX_CALENDARS} ceiling"
         }
 
         // Room treats id 0 on an autoGenerate primary key as "unset" and silently assigns a fresh

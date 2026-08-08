@@ -54,12 +54,19 @@ quoi qu'il arrive) : c'est un **gate UI**, il ne modifie pas la posture crypto d
   bloquer l'app. L'échéance persistée est en horloge murale, donc déplaçable par l'utilisateur —
   elle est **bornée à un palier** au rechargement : avancer l'heure fait sauter au plus une
   attente, jamais le compteur de tentatives.
-- **Une tentative = une opération atomique (audit S16, v0.5.5).** Le back-off, la vérification du PIN
-  et l'enregistrement du résultat se déroulent désormais **sous un même verrou**
-  (`AppLockManager.attemptPin`). Auparavant la décision était coupée en deux par les ~100 ms de
-  PBKDF2, verrou relâché : toute tentative lancée dans cet intervalle lisait un back-off nul et
-  obtenait son essai. Le compteur restait juste, mais le back-off n'était appliqué à aucune d'elles —
-  une rafale d'appuis obtenait donc plusieurs essais par fenêtre de 60 s.
+- **Une tentative = une opération atomique (audit S16 + SEC-2, v0.5.5).** Le back-off, la vérification
+  du PIN et l'enregistrement du résultat se déroulent **sous un même verrou**
+  (`AppLockManager.attemptPin`).
+
+  Auparavant la décision était coupée en deux par les ~100 ms de PBKDF2, verrou relâché : toute
+  tentative lancée dans cet intervalle lisait un back-off nul et obtenait son essai. Le compteur
+  restait juste, mais le back-off n'était appliqué à aucune d'elles — une rafale d'appuis obtenait
+  donc plusieurs essais par fenêtre de 60 s.
+
+  ⚠️ Cela vaut désormais pour **les deux** écrans qui demandent un PIN : celui de verrouillage et
+  celui des **Réglages**. S16 n'avait corrigé que le premier, alors que cette phrase affirmait déjà la
+  parité — et le second est précisément l'écran depuis lequel le verrou peut être **désactivé**
+  (audit SEC-2).
 - **Réinitialisation des réglages : dite, jamais silencieuse (audit S15, v0.5.5).** Le fichier de
   préférences porte `lock_enabled` et l'enveloppe du PIN. S'il devient illisible (coupure pendant une
   écriture, secteur corrompu, ou un octet modifié par quiconque a un accès fichier ponctuel), il est
@@ -209,7 +216,17 @@ le plafond de longueur s'y appliquent désormais comme aux deux autres.
   `ImportLimits.MAX_EVENTS` donne une réponse unique et partagée. Un **fichier** choisi par
   l'utilisateur est refusé **en bloc** avec un message — en importer une partie ressemble exactement
   à l'importer en entier — tandis que l'agenda **de l'appareil**, qui est un fournisseur vivant sans
-  fichier à rendre, reste tronqué mais le **journalise** au lieu de se taire.
+  fichier à rendre, reste tronqué.
+
+  ⚠️ Cette troncature n'est **pas encore signalée à l'utilisateur** (audit SEC-6). Elle est journalisée,
+  mais le journal est inerte sur une version publiée (`NoOpReleaseTree`), exactement la conclusion que
+  l'audit D3 avait tirée pour la migration sans la reporter ici. Le dire correctement suppose de
+  remonter le fait jusqu'à l'écran d'import plutôt que de le journaliser ; c'est consigné comme
+  travail restant, pas présenté comme fait.
+
+  Le plafond s'applique par **fichier** et, pour l'agenda de l'appareil, par **calendrier source** :
+  sélectionner dix calendriers en une fois peut donc dépasser le nombre annoncé. Là encore, dit plutôt
+  que sous-entendu.
 
 - **`INTERVAL` borné (audit F1/F5/F7, v0.5.3).** Un intervalle absurde faisait lever une
   `DateTimeException` non rattrapée dans `RecurrenceExpander` : toutes les vues et le widget

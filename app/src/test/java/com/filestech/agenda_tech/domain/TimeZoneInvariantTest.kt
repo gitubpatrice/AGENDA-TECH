@@ -7,6 +7,7 @@ import com.filestech.agenda_tech.domain.device.DeviceEventMapper
 import com.filestech.agenda_tech.domain.ics.IcsCodec
 import com.filestech.agenda_tech.domain.model.DeviceEvent
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.jupiter.api.Test
 import java.time.ZoneId
 
@@ -43,11 +44,13 @@ class TimeZoneInvariantTest {
         "EST",
         // Nothing resolves it.
         "Totally Made Up Time",
-        // An injected value, the shape a hand-made .atbak can carry.
-        "Europe/Paris\r\nX-EVIL:1",
         // Present but empty.
         "",
     )
+    // The seventh case — an injected CRLF — is NOT in this list: on the `.ics` path it splits the
+    // content line, so the correct outcome is a rejected event rather than a normalised zone. It has
+    // its own test at the bottom, because a case whose right answer is "no event" cannot share a loop
+    // whose assertion is "the event's zone is canonical" (audit DR-4).
 
     @Test
     fun `the ics importer writes a zone that resolves back to itself`() {
@@ -56,8 +59,15 @@ class TimeZoneInvariantTest {
                 "SUMMARY:RDV\r\n" +
                 "DTSTART;TZID=$zone:20250602T140000\r\n" +
                 "END:VEVENT\r\nEND:VCALENDAR\r\n"
-            val decoded = IcsCodec.decode(file, paris).singleOrNull() ?: return@forEach
-            assertThat(TimeZones.isCanonical(decoded.timeZoneId)).isTrue()
+            val decoded = IcsCodec.decode(file, paris).singleOrNull()
+            // Audit DR-4 — `?: return@forEach` made the assertion optional, and the most hostile case
+            // of the seven was ALREADY skipping it: an injected CRLF splits the DTSTART line, the
+            // property is dropped, the event is rejected, and the loop moved on in silence. A test
+            // that quietly exercises six cases out of seven is worse than one that exercises six,
+            // because it reads as seven. Rejection is the correct outcome for that input — so it is
+            // asserted as rejection, in its own test below, instead of being swallowed here.
+            assertWithMessage("hostile zone %s produced no event at all", zone).that(decoded).isNotNull()
+            assertThat(TimeZones.isCanonical(decoded!!.timeZoneId)).isTrue()
         }
     }
 
@@ -115,5 +125,20 @@ class TimeZoneInvariantTest {
         val decoded = IcsCodec.decode(file, paris).single()
         assertThat(decoded.allDay).isTrue()
         assertThat(TimeZones.isCanonical(decoded.timeZoneId)).isTrue()
+    }
+
+    @Test
+    fun `an injected zone splits the line and the event is rejected, never stored`() {
+        // The case DR-4 found hiding in the hostile list: a CRLF inside TZID cuts the DTSTART line in
+        // two, so the property carries no value separator and is dropped — the event has no start and
+        // is refused. That IS the right answer, and it deserves to be asserted as an answer rather
+        // than absorbed by a `return@forEach` in a test about something else.
+        val injected = "Europe/Paris\r\nX-EVIL:1"
+        val file = "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\n" +
+            "SUMMARY:RDV\r\n" +
+            "DTSTART;TZID=$injected:20250602T140000\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n"
+
+        assertThat(IcsCodec.decode(file, paris)).isEmpty()
     }
 }

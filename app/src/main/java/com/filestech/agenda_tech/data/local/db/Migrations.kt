@@ -1,9 +1,7 @@
 package com.filestech.agenda_tech.data.local.db
 
-import android.content.Context
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.filestech.agenda_tech.core.prefs.MigrationTrace
 import com.filestech.agenda_tech.core.time.TimeZones
 import timber.log.Timber
 import java.time.ZoneId
@@ -127,7 +125,23 @@ object Migrations {
      * The schema is unchanged, so Room's identity hash is unchanged and its validation is unaffected;
      * the version bump exists only to give this repair a place to run exactly once.
      */
-    private fun migration5to6(context: Context) = object : Migration(5, 6) {
+    /**
+     * What [migration5to6] wants recorded once the transaction that produced it has committed.
+     *
+     * Deliberately a field on the object rather than a write from inside `migrate` — see the DR-2
+     * note in the body. [consumePendingTrace] is called by `DatabaseFactory` after the open returns.
+     */
+    @Volatile
+    private var pending: String? = null
+
+    /** The note left by the last migration run, cleared as it is read. Null when nothing ran. */
+    fun consumePendingTrace(): String? {
+        val note = pending
+        pending = null
+        return note
+    }
+
+    private fun migration5to6() = object : Migration(5, 6) {
         override fun migrate(db: SupportSQLiteDatabase) {
             val fallback = ZoneId.systemDefault()
             val stored = mutableListOf<String>()
@@ -151,24 +165,37 @@ object Migrations {
             // everything in release, and its `log` is empty. On the builds users run there was no
             // trace at all of what this migration overwrote, on the one migration in this repo that
             // destroys information. Zone names and counts only — never agenda content.
+            //
+            // Audit DR-2 — the note is HANDED OVER here and written after the open returns, not
+            // written here. `onUpgrade` runs inside the helper's transaction, and Room validates the
+            // schema inside it too: a `commit()` to SharedPreferences from in here is durable before
+            // the database change is, so a failure past this point left a trace claiming a repair
+            // that had been rolled back — and the migration then replayed and appended it twice.
+            // Bounded too: a pathological import can make `repairs` very long, and the whole string
+            // was being materialised only to keep its last 2 000 characters.
             if (repairs.isNotEmpty()) {
-                MigrationTrace.record(context, "v6 time-zone repair: " + repairs.joinToString(", "))
+                pending = "v6 time-zone repair (${repairs.size}): " +
+                    repairs.take(MAX_TRACED_REPAIRS).joinToString(", ")
             }
         }
     }
 
+    /** How many repaired zone names the trace keeps; the count itself is always recorded. */
+    private const val MAX_TRACED_REPAIRS = 20
+
     /**
      * The forward chain, in order.
      *
-     * Takes a [Context] because [migration5to6] leaves a durable trace of what it overwrote (audit
-     * D3) and a Room migration is handed no context of its own. The four purely additive ones ignore
-     * it — they add columns and indexes and have nothing to report.
+     * A function rather than a `val` because [migration5to6] carries per-run state ([pending]). It
+     * briefly took a [android.content.Context] so the migration could write its own trace, which
+     * audit DR-2 showed was the wrong place: the write has to follow the transaction, not sit inside
+     * it. `DatabaseFactory` calls [consumePendingTrace] once the open has returned.
      */
-    fun all(context: Context): Array<Migration> = arrayOf(
+    fun all(): Array<Migration> = arrayOf(
         MIGRATION_1_2,
         MIGRATION_2_3,
         MIGRATION_3_4,
         MIGRATION_4_5,
-        migration5to6(context),
+        migration5to6(),
     )
 }

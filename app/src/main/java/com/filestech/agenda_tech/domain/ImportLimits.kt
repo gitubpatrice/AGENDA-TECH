@@ -32,6 +32,19 @@ package com.filestech.agenda_tech.domain
  */
 object ImportLimits {
 
-    /** Maximum events accepted from a single import, whatever the source. */
+    /** Maximum events accepted from a single imported **file**. */
     const val MAX_EVENTS = 20_000
+
+    /**
+     * Maximum reminders accepted from a single `.atbak`.
+     *
+     * Audit DR-8 — the KDoc above justified the event ceiling by the alarms a restore then arms, and
+     * the check counted only events. 20 000 events each carrying 200 `reminderMinutes` sailed
+     * through: four million reminder rows, then one `setExactAndAllowWhileIdle` per row. The
+     * justification and the check now measure the same thing.
+     */
+    const val MAX_REMINDERS = 100_000
+
+    /** Maximum calendars accepted from a single `.atbak` — a list nobody can use is a broken restore. */
+    const val MAX_CALENDARS = 1_000
 }

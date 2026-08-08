@@ -69,7 +69,10 @@ object BackupCodec {
         address = address,
         postalCode = postalCode,
         city = city,
-        gpsCoordinates = gpsCoordinates,
+        // Audit SEC-11 — le septième champ. `GeoLink.parseCoordinates` valide strictement avant
+        // de construire l'intent `geo:`, donc rien d'hostile n'en sort — mais la valeur est
+        // affichée telle quelle dans l'éditeur, et rien ne bornait sa longueur.
+        gpsCoordinates = gpsCoordinates?.let(BidiSanitizer::stripAndCap),
         startUtcMillis = startUtcMillis,
         endUtcMillis = endUtcMillis,
         timeZoneId = timeZoneId,
@@ -108,6 +111,7 @@ object BackupCodec {
         // this one ran none. It is not a lesser input: the KDoc of `IcsCodec.dateProperty` already
         // states that a hand-made .atbak carries its fields verbatim, which is exactly why the zone
         // below is normalised. The same file, the same attacker, the six fields next to it.
+        // (Seven, in fact: `gpsCoordinates` is the one this sentence first missed — audit SEC-11.)
         //
         // Concretely: a shared backup ("here's my agenda, password xxx") whose title holds a U+202E
         // reverses how that title reads in the month view, the timeline, the HOME-SCREEN WIDGET and
@@ -122,7 +126,10 @@ object BackupCodec {
         address = address?.let(BidiSanitizer::stripAndCap),
         postalCode = postalCode?.let(BidiSanitizer::stripAndCap),
         city = city?.let(BidiSanitizer::stripAndCap),
-        gpsCoordinates = gpsCoordinates,
+        // Audit SEC-11 — le septième champ. `GeoLink.parseCoordinates` valide strictement avant
+        // de construire l'intent `geo:`, donc rien d'hostile n'en sort — mais la valeur est
+        // affichée telle quelle dans l'éditeur, et rien ne bornait sa longueur.
+        gpsCoordinates = gpsCoordinates?.let(BidiSanitizer::stripAndCap),
         startUtcMillis = startUtcMillis,
         endUtcMillis = endUtcMillis,
         // Audit F3 — the fourth ingestion path, and the only one that did not look at this field at

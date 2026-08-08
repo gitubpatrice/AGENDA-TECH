@@ -441,10 +441,19 @@ class EventEditorViewModelTest {
     }
 
     @Test
-    fun `editing the time of an imported event still keeps its zone`() = runTest(dispatcher) {
-        // The times are typed and read back in the DEVICE zone — that part is right and unchanged.
-        // What must not follow is the label: the user moved the meeting, they did not move the series
-        // to another country.
+    fun `retyping the time re-anchors the event to the device zone`() = runTest(dispatcher) {
+        // ⚠️ This test asserted the OPPOSITE until audit DR-6, and the opposite was a defect I had
+        // pinned with a test — the worst way to be wrong, because it makes the defect load-bearing.
+        //
+        // The reasoning that produced it stopped one step early. Preserving the authored zone is right
+        // when the user opens an event to add a reminder (that is D2). It is wrong the moment they
+        // retype a time, because this editor reads and writes wall-clock times in the DEVICE zone and
+        // offers no zone picker: typing 11:00 in Paris on a meeting authored in Asia/Tokyo produces
+        // the instant 18:00 JST. Keeping the Tokyo label then makes RecurrenceExpander anchor every
+        // later occurrence to 18:00 JST — Japan has no summer time, France does, so after October the
+        // user sees 10:00 for a series they set to 11:00. F3's symptom, roles reversed.
+        //
+        // The only honest reading of a time typed here is "local", so a moved event is re-anchored.
         eventRepo.rows[10] = seedEvent().copy(timeZoneId = "Asia/Tokyo")
         val vm = viewModel(eventId = 10)
         testScheduler.advanceUntilIdle()
@@ -454,8 +463,25 @@ class EventEditorViewModelTest {
         testScheduler.advanceUntilIdle()
 
         val saved = eventRepo.rows.getValue(10)
-        assertThat(saved.timeZoneId).isEqualTo("Asia/Tokyo")
         assertThat(saved.startUtcMillis).isEqualTo(at(2026, 7, 20, 11))
+        assertThat(saved.timeZoneId).isEqualTo(zone.id)
+    }
+
+    @Test
+    fun `a zone the app cannot resolve is not preserved`() = runTest(dispatcher) {
+        // Audit DR-5. Before D2 the editor overwrote this field with the device zone and therefore
+        // repaired any unresolvable row by accident; preserving the loaded value removed that safety
+        // net along with the defect. `EntityMappers` deliberately does not re-normalise on read, so
+        // this is the last place the invariant can be kept.
+        eventRepo.rows[10] = seedEvent().copy(timeZoneId = "Romance Standard Time")
+        val vm = viewModel(eventId = 10)
+        testScheduler.advanceUntilIdle()
+
+        vm.onAddReminder(15)
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(eventRepo.rows.getValue(10).timeZoneId).isEqualTo(zone.id)
     }
 
     @Test

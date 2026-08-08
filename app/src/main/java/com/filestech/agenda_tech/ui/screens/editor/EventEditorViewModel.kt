@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
+import com.filestech.agenda_tech.core.time.TimeZones
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
@@ -87,6 +88,25 @@ class EventEditorViewModel @Inject constructor(
      */
     private var loadedTimeZoneId: String? = null
 
+    /**
+     * The instants the event was loaded with, so [persist] can tell "the user opened this to add a
+     * reminder" from "the user moved it".
+     *
+     * Audit DR-6. Preserving the authored zone is right for the first case and **wrong for the
+     * second**: the editor reads and writes wall-clock times in the DEVICE zone, so when the user
+     * types 11:00 in Paris on a meeting authored in `Asia/Tokyo`, the instant becomes 18:00 JST while
+     * the label still says Tokyo. `RecurrenceExpander` then anchors every later occurrence to 18:00
+     * JST — and since Japan has no summer time and France does, the user sees 10:00 in their own
+     * agenda after the October transition, for a series they set to 11:00. That is F3's symptom with
+     * the roles swapped.
+     *
+     * So the zone is preserved only when the instants did not move. Nobody can express "I want this
+     * in Tokyo" in this editor — there is no zone picker — so the only honest reading of a typed time
+     * is that it is local.
+     */
+    private var loadedStartUtcMillis: Long? = null
+    private var loadedEndUtcMillis: Long? = null
+
     private val _state = MutableStateFlow(initialState())
     val state: StateFlow<EventEditorUiState> = _state.asStateFlow()
 
@@ -146,6 +166,8 @@ class EventEditorViewModel @Inject constructor(
         loadedOriginalStart = event.originalStartUtcMillis
         loadedSourceUid = event.sourceUid
         loadedTimeZoneId = event.timeZoneId
+        loadedStartUtcMillis = event.startUtcMillis
+        loadedEndUtcMillis = event.endUtcMillis
 
         // For a tapped occurrence of a recurring master, show that occurrence's times (not the base).
         val editingOccurrence = event.recurrence != null && occurrenceStart > 0L
@@ -373,7 +395,24 @@ class EventEditorViewModel @Inject constructor(
             // An override inherits the master's zone rather than the device's: it replaces one
             // occurrence of that series, and the expander skips the master's instance by instant. Two
             // rows describing the same slot in two zones is the asymmetry this audit keeps finding.
-            timeZoneId = if (current.allDay) zone.id else (loadedTimeZoneId ?: zone.id),
+            // `takeIf(isCanonical)` : audit DR-5. Avant D2, l'éditeur écrasait ce champ avec le
+            // fuseau de l'appareil et réparait donc accidentellement toute ligne non canonique.
+            // Préserver la valeur chargée a supprimé ce rattrapage en même temps que le défaut ;
+            // ce filtre le rétablit sans rien annuler de D2 — on ne préserve que ce qui est déjà
+            // résolvable tel quel, et `EntityMappers` ne renormalise délibérément pas à la lecture.
+            // Audit D2 + DR-5 + DR-6, dans cet ordre :
+            //  - conserver le fuseau d'auteur, sinon la réparation v6 est annulée au premier
+            //    enregistrement (D2) ;
+            //  - ne conserver que ce qui est déjà résolvable tel quel, sinon on perd le rattrapage que
+            //    l'ancien écrasement offrait par accident (DR-5) ;
+            //  - et seulement si les instants n'ont pas bougé (DR-6) : une heure retapée l'est dans le
+            //    fuseau de l'appareil, la garder sous une étiquette étrangère ferait dériver toutes
+            //    les occurrences suivantes.
+            timeZoneId = if (current.allDay || startMillis != loadedStartUtcMillis) {
+                zone.id
+            } else {
+                loadedTimeZoneId?.takeIf(TimeZones::isCanonical) ?: zone.id
+            },
             allDay = current.allDay,
             // An override is a single event; the whole-series save keeps the recurrence rule.
             recurrence = if (asOverride) null else current.toRecurrenceRule(),

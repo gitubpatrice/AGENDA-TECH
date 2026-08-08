@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -34,12 +36,14 @@ import com.filestech.agenda_tech.security.BiometricGate
 import com.filestech.agenda_tech.security.LockState
 import com.filestech.agenda_tech.security.StrongBiometrics
 import com.filestech.agenda_tech.ui.AppRoot
+import com.filestech.agenda_tech.ui.StartupFailureScreen
 import com.filestech.agenda_tech.ui.lock.LockScreen
 import com.filestech.agenda_tech.ui.theme.AgendaTechTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Provider
 
@@ -98,6 +102,31 @@ class MainActivity : FragmentActivity() {
     @Volatile
     private var lockConfigured: Boolean? = null
 
+    /**
+     * The latest value of the user's "block screenshots" preference, readable without suspending.
+     *
+     * Audit SEC-5 — [onPause] raises `FLAG_SECURE` unconditionally, and the comment there used to
+     * claim the `LaunchedEffect` would clear it again on resume. It cannot: that effect is keyed on
+     * `(flagSecure, lockState)`, and **neither changes** when the app comes back from an `onPause`
+     * that was never followed by an `onStop` — a system permission dialog, a share sheet, multi-window.
+     * So a user who had explicitly allowed screenshots lost them, silently, until something else
+     * happened to move the lock state.
+     *
+     * Raising and clearing now happen at the same level of the lifecycle instead of one being
+     * delegated to an effect that does not observe the resume.
+     */
+    @Volatile
+    private var blockScreenshots = false
+
+    /**
+     * True when the database refused to open, so the UI shows an explanation instead of nothing.
+     *
+     * Compose state rather than a Toast (audit DR-1): the message has to stay on screen — it tells
+     * the user their agenda is intact and what to do — and a Toast on a process that has nothing else
+     * to display would flash once and leave a blank app.
+     */
+    private var startupFailure by mutableStateOf(false)
+
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }
 
@@ -112,7 +141,28 @@ class MainActivity : FragmentActivity() {
         // The splash stays up while the lock state is UNKNOWN, so this whole chain runs before any UI
         // is shown — without blocking the Main thread on Keystore/disk.
         lifecycleScope.launch {
-            withContext(Dispatchers.IO) { appDatabaseProvider.get() }
+            // Audit DR-1 — the other half of D1.
+            //
+            // Removing `.fallbackToDestructiveMigrationOnDowngrade(false)` was right: it armed the
+            // wipe it claimed to forbid. But it was also the only thing that ever *recovered* from an
+            // unopenable database, and nothing replaced it. Room now throws, this coroutine had no
+            // guard, and an uncaught throw out of `lifecycleScope.launch` kills the process — behind
+            // a splash that never lifts, on every launch, for ever. `allowBackup=false`, no export
+            // possible because the app never starts: the only way out was "clear data", i.e. exactly
+            // the erasure D1 removed, inflicted by hand and with no explanation.
+            //
+            // The trade is deliberate and unchanged — the agenda is NOT touched. What changes is that
+            // the user is told so, and told what their options are, instead of watching the app die.
+            val opened = runCatching { withContext(Dispatchers.IO) { appDatabaseProvider.get() } }
+            if (opened.isFailure) {
+                Timber.e(
+                    "Database refused to open (%s) — data left untouched",
+                    opened.exceptionOrNull()?.javaClass?.simpleName,
+                )
+                startupFailure = true
+                appLock.unlock() // lifts the splash so the message can be shown at all
+                return@launch
+            }
             // SEC/ROB-1 — if an unrecoverable Keystore failure forced a DB reset, tell the user (once)
             // rather than losing their data silently. Read only after the DB was actually built.
             if (DatabaseFactory.consumeResetFlag(this@MainActivity)) {
@@ -139,6 +189,13 @@ class MainActivity : FragmentActivity() {
             lockRepository.lockEnabled.collect { lockConfigured = it }
         }
 
+        // Audit SEC-5 — le pendant de [lockConfigured] pour le réglage « bloquer les captures ».
+        // [onResume] doit pouvoir rabaisser le drapeau sans attendre une lecture suspendue, pour la
+        // même raison qu'onStop doit pouvoir le lever.
+        lifecycleScope.launch {
+            settingsRepository.settings.collect { blockScreenshots = it.flagSecure }
+        }
+
         setContent {
             val settings by settingsRepository.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
             val lockState by appLock.state.collectAsStateWithLifecycle()
@@ -162,10 +219,12 @@ class MainActivity : FragmentActivity() {
 
             AgendaTechTheme(useDarkTheme = useDarkTheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    when (lockState) {
-                        LockState.UNKNOWN -> Unit // splash keeps covering until resolved
-                        LockState.LOCKED -> LockScreen(onRequestBiometric = ::showBiometricPrompt)
-                        LockState.UNLOCKED -> AppRoot()
+                    when {
+                        startupFailure -> StartupFailureScreen()
+                        lockState == LockState.UNKNOWN -> Unit // splash keeps covering until resolved
+                        lockState == LockState.LOCKED ->
+                            LockScreen(onRequestBiometric = ::showBiometricPrompt)
+                        else -> AppRoot()
                     }
                 }
             }
@@ -181,8 +240,9 @@ class MainActivity : FragmentActivity() {
      * wins that race was never measured, and `SECURITY.md` was claiming the snapshot "can never leak".
      *
      * `onPause` precedes `onStop` by several frames in every path, which gives the traversal time to
-     * land. Raising the flag here costs nothing — a system dialog is enough to trigger `onPause`, and
-     * the `LaunchedEffect` clears it again on resume when the preference allows.
+     * land. It is cheap because [onResume] lowers it again when the preference allows — an earlier
+     * version of this comment said the `LaunchedEffect` would, which was false: that effect is keyed
+     * on `(flagSecure, lockState)` and a resume changes neither (audit SEC-5).
      *
      * **Locking** stays in `onStop` on purpose: the biometric prompt goes through `onPause`, so
      * re-locking here would fight the very unlock the user just started.
@@ -190,6 +250,24 @@ class MainActivity : FragmentActivity() {
     override fun onPause() {
         super.onPause()
         if (lockConfigured != false) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+    }
+
+    /**
+     * Undoes what [onPause] did, when — and only when — the user asked for it.
+     *
+     * Symmetry with [onPause] is the whole point (audit SEC-5): the flag is raised at a lifecycle
+     * callback, so it has to be lowered at one too. Delegating the lowering to the `LaunchedEffect`
+     * looked equivalent and was not, because that effect only runs when its keys change and a resume
+     * changes neither.
+     *
+     * The two conditions are the same ones the effect applies, read synchronously: nothing is lowered
+     * while the lock still guards the screen, or while its state is unresolved.
+     */
+    override fun onResume() {
+        super.onResume()
+        if (!blockScreenshots && appLock.state.value == LockState.UNLOCKED) {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
     }
 
     override fun onStop() {

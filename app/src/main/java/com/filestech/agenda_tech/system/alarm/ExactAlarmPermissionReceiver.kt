@@ -52,8 +52,29 @@ import javax.inject.Provider
  * whole reschedule pass, in a loop, for free.
  *
  * So the guard is in the body rather than in the manifest. The receiver stays exported, because the
- * system needs to reach it on API 31–32; what changes is that an impostor's broadcast now returns
- * before Hilt builds anything.
+ * system needs to reach it on API 31–32.
+ *
+ * ## What the guard does NOT do — audit SEC-1
+ *
+ * An earlier version of this paragraph claimed an impostor's broadcast "returns before Hilt builds
+ * anything". That is wrong twice over, and the correction matters more than the claim did:
+ *
+ * 1. Hilt's transform inserts `super.onReceive(context, intent)` — which is `inject(context)` — at
+ *    the very top of this method. No guard written here can run before the graph is resolved.
+ * 2. Far more importantly, **delivering the broadcast starts the process**, and
+ *    `MainApplication.onCreate` opens the database unconditionally to ensure a default calendar
+ *    exists. SQLCipher, the Keystore IPC and the AES-GCM decrypt therefore happen whatever this
+ *    receiver decides. No code inside `onReceive` can prevent that.
+ *
+ * What the guard actually buys is the reschedule pass — a full read of every reminder plus a
+ * recurrence expansion per reminder — which is the expensive part once the process is warm. That is
+ * worth having, and it is all it is.
+ *
+ * Closing the rest means making the component unresolvable rather than making it return early; that
+ * is a `setComponentEnabledSetting` on a receiver declared `android:enabled="false"`, and it is
+ * deliberately NOT done here: it adds a package-manager write on every cold start to defend against a
+ * nuisance (CPU and battery, no disclosure) on API 26–30 only. Recorded rather than done, so the next
+ * reader inherits the measurement instead of the reassurance.
  */
 @AndroidEntryPoint
 class ExactAlarmPermissionReceiver : BroadcastReceiver() {
