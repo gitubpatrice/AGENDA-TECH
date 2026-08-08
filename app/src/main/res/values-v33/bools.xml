@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 13+: SCHEDULE_EXACT_ALARM is capped at maxSdkVersion 32 and USE_EXACT_ALARM, which
+         replaces it, cannot be revoked. The permission-state signal can no longer happen, so the
+         receiver has nothing to do. See values/bools.xml. -->
+    <bool name="exact_alarm_receiver_enabled">false</bool>
+</resources>

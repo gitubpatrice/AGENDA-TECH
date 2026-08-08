@@ -35,6 +35,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.first
+import timber.log.Timber
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -52,8 +53,35 @@ import java.util.Locale
 class AgendaWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = loadData(context)
+        // The widget is a process that starts without the app, on the platform's schedule. Everything
+        // [loadData] touches can refuse: the Keystore is not always reachable straight after boot, and
+        // the database open behind it is the same one `DatabaseFactory` has a whole failure taxonomy
+        // for. Letting that escape means the Glance worker fails, the host keeps the PREVIOUS render —
+        // and that render may carry the very titles the lock was just turned on to hide.
+        //
+        // So it fails **closed**, into a card with no rows: no agenda content can survive a failure to
+        // read the agenda. Empty is also honest here, since the alternative is showing a day that may
+        // no longer exist.
+        val data = runCatching { loadData(context) }
+            .getOrElse { error ->
+                Timber.w(error, "AgendaWidget: cannot read the agenda — rendering an empty card")
+                blankData(context)
+            }
         provideContent { WidgetContent(data) }
+    }
+
+    /** What the widget shows when the agenda cannot be read: the date, and nothing about the agenda. */
+    private fun blankData(context: Context): WidgetData {
+        val locale = Locale.getDefault()
+        val today = LocalDate.now(ZoneId.systemDefault())
+        return WidgetData(
+            dayNumber = today.dayOfMonth.toString(),
+            subtitle = today
+                .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale))
+                .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() },
+            rows = emptyList(),
+            emptyLabel = context.getString(R.string.widget_no_events),
+        )
     }
 
     private suspend fun loadData(context: Context): WidgetData {
@@ -66,8 +94,16 @@ class AgendaWidget : GlanceAppWidget() {
 
         val occurrences = entryPoint.observeOccurrences().invoke(startMillis, endMillis).first()
         // LOCK-3 — the widget lives on the home screen, outside the app-lock gate. When a PIN/biometric
-        // lock is enabled we force-hide titles so enabling the lock never leaves event titles readable
-        // on the home screen; the user's explicit "hide titles" preference also still applies.
+        // lock is enabled we force-hide titles; the user's explicit "hide titles" preference also
+        // still applies.
+        //
+        // This decides what the NEXT render shows, and nothing more. The claim that used to sit here —
+        // "enabling the lock never leaves event titles readable on the home screen" — needed something
+        // to redraw the widget at that moment, and nothing did: `updateAll` had a single caller in the
+        // whole app, after a restore. `agenda_widget_info.xml` asks the platform for a 30-minute
+        // period, so the titles the lock was turned on to hide stayed on the home screen for up to
+        // half an hour. `SettingsViewModel.refreshWidget()` is what makes the sentence true; if it is
+        // ever removed, this line silently goes back to being a 30-minute promise.
         val hideTitles = entryPoint.settingsRepository().current().widgetHideTitles ||
             entryPoint.lockRepository().isLockEnabled()
         val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale)

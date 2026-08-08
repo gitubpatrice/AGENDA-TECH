@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Whether ExactAlarmPermissionReceiver exists at all, on this device's platform version.
+
+      The receiver listens for SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED, an action that arrived
+      in API 31. Its protection is a <protected-broadcast> entry in the platform's OWN manifest, and
+      that entry is versioned with the platform image: an API 26-30 image cannot list an action that
+      did not exist yet. Measured on the Galaxy S9 (API 29): `am broadcast` from uid 2000 reaches
+      this receiver and returns result=0, while the same command against BOOT_COMPLETED is refused
+      with a SecurityException. Same emitter, same channel, opposite outcomes.
+
+      Delivering that broadcast STARTS THE PROCESS, so a guard inside onReceive cannot prevent the
+      cost it is meant to prevent — MainApplication.onCreate has already opened SQLCipher and talked
+      to the Keystore by then. Only non-existence closes it, and a component whose android:enabled
+      resolves to false does not exist as far as PackageManager is concerned: no intent, explicit or
+      not, can start it.
+
+      false below API 31  — the action is unprotected there AND the app has nothing to do with it.
+      true on API 31-32   — SCHEDULE_EXACT_ALARM is revocable on Android 12, so the grant-back signal
+                            is real, and the platform now protects the broadcast.
+      false on API 33+    — SCHEDULE_EXACT_ALARM is declared android:maxSdkVersion="32"; beyond it
+                            USE_EXACT_ALARM takes over, and it cannot be revoked. Nothing to listen
+                            for.
+
+      i.e. the receiver exists for exactly the two API levels where it can do its job.
+    -->
+    <bool name="exact_alarm_receiver_enabled">false</bool>
+</resources>

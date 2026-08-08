@@ -112,13 +112,20 @@
              This comment claimed the broadcast is protected, so that exporting opened nothing.
              MESURÉ FAUX sur API 29 : la liste <protected-broadcast> est versionnée avec la plateforme
              et cette action date d'API 31, donc n'importe quelle app peut atteindre le receiver sur
-             API 26-30. La garde est donc DANS le corps du receiver, pas ici — voir son KDoc.
+             API 26-30.
+             La garde vivait dans le corps du receiver, ce qui arrivait trop tard : délivrer la
+             diffusion DÉMARRE le processus, donc la base était déjà ouverte quand onReceive
+             s'exécutait. android:enabled résout maintenant @bool/exact_alarm_receiver_enabled, faux
+             hors API 31-32 : le composant n'existe pas pour PackageManager, aucun intent ne peut
+             l'atteindre, et le coût tombe à zéro. La garde du corps reste, en second rideau.
+             Voir res/values/bools.xml pour la table complète et la mesure.
              Note au passage : l'android:permission du BootReceiver ci-dessus ne protège rien non plus,
              RECEIVE_BOOT_COMPLETED étant de protectionLevel "normal" et donc accordée à qui la
              demande. Ce qui protège BootReceiver, c'est que BOOT_COMPLETED, elle, est bien une
              diffusion protégée — vérifié sur le même appareil. -->
         <receiver
             android:name=".system.alarm.ExactAlarmPermissionReceiver"
+            android:enabled="@bool/exact_alarm_receiver_enabled"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />

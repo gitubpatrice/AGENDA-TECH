@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12 (API 31-32): SCHEDULE_EXACT_ALARM is user-revocable, so the grant-back broadcast
+         is worth listening for — and the platform protects it here. See values/bools.xml. -->
+    <bool name="exact_alarm_receiver_enabled">true</bool>
+</resources>

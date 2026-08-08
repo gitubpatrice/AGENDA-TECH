@@ -51,8 +51,11 @@ import javax.inject.Provider
  * with an explicit intent and drive a full database open — SQLCipher, Keystore IPC, AES-GCM — plus a
  * whole reschedule pass, in a loop, for free.
  *
- * So the guard is in the body rather than in the manifest. The receiver stays exported, because the
- * system needs to reach it on API 31–32.
+ * The receiver stays exported, because the system has to reach it on API 31–32. What closes the hole
+ * is that it **does not exist** anywhere else: `android:enabled` resolves
+ * `@bool/exact_alarm_receiver_enabled`, which is false below API 31 and false again from 33, so on
+ * every version where the broadcast is unprotected or pointless PackageManager has no such component
+ * to start. See `res/values/bools.xml` for the table and the measurement.
  *
  * ## What the guard does NOT do — audit SEC-1
  *
@@ -70,11 +73,13 @@ import javax.inject.Provider
  * recurrence expansion per reminder — which is the expensive part once the process is warm. That is
  * worth having, and it is all it is.
  *
- * Closing the rest means making the component unresolvable rather than making it return early; that
- * is a `setComponentEnabledSetting` on a receiver declared `android:enabled="false"`, and it is
- * deliberately NOT done here: it adds a package-manager write on every cold start to defend against a
- * nuisance (CPU and battery, no disclosure) on API 26–30 only. Recorded rather than done, so the next
- * reader inherits the measurement instead of the reassurance.
+ * The rest is closed in the manifest, above. It was first left open on the reasoning that making the
+ * component unresolvable meant `setComponentEnabledSetting`, i.e. a package-manager write on every
+ * cold start, too much for a nuisance confined to API 26–30. **That reasoning had a hole**: an
+ * `android:enabled` pointing at a version-qualified boolean resource gets the same result with no
+ * runtime code and no write at all — the platform resolves it when it scans the package. The body
+ * guard is kept as a second curtain, since a device that upgrades across the boundary is one more
+ * moving part than a receiver is worth trusting.
  */
 @AndroidEntryPoint
 class ExactAlarmPermissionReceiver : BroadcastReceiver() {

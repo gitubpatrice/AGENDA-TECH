@@ -1,5 +1,7 @@
 package com.filestech.agenda_tech.ui.screens.settings
 
+import android.content.Context
+import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.domain.model.CalendarColor
@@ -11,7 +13,9 @@ import com.filestech.agenda_tech.domain.settings.WeekStart
 import com.filestech.agenda_tech.security.AppLockManager
 import com.filestech.agenda_tech.security.BiometricGate
 import com.filestech.agenda_tech.system.notifications.ReminderNotifier
+import com.filestech.agenda_tech.widget.AgendaWidget
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +25,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 import kotlin.math.ceil
 
@@ -31,6 +36,7 @@ data class LockUiState(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository,
     private val lockRepository: LockRepository,
     private val appLock: AppLockManager,
@@ -52,11 +58,17 @@ class SettingsViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LockUiState())
 
     fun setPin(pin: String) {
-        viewModelScope.launch { lockRepository.setPin(pin) }
+        viewModelScope.launch {
+            lockRepository.setPin(pin)
+            refreshWidget()
+        }
     }
 
     fun disableLock() {
-        viewModelScope.launch { lockRepository.disableLock() }
+        viewModelScope.launch {
+            lockRepository.disableLock()
+            refreshWidget()
+        }
     }
 
     /** Seconds the user must wait before the next re-auth attempt (0 when not throttled). */
@@ -132,7 +144,7 @@ class SettingsViewModel @Inject constructor(
     fun setDefaultDuration(minutes: Int) = update { it.copy(defaultDurationMinutes = minutes) }
     fun setDefaultReminder(minutes: Int) = update { it.copy(defaultReminderMinutes = minutes) }
     fun setFlagSecure(value: Boolean) = update { it.copy(flagSecure = value) }
-    fun setWidgetHideTitles(value: Boolean) = update { it.copy(widgetHideTitles = value) }
+    fun setWidgetHideTitles(value: Boolean) = updateThenRefreshWidget { it.copy(widgetHideTitles = value) }
     fun setNotifSound(value: Boolean) = updateThenRebuildChannel { it.copy(notifSound = value) }
 
     /** [uri] null restores the system default notification sound. */
@@ -142,6 +154,38 @@ class SettingsViewModel @Inject constructor(
 
     private fun update(transform: (AppSettings) -> AppSettings) {
         viewModelScope.launch { settingsRepository.update(transform) }
+    }
+
+    /**
+     * Settings the **widget** renders from, which it re-reads only when something asks it to.
+     *
+     * `agenda_widget_info.xml` sets `updatePeriodMillis` to 30 minutes, so without this the user
+     * turns on "hide titles in the widget" and their event titles stay legible on the home screen
+     * for up to half an hour. [refreshWidget] makes the setting take effect when it is flipped,
+     * which is the only moment at which the user is looking for it to.
+     */
+    private fun updateThenRefreshWidget(transform: (AppSettings) -> AppSettings) {
+        viewModelScope.launch {
+            settingsRepository.update(transform)
+            refreshWidget()
+        }
+    }
+
+    /**
+     * Redraws the home-screen widget now rather than at the platform's next 30-minute tick.
+     *
+     * Called after every change to what the widget is allowed to show. The privacy-critical one is
+     * enabling the lock: `AgendaWidget` force-hides titles whenever a PIN is set, and its own KDoc
+     * used to claim that "enabling the lock never leaves event titles readable on the home screen".
+     * Nothing enforced it — `updateAll` had exactly one caller in the whole app, after a restore —
+     * so the titles the lock was turned on to hide stayed on screen for up to 30 minutes.
+     *
+     * Failure is logged and swallowed on purpose: no widget on the home screen, or a host that
+     * refuses the update, must not make setting a PIN look like it failed.
+     */
+    private suspend fun refreshWidget() {
+        runCatching { AgendaWidget().updateAll(context) }
+            .onFailure { Timber.w(it, "Settings: widget refresh failed") }
     }
 
     /** Notification-channel prefs only take effect once the channel is recreated (Android caps it). */
