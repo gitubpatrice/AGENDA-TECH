@@ -80,6 +80,46 @@ class BackupViewModel @Inject constructor(
 
     fun suggestedFileName(): String = exportBackup.fileName(LocalDate.now().toString())
 
+    /**
+     * The export password, parked between the dialog that asks for it and the picker that names the
+     * file. Held **here** and not in the composable, for the same reason [pendingRestoreFile] is.
+     *
+     * The picker is another activity, and the one that launched it can be recreated while it is on
+     * screen — a rotation is enough. A `remember` in the screen loses the value at that moment, so
+     * the picker came back, found nothing to encrypt with, and did nothing: the user named a file,
+     * saw no error, and had no backup. The `CharArray` went with it, so it was never wiped either.
+     *
+     * The two halves of this screen were asymmetric — restore already parked its vetted file in the
+     * ViewModel, export parked its password in the composition.
+     */
+    private var pendingExportPassword: CharArray? = null
+
+    /** Called when the export dialog is confirmed, just before the file picker is launched. */
+    fun onExportPasswordEntered(password: CharArray) {
+        pendingExportPassword?.wipe()
+        pendingExportPassword = password
+    }
+
+    /** Called with the picker's answer; [uri] is null when the user backed out. */
+    fun onExportTargetPicked(uri: Uri?) {
+        val password = pendingExportPassword
+        pendingExportPassword = null
+        when {
+            // Picker cancelled, or it came back after this ViewModel was rebuilt from scratch:
+            // nothing to encrypt, scrub whatever is still held.
+            uri == null || password == null -> password?.wipe()
+            else -> export(uri, password)
+        }
+    }
+
+    override fun onCleared() {
+        // The screen can be left with a password parked and no picker result coming.
+        pendingExportPassword?.wipe()
+        pendingExportPassword = null
+        pendingRestoreFile = null
+        super.onCleared()
+    }
+
     fun export(uri: Uri, password: CharArray) = viewModelScope.launch {
         _state.update { it.copy(busy = BackupOp.EXPORT, message = null) }
         val message = when (val out = exportBackup(password, System.currentTimeMillis())) {
@@ -140,6 +180,20 @@ class BackupViewModel @Inject constructor(
     }
 
     fun restore(password: CharArray) = viewModelScope.launch {
+        // A second tap on the confirm button, while the first restore is still running.
+        //
+        // Without this it fell through to the "no file in hand" branch below — because the first call
+        // had already taken `pendingRestoreFile` — and published `Failed`. That cleared `busy`, so the
+        // overlay vanished and the user was told the restore had failed **while it was replacing
+        // their agenda**. The one message that must never be wrong on this screen, on the one
+        // operation that cannot be undone.
+        //
+        // Safe as a plain read: `viewModelScope` dispatches on `Main.immediate`, and `busy` is set
+        // below before the first suspension point, so a second tap cannot interleave ahead of it.
+        if (_state.value.busy != null) {
+            password.wipe()
+            return@launch
+        }
         val file = pendingRestoreFile
         if (file == null) {
             // No file in hand (process death between the pick and the password): nothing to restore.

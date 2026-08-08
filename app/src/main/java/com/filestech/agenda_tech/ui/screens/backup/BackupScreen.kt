@@ -27,6 +27,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -41,9 +43,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -54,7 +58,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.core.crypto.BackupEnvelope
-import com.filestech.agenda_tech.core.crypto.wipe
 import com.filestech.agenda_tech.domain.usecase.ExportBackupUseCase
 import com.filestech.agenda_tech.ui.theme.BrandDanger
 
@@ -75,20 +78,13 @@ fun BackupScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Export asks for the password first, so it has to be parked until the picker returns a target.
-    // Restore is the mirror image and is driven by the ViewModel, which holds the vetted file.
-    var pendingExportPassword by remember { mutableStateOf<CharArray?>(null) }
-    var showExportPasswordDialog by remember { mutableStateOf(false) }
+    // Both halves park in the ViewModel now: the picker is another activity, and this one can be
+    // recreated behind it. See BackupViewModel.pendingExportPassword.
+    var showExportPasswordDialog by rememberSaveable { mutableStateOf(false) }
 
     val createFile = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(ExportBackupUseCase.MIME_TYPE),
-    ) { uri ->
-        val password = pendingExportPassword
-        pendingExportPassword = null
-        when {
-            uri == null -> password?.wipe() // picker cancelled: nothing to encrypt, scrub what we hold
-            password != null -> viewModel.export(uri, password)
-        }
-    }
+    ) { uri -> viewModel.onExportTargetPicked(uri) }
 
     val openFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         // Hands the file straight to the ViewModel, which rejects a wrong pick on its magic bytes
@@ -160,7 +156,7 @@ fun BackupScreen(
             onDismiss = { showExportPasswordDialog = false },
             onConfirm = { password ->
                 showExportPasswordDialog = false
-                pendingExportPassword = password
+                viewModel.onExportPasswordEntered(password)
                 createFile.launch(viewModel.suggestedFileName())
             },
         )
@@ -247,11 +243,34 @@ private fun ActionRow(title: String, subtitle: String, enabled: Boolean, onClick
     }
 }
 
-/** Blocks input while the KDF runs — several seconds during which a second tap must not start a second run. */
+/**
+ * Blocks input while the KDF runs — several seconds during which a second tap must not start a
+ * second run.
+ *
+ * That sentence was here before anything enforced it: this was a plain `Box`, which draws over the
+ * screen and lets every tap through to the buttons underneath. On a restore, "underneath" is the
+ * control that replaces the whole agenda.
+ *
+ * Three things make it true now — the pointer events are consumed rather than merely covered, the
+ * scrim says so visibly, and the back gesture is swallowed. Back matters as much as the taps: the
+ * work runs in `viewModelScope` and would carry on after the user navigated away believing they had
+ * stopped it.
+ */
 @Composable
 private fun BusyOverlay(op: BackupOp) {
+    BackHandler(enabled = true) { /* deliberately swallowed: see KDoc */ }
     Box(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.scrim.copy(alpha = SCRIM_ALPHA))
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent().changes.forEach { it.consume() }
+                    }
+                }
+            }
+            .padding(32.dp),
         contentAlignment = Alignment.Center,
     ) {
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)) {
@@ -387,3 +406,6 @@ private fun PasswordDialog(
         },
     )
 }
+
+/** Enough to read as "not now" without hiding what is behind it. */
+private const val SCRIM_ALPHA = 0.4f
