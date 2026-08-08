@@ -54,7 +54,46 @@ c'est un **faux positif**, déclenché par `build.gradle.kts` modifié pour des 
 
 ---
 
-## 2. Ce qui reste à faire
+## 1 bis. PUBLIÉ — v1.0.0, le 2026-08-08
+
+L'audit est **terminé et publié**. Tout ce qui suit au §2 est de l'archive.
+
+| Étape | État |
+|---|---|
+| Branche poussée | ✅ `fix/audit-2026-08-08` |
+| **CI, première exécution de l'histoire du dépôt** | ✅ verte — gate, **tests instrumentés API 29**, contrôle « zéro réseau » |
+| Fusion sur `main` | ✅ avance rapide, `ecbd49e` |
+| CI sur `main` | ✅ verte |
+| Bump | ✅ `versionCode=52`, `versionName=1.0.0` |
+| Tag `v1.0.0` | ✅ poussé |
+| Release GitHub | ✅ 4 APK (3 splits + universel) |
+| **Certificat de signature** | ✅ **inchangé** `538bff8a…` — chemin de mise à jour intact |
+| Permissions | ✅ 11, aucune réseau |
+| fastlane FR + EN | ✅ `52.txt`, 483 et 459 caractères (cap 500) |
+| Installation réelle | ✅ Galaxy S9, lancée sans crash |
+| files-tech.com | ✅ `index.php`, `agenda-tech.php`, `download.php` |
+| F-Droid | ⏸️ pas pour l'instant — décision de Patrice |
+
+**Deux lots supplémentaires après le §R6**, tous deux issus de relectures :
+
+- **Lot U (`60239a3`) — F5-quinquies.** GPT et Gemini ont *tous les deux* bloqué la release sur le
+  lot T. Ils avaient raison : mon F5-quater armait 111 rappels sur une population mixte là où
+  F5-ter en armait 888. Cinquième version de ce budget, et la première qui ne perde sur aucune
+  population — **deux tours** au lieu d'un. Corrigés aussi : le mot de passe d'export pouvait rester
+  en clair en mémoire si la coroutine était annulée, et un rappel non réarmé ne le disait qu'à un
+  `Timber.w` supprimé en release (`OneShotFlag.REMINDERS_INCOMPLETE` le dit maintenant).
+- **Release (`ecbd49e`).**
+
+### Le fait à retenir de tout cet audit
+
+**Sept passes. Six fois sur sept, une passe a trouvé des défauts introduits par la précédente.**
+Le budget d'expansion a été refait cinq fois, chaque version mesurée sur la population qui
+l'arrangeait. Et **une relecture externe qui valide ne prouve rien** : les deux ont approuvé la
+version qui armait zéro rappel, et signalé en ÉLEVÉ un « bug du I turc » qui n'existe pas.
+
+---
+
+## 2. Ce qui reste à faire — ARCHIVE, tout est fait
 
 > Les lots A, B, C, D, E, F, G et H sont **faits**. Ce qui suit est ce qui reste après eux — le détail
 > historique des lots E et G est conservé plus bas, en archive, parce qu'il documente le raisonnement.
