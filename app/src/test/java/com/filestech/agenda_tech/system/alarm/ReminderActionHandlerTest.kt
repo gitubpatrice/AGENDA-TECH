@@ -71,7 +71,7 @@ class ReminderActionHandlerTest {
 
     @Test
     fun `an unknown action does nothing`() = runTest {
-        assertThat(handler.handles("com.example.SOMETHING_ELSE")).isFalse()
+        assertThat(ReminderActionHandler.handles("com.example.SOMETHING_ELSE")).isFalse()
         handle("com.example.SOMETHING_ELSE")
 
         coVerify(exactly = 0) { notifier.postReminder(any(), any()) }
@@ -82,7 +82,7 @@ class ReminderActionHandlerTest {
 
     @Test
     fun `a null action does nothing`() = runTest {
-        assertThat(handler.handles(null)).isFalse()
+        assertThat(ReminderActionHandler.handles(null)).isFalse()
         handle(null)
 
         coVerify(exactly = 0) { notifier.postReminder(any(), any()) }
@@ -91,9 +91,9 @@ class ReminderActionHandlerTest {
 
     @Test
     fun `the three real actions are recognised`() {
-        assertThat(handler.handles(ReminderReceiver.ACTION_FIRE)).isTrue()
-        assertThat(handler.handles(ReminderReceiver.ACTION_SNOOZE)).isTrue()
-        assertThat(handler.handles(ReminderReceiver.ACTION_SNOOZE_FIRE)).isTrue()
+        assertThat(ReminderActionHandler.handles(ReminderReceiver.ACTION_FIRE)).isTrue()
+        assertThat(ReminderActionHandler.handles(ReminderReceiver.ACTION_SNOOZE)).isTrue()
+        assertThat(ReminderActionHandler.handles(ReminderReceiver.ACTION_SNOOZE_FIRE)).isTrue()
     }
 
     @Test

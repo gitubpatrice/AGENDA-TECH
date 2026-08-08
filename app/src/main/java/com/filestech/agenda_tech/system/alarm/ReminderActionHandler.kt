@@ -20,12 +20,6 @@ class ReminderActionHandler @Inject constructor(
     private val scheduler: ReminderScheduler,
 ) {
 
-    /** True when [action] is one this handler owns — lets the receiver drop anything else early. */
-    fun handles(action: String?): Boolean =
-        action == ReminderReceiver.ACTION_FIRE ||
-            action == ReminderReceiver.ACTION_SNOOZE ||
-            action == ReminderReceiver.ACTION_SNOOZE_FIRE
-
     suspend fun handle(action: String?, reminderId: Long, eventId: Long, occurrenceStartUtcMillis: Long) {
         if (!handles(action) || eventId < 0L) return
         when (action) {
@@ -46,5 +40,22 @@ class ReminderActionHandler @Inject constructor(
                 }
             }
         }
+    }
+
+    companion object {
+        /**
+         * True when [action] is one this handler owns — lets the receiver drop anything else early.
+         *
+         * Audit F2 — moved from an instance method to the companion so [ReminderReceiver] can filter a
+         * broadcast **without** instantiating the handler, which would have built the whole Hilt graph
+         * (and therefore the SQLCipher database) on the main thread just to decide that an intent is
+         * none of our business. Kept here rather than duplicated into the receiver: the receiver owns
+         * the action constants, this owns the decision, and a second copy of the list is exactly the
+         * kind of drift `3b4da6f` had to undo for `MAX_FIELD_CHARS`.
+         */
+        fun handles(action: String?): Boolean =
+            action == ReminderReceiver.ACTION_FIRE ||
+                action == ReminderReceiver.ACTION_SNOOZE ||
+                action == ReminderReceiver.ACTION_SNOOZE_FIRE
     }
 }
