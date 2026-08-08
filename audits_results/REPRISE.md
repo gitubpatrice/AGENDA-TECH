@@ -8,7 +8,7 @@
 ## 1. Où en est le dépôt
 
 **Branche : `fix/audit-2026-08-08`**, partant de `main` = `893b683` = tag `v0.5.4`.
-Arbre **propre**, rien à pousser, **16 commits**, gate **verte**.
+Arbre **propre**, rien à pousser, **19 commits**, gate **verte**.
 
 | Commit | Lot | Contenu |
 |---|---|---|
@@ -28,9 +28,12 @@ Arbre **propre**, rien à pousser, **16 commits**, gate **verte**.
 | `c38a13b` | — | Point de reprise : les restes des deux plongées |
 | `f44558f` | **J** | Trois contrôles échouaient **en ouvert** · l'éditeur annulait la migration v6 · plafonds de nombre |
 | `d083781` | **K** | Les neuf derniers écarts entre ce que le code affirme et ce qu'il fait |
+| `846401b` | — | Point de reprise |
+| `1570ac0` | **L** | 3ᵉ passe d'audit, **sur mes propres correctifs** : trois régressions à moi, dont un test qui épinglait un défaut |
+| `29e41a9` | **M** | Relecture **Gemini** enfin obtenue : `TZID=Z` corrigé, six constats réfutés |
 
-**État vérifié** : `assembleDebug` OK · **309 tests JVM**, 0 échec · **lint 0** · **detekt 0** ·
-**14 tests instrumentés verts** sur Galaxy S9 · manifeste fusionné à 11 permissions, contrôle OK ·
+**État vérifié** : `assembleDebug` OK · **313 tests JVM**, 0 échec · **lint 0** · **detekt 0** ·
+**15 tests instrumentés verts** sur Galaxy S9 · manifeste fusionné à 11 permissions, contrôle OK ·
 lancement réel sur appareil sans crash.
 
 **Tous les lots du plan sont faits.** Ce qui reste est listé au §2.
@@ -55,17 +58,16 @@ locale. Ce qui est vérifié, c'est la porte **locale** et le script de permissi
 Un `git push` sur `fix/audit-2026-08-08` déclencherait la CI et rendrait ces trois assertions réelles.
 C'est une action **sortante** : demander à Patrice avant.
 
-### R2 — la relecture Gemini des lots A, F, B, C, D, E reste due
+### R2 — la relecture Gemini : **obtenue** (lot M)
 
-`gemini-3.1-pro-preview` a répondu **503** à chaque tentative, y compris après le lot H (le
-2026-08-08 en fin de parcours). Aucun modèle Pro de repli n'existe. Ces lots n'ont donc **qu'un
-relecteur externe sur deux**. À relancer dès que le modèle redevient joignable :
+`gemini-3.1-pro-preview` a fini par répondre après une trentaine de tentatives réparties sur la
+journée. Les lots C, D et E ont donc eu **deux relecteurs externes**, comme le plan du lot 2 le
+prévoyait. Tri dans [lot 5](2026-08-08-lot5-tri-relecture-gemini.md) : **1 constat retenu sur 8**
+(`TZID=Z`), six réfutés avec leur raison — et le plus spectaculairement faux a produit deux
+améliorations réelles.
 
-```bash
-python ~/.claude/tools/audit-ia.py --provider gemini \
-  --prompt prompts/PROMPT-RELECTURE-LOT-CDE.md \
-  --out audits/ia-externe/rapport-gemini-lot-CDE-<date>.md <fichiers entiers>
-```
+Les lots **A, F et B** n'ont toujours qu'un relecteur externe. À relancer si l'occasion se présente ;
+ce sont aussi les lots les plus anciens et les plus relus par ailleurs.
 
 ### R2 bis — les deux plongées d'audit sont **entièrement traitées**
 
@@ -87,6 +89,21 @@ Les trois plus lourds, tous vérifiés par moi avant correction :
 **Un point mesuré plutôt qu'argumenté** : les alias tzdb « backward » (`Asia/Calcutta`, `Europe/Kiev`…)
 résolvent tous sur la tzdb **réelle** du S9 — `TimeZonesDeviceTest`. Les garder est plus sûr que de les
 moderniser : `Europe/Kyiv` n'existe qu'à partir de tzdb 2022b, donc absent des Android que l'app vise.
+
+### R2 ter — la 3ᵉ passe d'audit (`1570ac0`) : ce qui reste, consigné et NON fait
+
+Les deux plongées relancées **sur mes propres correctifs** ont rendu 23 constats. Trois régressions
+étaient de moi et sont corrigées ; le motif dominant est écrit dans le corps du commit — *chaque
+correctif traitait sa moitié constatée et laissait la moitié conséquente*.
+
+Quatre points restent, chacun écrit **là où il se lit** en plus d'ici :
+
+| # | Ce que c'est | Pourquoi ce n'est pas fait |
+|---|---|---|
+| **SEC-6** | La troncature de l'import depuis l'agenda de l'appareil n'est **pas signalée à l'utilisateur** (le témoin est un `Timber.w`, inerte en release) | Le dire suppose de remonter le fait jusqu'à l'écran d'import — un travail d'interface, pas un correctif |
+| **SEC-3 / DR-3** | Le diagnostic de migration n'est **pas lisible sur une version publiée** | Idem : demande une entrée dans l'écran « À propos » |
+| **SEC-12 / DR-9** | Le plafond porte sur **un import**, pas sur l'agenda ; côté appareil il porte même par **calendrier source** | Arbitrage : fermer suppose un `COUNT(*)` avant écriture, et chaque répétition exige une action de l'utilisateur |
+| **DR-7** | Un aller-retour par « journée entière » **perd définitivement** le fuseau d'auteur | Le garder proprement demande une colonne dédiée, donc une migration |
 
 ⚠️ **À porter au portefeuille** : `fallbackToDestructiveMigrationOnDowngrade(Boolean)` a le même piège
 partout. **SMS Tech** est en Kotlin natif avec Room et migrations additives.
