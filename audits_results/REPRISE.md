@@ -8,7 +8,7 @@
 ## 1. Où en est le dépôt
 
 **Branche : `fix/audit-2026-08-08`**, partant de `main` = `893b683` = tag `v0.5.4`.
-Arbre **propre**, rien à pousser, **11 commits**, gate **verte**.
+Arbre **propre**, rien à pousser, **13 commits**, gate **verte**.
 
 | Commit | Lot | Contenu |
 |---|---|---|
@@ -23,8 +23,10 @@ Arbre **propre**, rien à pousser, **11 commits**, gate **verte**.
 | `dd84ad7` | **E** | F3 fuseaux Outlook + migration v6 · F4 lecture bornée · F8 EXDATE · F14 pliage |
 | `7612866` | **G** | C0-1 les 11 permissions dans `PRIVACY` · F9 dans `SECURITY.md` · F13 · F12 |
 | `cfe9985` | **H** | Relecture GPT des lots C/D/E : mon lot D **annulait des alarmes vivantes** |
+| `ea51ba6` | — | Point de reprise à jour |
+| `1fc1edc` | **I** | Plongées data-room + sécurité : **un CRITIQUE** — le downgrade effaçait tout |
 
-**État vérifié** : `assembleDebug` OK · **293 tests JVM**, 0 échec · **lint 0** · **detekt 0** ·
+**État vérifié** : `assembleDebug` OK · **295 tests JVM**, 0 échec · **lint 0** · **detekt 0** ·
 **10 tests instrumentés verts** sur Galaxy S9 · manifeste fusionné à 11 permissions, contrôle OK.
 
 **Tous les lots du plan sont faits.** Ce qui reste est listé au §2.
@@ -60,6 +62,42 @@ python ~/.claude/tools/audit-ia.py --provider gemini \
   --prompt prompts/PROMPT-RELECTURE-LOT-CDE.md \
   --out audits/ia-externe/rapport-gemini-lot-CDE-<date>.md <fichiers entiers>
 ```
+
+### R2 bis — le reste des deux plongées d'audit (commit `1fc1edc`)
+
+Deux agents ont plongé sur les axes **data-room** et **sécurité** après le lot H. Vingt-cinq constats
+rendus ; les six que **j'ai vérifiés moi-même** (désassemblage ou mesure sur appareil) sont corrigés
+dans `1fc1edc`, dont un **CRITIQUE** — `fallbackToDestructiveMigrationOnDowngrade(false)` **armait**
+l'effacement qu'il prétendait interdire. Les rapports complets sont dans le corps de ce commit.
+
+**Trois décisions produit, à trancher par Patrice — ne pas deviner :**
+
+| # | Constat | L'arbitrage |
+|---|---|---|
+| **D2** | `EventEditorViewModel:47,338` réécrit `timeZoneId` avec le fuseau de l'**appareil** à chaque sauvegarde. Ouvrir un événement importé d'Outlook pour y ajouter un rappel **annule la réparation v6** et décale les occurrences futures d'une heure au changement d'heure | Conserver le fuseau chargé pour un événement horaire existant change le comportement observable des séries importées. C'est le but, mais c'en est un |
+| **S15** | `SettingsModule.kt:25` — une corruption du fichier DataStore réinitialise `lock_enabled` à `false` : **le verrou d'application s'éteint en silence** et les titres reparaissent dans le widget | Le correctif suppose un message utilisateur nouveau, sur le modèle de `consumeResetFlag` |
+| **S16** | `LockViewModel.kt:39-54` — `submitPin` reste un check-then-act **hors mutex** autour d'un PBKDF2 de ~100 ms ; une rafale d'appuis obtient plusieurs essais par fenêtre de back-off | À **mesurer** avant de toucher au flux de déverrouillage. PROBABLE, non reproduit |
+
+**Sans décision requise, à faire :**
+
+- **S3** — `MainActivity.kt:80` : `lockConfigured` vaut `false` avant la première lecture DataStore,
+  donc `onStop` peut ne **rien** faire. Le correctif F13 a échangé un défaut de calendrier contre un
+  défaut de valeur par défaut. Tri-état (`null` = pas encore su, se protège comme « verrouillé »).
+- **S12** — aucun plafond de **nombre** d'événements à l'import `.ics` ni à la restauration `.atbak`
+  (l'import device, lui, a `MAX_EVENTS = 20 000`). 5 Mio de VEVENT minimaux ≈ 87 000 événements.
+- **S5 / S14** — deux formulations de `SECURITY.md` plus fortes que ce que le code garantit
+  (« ne peuvent jamais fuiter » sur une course non mesurée ; « tant que le verrou est activé » alors
+  que le code teste `lockState != UNLOCKED`).
+- **D3 / D5 / D6 / D7** — journal de la migration v6 muet en release (`Timber.i` + `NoOpReleaseTree`)
+  alors que son KDoc l'annonce comme le seul témoin · KDoc « deux passes » au lieu de k+1 ·
+  l'invariant « toute ligne canonique » n'est asserté nulle part · trous du test de migration
+  (downgrade, création de zéro en v6, rejeu, `user_version`, une assertion tautologique sur un
+  appareil réglé sur Paris).
+- **S4 / S6 / S10 / S2** — quatre commentaires plus faux que dangereux, à corriger avec le reste.
+
+⚠️ **À porter au portefeuille** : `fallbackToDestructiveMigrationOnDowngrade(Boolean)` a le même piège
+partout. **SMS Tech** est en Kotlin natif avec Room et migrations additives.
+`grep -rn "fallbackToDestructive" j:\applications\sms_tech` avant sa prochaine release — une minute.
 
 ### R3 — ce que l'audit a laissé de côté, sciemment
 
