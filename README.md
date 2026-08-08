@@ -1,7 +1,7 @@
 # Agenda Tech
 
 A **fully local, encrypted, zero-network** Android calendar — the calendar piece of the **Files
-Tech** suite, built to leave Google Calendar without handing anything to a cloud.
+Tech** suite, built without cloud.
 
 [![Licence](https://img.shields.io/badge/licence-Apache%202.0-blue.svg)](LICENSE)
 [![Zero network](https://img.shields.io/badge/network-zero-success.svg)](#privacy)
