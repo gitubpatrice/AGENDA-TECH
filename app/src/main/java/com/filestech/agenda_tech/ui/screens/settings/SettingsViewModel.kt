@@ -12,10 +12,13 @@ import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.domain.settings.WeekStart
 import com.filestech.agenda_tech.security.AppLockManager
 import com.filestech.agenda_tech.security.BiometricGate
+import com.filestech.agenda_tech.di.ApplicationScope
 import com.filestech.agenda_tech.system.notifications.ReminderNotifier
 import com.filestech.agenda_tech.widget.AgendaWidget
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,6 +45,7 @@ class SettingsViewModel @Inject constructor(
     private val appLock: AppLockManager,
     private val reminderNotifier: ReminderNotifier,
     private val biometricGate: BiometricGate,
+    @ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
     val settings: StateFlow<AppSettings> = settingsRepository.settings.stateIn(
@@ -183,9 +187,26 @@ class SettingsViewModel @Inject constructor(
      * Failure is logged and swallowed on purpose: no widget on the home screen, or a host that
      * refuses the update, must not make setting a PIN look like it failed.
      */
-    private suspend fun refreshWidget() {
-        runCatching { AgendaWidget().updateAll(context) }
-            .onFailure { Timber.w(it, "Settings: widget refresh failed") }
+    private fun refreshWidget() {
+        // On the APPLICATION scope, not `viewModelScope` — found by internal review of this very fix.
+        // Leaving the settings screen destroys the ViewModel and cancels its scope, so the refresh was
+        // killed in flight by the gesture that most naturally follows switching the lock on: set the
+        // PIN, press back. The lock was set, the widget was not, and the titles it exists to hide
+        // stayed on the home screen for up to thirty minutes — the exact leak this was written to
+        // close, on its own nominal path.
+        appScope.launch {
+            try {
+                AgendaWidget().updateAll(context)
+            } catch (c: CancellationException) {
+                // Never swallowed as a failure: it is not one, and reporting it as one is how a
+                // cancelled refresh looks identical to a broken widget in the log.
+                throw c
+            } catch (t: Throwable) {
+                // No widget on the home screen, or a host that refuses: setting a PIN must not look
+                // like it failed.
+                Timber.w(t, "Settings: widget refresh failed")
+            }
+        }
     }
 
     /** Notification-channel prefs only take effect once the channel is recreated (Android caps it). */

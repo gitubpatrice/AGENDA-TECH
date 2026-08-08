@@ -20,7 +20,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.time.ZoneId
 
 /**
@@ -42,7 +42,10 @@ import java.time.ZoneId
 class ReminderSchedulerBudgetTest {
 
     private val zone: ZoneId = ZoneId.of("Europe/Paris")
-    private val start = LocalDateTime.of(2026, 1, 5, 9, 0).atZone(zone).toInstant().toEpochMilli()
+    // Ancré sur "maintenant" et non sur une date littérale : `rescheduleAll` lit l'horloge réelle et
+    // le balayage part du début de la série, donc une date fixe rend le coût d'expansion croissant
+    // avec le temps — un test vert aujourd'hui qui rougit tout seul dans dix-huit mois.
+    private val start = ZonedDateTime.now(zone).minusWeeks(4).withHour(9).toInstant().toEpochMilli()
 
     private val alarmManager: AlarmManager = mockk(relaxed = true)
     private val context: Context = mockk(relaxed = true)
@@ -103,7 +106,7 @@ class ReminderSchedulerBudgetTest {
         // instance shared across the pass — what F5 did — event 1 drained it and event 2 was never
         // armed. After a reboot that is not "the tail is not drawn this frame": exact alarms are gone,
         // so event 2's reminder simply never fires again until its event is saved.
-        val ancient = LocalDateTime.of(2000, 1, 5, 9, 0).atZone(zone).toInstant().toEpochMilli()
+        val ancient = ZonedDateTime.now(zone).minusYears(25).toInstant().toEpochMilli()
         eventRepo.rows[1] = eventRepo.rows.getValue(1).copy(
             startUtcMillis = ancient,
             endUtcMillis = ancient + 3_600_000,
@@ -120,9 +123,13 @@ class ReminderSchedulerBudgetTest {
         reminderRepo.rows[10] = Reminder(id = 10, eventId = 1, minutesBefore = 15)
         reminderRepo.rows[11] = Reminder(id = 11, eventId = 2, minutesBefore = 15)
 
-        // Two reminders, so each share is 100. Event 1 needs far more than that and gives up; event 2
-        // needs a few dozen and must still get armed out of its OWN share.
-        scheduler.newPassBudget = { ExpansionBudget(200) }
+        // Event 1 is a 25-year weekly series (~1 300 iterations, above the per-reminder cap in the
+        // scaled-down setup below); event 2 needs four. The pass total is ample — what must not happen
+        // is event 1 eating it.
+        // Pass total ample, per-reminder cap tight: exactly the shape the fix installs, scaled down
+        // so a test can reach it. Event 1 wants ~1 300 and is capped at 100; event 2 wants ~4.
+        scheduler.newPassBudget = { ExpansionBudget(20_000) }
+        scheduler.perReminderIterations = 100
 
         scheduler.rescheduleAll()
 
@@ -130,6 +137,46 @@ class ReminderSchedulerBudgetTest {
             alarmManager.setExactAndAllowWhileIdle(any(), any(), any<PendingIntent>())
         }
         // And the starved one is still not cancelled — F5-bis must survive F5-ter.
+        verify(exactly = 0) { alarmManager.cancel(any<PendingIntent>()) }
+    }
+
+    @Test
+    fun `a homogeneous agenda is not decimated by the ceiling that protects it`() = runTest {
+        // Audit F5-quater, found by an internal review of F5-ter — my own previous fix.
+        //
+        // F5-ter divided the pass allowance `total / n`. That is kind to a HETEROGENEOUS population,
+        // where one greedy series is starved and the rest are fine. It is brutal on a homogeneous one,
+        // which is the ordinary case: every reminder needs roughly the same number of iterations, so
+        // once the share falls below that need, NONE of them is armed rather than the first 90 %.
+        //
+        // Ten reminders on identical two-year weekly series (~104 iterations each) and a pass total of
+        // 400. Dividing gives each a share of 40 and arms zero. A pass ceiling plus a per-reminder cap
+        // arms the first three or four and stops — which is the trade F5 actually asked for.
+        val twoYears = ZonedDateTime.now(zone).minusYears(2).toInstant().toEpochMilli()
+        eventRepo.rows.clear()
+        reminderRepo.rows.clear()
+        repeat(HOMOGENEOUS_COUNT) { i ->
+            val id = (i + 1).toLong()
+            eventRepo.rows[id] = Event(
+                id = id,
+                calendarId = 1,
+                title = "Cours $i",
+                startUtcMillis = twoYears,
+                endUtcMillis = twoYears + 3_600_000,
+                timeZoneId = zone.id,
+                recurrence = RecurrenceRule(freq = RecurrenceFreq.WEEKLY),
+            )
+            reminderRepo.rows[id] = Reminder(id = id, eventId = id, minutesBefore = 15)
+        }
+        scheduler.newPassBudget = { ExpansionBudget(400) }
+
+        scheduler.rescheduleAll()
+
+        // The assertion F5-ter would fail: at least one reminder must come out of this armed.
+        verify(atLeast = 1) {
+            alarmManager.setExactAndAllowWhileIdle(any(), any(), any<PendingIntent>())
+        }
+        // And none of them disarmed on the way — F5-bis must survive F5-quater too.
         verify(exactly = 0) { alarmManager.cancel(any<PendingIntent>()) }
     }
 
@@ -149,5 +196,9 @@ class ReminderSchedulerBudgetTest {
         scheduler.rescheduleAll()
 
         verify(atLeast = 1) { alarmManager.cancel(any<PendingIntent>()) }
+    }
+
+    private companion object {
+        const val HOMOGENEOUS_COUNT = 10
     }
 }

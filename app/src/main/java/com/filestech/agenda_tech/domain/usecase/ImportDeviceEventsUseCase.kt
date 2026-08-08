@@ -121,6 +121,9 @@ class ImportDeviceEventsUseCase @Inject constructor(
                 // work too" — was true of the happy path only. Reading is the cost being bounded, and
                 // reading has already happened by the time we know whether the write will succeed.
                 remaining -= deviceEvents.size
+                // Folded in HERE too, for the same reason: a calendar that was truncated AND then
+                // failed to write used to report neither, because both were recorded in `onSuccess`.
+                truncated = truncated || read.truncated
                 // FIAB-3 — fold each moved occurrence's original instant into its master's EXDATE, so
                 // a provider that omits EXDATE on the master can't leave a ghost at the original time
                 // next to the moved one.
@@ -159,9 +162,8 @@ class ImportDeviceEventsUseCase @Inject constructor(
             }.onSuccess { outcome ->
                 calendars++
                 events += outcome.imported
-                // The allowance was already debited at the read, above — on every path, including
-                // the one that ends in `onFailure`.
-                truncated = truncated || outcome.truncated
+                // Allowance and truncation are both recorded at the read, above — on every path,
+                // including the one that ends in `onFailure`.
             }.onFailure {
                 failed++
                 Timber.w(it, "ImportDeviceEventsUseCase: calendar %d skipped", deviceId)

@@ -248,13 +248,16 @@ private fun ActionRow(title: String, subtitle: String, enabled: Boolean, onClick
  * second run.
  *
  * That sentence was here before anything enforced it: this was a plain `Box`, which draws over the
- * screen and lets every tap through to the buttons underneath. On a restore, "underneath" is the
- * control that replaces the whole agenda.
+ * screen and lets every tap through. It is worth being exact about what that did and did not risk,
+ * because the first correction here overstated it — the two rows underneath are already
+ * `enabled = state.busy == null`, and the button that actually replaces the agenda lives in an
+ * `AlertDialog`, i.e. in its own window above this one. **What fixed the double tap is the guard in
+ * `BackupViewModel.restore`, not this overlay.**
  *
- * Three things make it true now — the pointer events are consumed rather than merely covered, the
- * scrim says so visibly, and the back gesture is swallowed. Back matters as much as the taps: the
- * work runs in `viewModelScope` and would carry on after the user navigated away believing they had
- * stopped it.
+ * What the overlay is for is the rest: consumed pointer events so nothing underneath can be reached
+ * as states change, a scrim that says the screen is busy, and a swallowed back gesture. Back is the
+ * one that matters — the work runs in `viewModelScope` and would carry on after the user navigated
+ * away believing they had stopped it.
  */
 @Composable
 private fun BusyOverlay(op: BackupOp) {

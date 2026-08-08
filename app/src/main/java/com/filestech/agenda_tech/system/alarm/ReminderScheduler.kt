@@ -48,6 +48,10 @@ class ReminderScheduler @Inject constructor(
     @VisibleForTesting
     internal var newPassBudget: () -> ExpansionBudget = { ExpansionBudget() }
 
+    /** The other half of the seam above: [PER_REMINDER_ITERATIONS] is likewise out of a test's reach. */
+    @VisibleForTesting
+    internal var perReminderIterations: Int = PER_REMINDER_ITERATIONS
+
     /** (Re)schedule every reminder of one event — call after creating/editing it. */
     suspend fun rescheduleEvent(eventId: Long) {
         val event = eventRepository.getById(eventId) ?: return
@@ -72,20 +76,34 @@ class ReminderScheduler @Inject constructor(
      * of time here means the process is killed with the reminders never re-armed — and nothing anywhere
      * says so.
      *
-     * Audit F5-ter, found by external review — **the allowance is divided, not shared.** F5 passed one
-     * instance across the pass, and F5-bis then taught the caller not to cancel when it ran out. Both
-     * were right about a render, where the tail is merely not drawn this frame, and both were wrong
-     * here: the sentence three lines above says exact alarms do not survive a reboot, so on this path
-     * "left as it is" means *left unarmed, permanently* — until the user happens to edit the event.
-     * One pathological series therefore silently cost every recurring reminder behind it.
+     * Audit F5-ter, then F5-quater — **two ceilings, because one is always the wrong one.**
      *
-     * Splitting keeps F5's total ceiling exactly (`ways × total/ways ≤ total`) and removes the
-     * starvation: a series can spend its own share and nobody else's. Non-recurring reminders never
-     * enter this arithmetic at all — [RecurrenceExpander.nextOccurrenceStart] answers them before it
-     * looks at a budget — so a hostile import cannot stop a plain reminder from being re-armed.
+     * F5 shared a single instance across the pass; F5-bis taught the caller not to cancel when it ran
+     * out. Both were right about a render, where the tail is merely not drawn this frame, and both
+     * were wrong here: the sentence above says exact alarms do not survive a reboot, so on this path
+     * "left as it is" means *left unarmed, permanently*. One pathological series silently cost every
+     * recurring reminder behind it.
      *
-     * What remains, stated rather than implied: a recurring series that outruns its own share is left
-     * unarmed by this pass, and logged. That is the residue of the trade, not an oversight.
+     * F5-ter then divided the allowance `total / n` — and made it worse, which is why it is written
+     * down. Division is only kind to a *heterogeneous* population. On a **homogeneous** one — the
+     * ordinary case — every reminder needs about the same number of iterations, so if the per-share
+     * amount falls below that need, **none** of them is armed instead of the first 90 %. With 1 000
+     * reminders on three-year daily series, each needs ~1 095 iterations and each share is 1 000:
+     * sharing armed ~913, dividing armed zero. Found by an internal review that did the arithmetic
+     * the two external reviews had not.
+     *
+     * So: a **pass ceiling** that bounds the total, and a **per-reminder cap** that stops any single
+     * series from eating it. A series can spend at most [PER_REMINDER_ITERATIONS]; the rest are served
+     * in order until the pass total is gone, exactly as before F5-ter, with the hogging removed.
+     *
+     * Non-recurring reminders never enter this arithmetic — [RecurrenceExpander.nextOccurrenceStart]
+     * answers them before it looks at a budget — so they are armed even once the pass total is spent,
+     * and a hostile import cannot stop a plain reminder from being re-armed. That is also why the loop
+     * keeps calling [schedule] after exhaustion instead of breaking out of it.
+     *
+     * The residue, stated rather than implied: a recurring series that outruns the per-reminder cap,
+     * or that arrives after the pass total is gone, is **not armed by this pass** and is logged. It
+     * fires again the next time its event is saved.
      */
     suspend fun rescheduleAll() {
         val now = System.currentTimeMillis()
@@ -94,22 +112,23 @@ class ReminderScheduler @Inject constructor(
             .groupBy { it.recurrenceParentId }
             .mapValues { (_, list) -> list.mapNotNull { it.originalStartUtcMillis }.toHashSet() }
         val eventCache = HashMap<Long, Event?>()
-        val reminders = reminderRepository.getAll()
-        // Sized on the whole list rather than on the recurring subset: telling them apart first would
-        // cost a second lookup of every event, and over-dividing only makes each share smaller than it
-        // strictly had to be — never larger than the pass total, which is the property that matters.
-        val share = newPassBudget().shareSize(reminders.size)
-        reminders.forEach { reminder ->
+        val pass = newPassBudget()
+        reminderRepository.getAll().forEach { reminder ->
             val event = eventCache.getOrPut(reminder.eventId) { eventRepository.getById(reminder.eventId) }
                 ?: return@forEach
             val excluded = if (event.isRecurring) excludedByParent[event.id].orEmpty() else emptySet()
+            // Floored at one rather than skipped: a budget of zero cannot be constructed, and more to
+            // the point a non-recurring reminder must still be armed once the pass total is gone — it
+            // never consults this at all.
+            val allowance = ExpansionBudget(maxOf(1, minOf(perReminderIterations, pass.remaining)))
             schedule(
                 reminder,
                 event,
                 ReminderScheduling.initialEarliestStart(now, reminder.minutesBefore),
                 excluded,
-                ExpansionBudget(share),
+                allowance,
             )
+            pass.charge(allowance.spent)
         }
     }
 
@@ -282,6 +301,18 @@ class ReminderScheduler @Inject constructor(
     companion object {
         /** How long "snooze" defers a reminder. Ten minutes: long enough to finish what you were doing. */
         const val SNOOZE_MINUTES = 10
+
+        /**
+         * The most expansion iterations one reminder may spend during [rescheduleAll].
+         *
+         * Sized from what a real series costs, not from the pass total: the expander scans from the
+         * event's own start, so a daily series pays one iteration per day since it began and a weekly
+         * one pays 52 per year. 10 000 covers 27 years of daily or two centuries of weekly — beyond
+         * any agenda someone actually keeps — while stopping a single hostile rule from spending the
+         * whole pass. Deliberately independent of the number of reminders: making it depend on N is
+         * exactly the mistake F5-ter made.
+         */
+        const val PER_REMINDER_ITERATIONS = 10_000
 
         /**
          * Request code for a snoozed alarm — keyed by the occurrence, not by the reminder, so two

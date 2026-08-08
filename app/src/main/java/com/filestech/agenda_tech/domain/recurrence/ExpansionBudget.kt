@@ -42,19 +42,17 @@ class ExpansionBudget(private val maxIterations: Int = DEFAULT_MAX_ITERATIONS) {
         return true
     }
 
+    /** What is left of the allowance; never negative. */
+    val remaining: Int get() = maxOf(0, maxIterations - used)
+
     /**
-     * The allowance one of [ways] equal shares gets — how a pass total is divided instead of raced for.
-     *
-     * A single shared instance is right for a render, where the pass either finishes or the tail is
-     * simply not drawn this frame. It is wrong for the reboot pass: there, "the tail is not processed"
-     * means those alarms are never re-armed, and the first pathological series takes the whole
-     * allowance from everyone behind it. Splitting keeps the same total ceiling — `ways × (total /
-     * ways) ≤ total` — while making one series unable to spend anyone else's share.
-     *
-     * Never returns zero: an allowance of nothing is indistinguishable from an exhausted budget, and
-     * a caller cannot tell "you get one iteration" from "stop asking".
+     * Charges [iterations] spent by a **sub-budget**, so a pass ceiling can be enforced across several
+     * of them without any of them being able to spend it all. See `ReminderScheduler.rescheduleAll`.
      */
-    fun shareSize(ways: Int): Int = maxOf(1, maxIterations / maxOf(1, ways))
+    fun charge(iterations: Int) {
+        require(iterations >= 0) { "cannot charge a negative number of iterations, was $iterations" }
+        used += iterations
+    }
 
     companion object {
         /**

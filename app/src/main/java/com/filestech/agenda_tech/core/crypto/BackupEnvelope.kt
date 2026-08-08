@@ -88,9 +88,12 @@ class BackupEnvelope @Inject constructor(
         data object NotABackup : Recognition
 
         /**
-         * Ours by its magic bytes, but the envelope version or the KDF id is one this build cannot
-         * read. The file is intact — **this app is too old for it**. The user must update, not
+         * Ours by its magic bytes, and its envelope version or KDF id is **higher** than anything
+         * this build knows: it was written by a newer Agenda Tech. The user must update, not
          * re-export and certainly not delete.
+         *
+         * Says nothing about the file being intact — no authentication has happened at this point.
+         * It only says this build could not read it even if it were.
          */
         data object UnsupportedVersion : Recognition
 
@@ -165,8 +168,18 @@ class BackupEnvelope @Inject constructor(
         // already written". That promise has a mirror image nothing was enforcing: an *older* build
         // meeting a *newer* file. It used to answer "this is not an Agenda Tech backup" — about a
         // perfectly intact backup, to a user for whom it is the only copy of their agenda.
-        if (buf.get() != ENVELOPE_VERSION) return Recognition.UnsupportedVersion
-        if (buf.get() != KDF_PBKDF2_HMAC_SHA256) return Recognition.UnsupportedVersion
+        // `>` and not `!=`, on both bytes. An inequality test would answer "made by a newer Agenda
+        // Tech — update the app" to someone already on the newest build, whenever the byte is merely
+        // *wrong*: a flipped bit at offset 5 or 6 of an otherwise damaged file reads exactly like a
+        // future version. They would then wait for an update that is never coming, instead of trying
+        // another copy. Only a value ABOVE what we know can honestly be called newer; anything else
+        // is damage, and `Malformed` says so.
+        val envelopeVersion = buf.get()
+        if (envelopeVersion > ENVELOPE_VERSION) return Recognition.UnsupportedVersion
+        if (envelopeVersion != ENVELOPE_VERSION) return Recognition.Malformed
+        val kdfId = buf.get()
+        if (kdfId > KDF_PBKDF2_HMAC_SHA256) return Recognition.UnsupportedVersion
+        if (kdfId != KDF_PBKDF2_HMAC_SHA256) return Recognition.Malformed
         val iterations = buf.int
         // A hostile file could ask for billions of rounds and hang the app until the user force-quits.
         // The floor matters just as much: it would silently produce a key nobody had to work for.

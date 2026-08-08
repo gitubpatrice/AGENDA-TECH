@@ -105,9 +105,17 @@ class BackupViewModel @Inject constructor(
         val password = pendingExportPassword
         pendingExportPassword = null
         when {
-            // Picker cancelled, or it came back after this ViewModel was rebuilt from scratch:
-            // nothing to encrypt, scrub whatever is still held.
-            uri == null || password == null -> password?.wipe()
+            // Picker cancelled: the user chose not to export, so there is nothing to report.
+            uri == null -> password?.wipe()
+            // A file was named but the password is gone — the ViewModel was rebuilt from scratch
+            // while the picker was up (process death). Moving the password here fixed the rotation
+            // case; this is the half that survived it, and it failed the same silent way: the user
+            // named a file, saw nothing, and had no backup. Said out loud now, like the restore
+            // twin does in the same situation.
+            password == null -> {
+                Timber.w("Backup export: the password did not survive the picker — nothing was written")
+                _state.value = BackupUiState(message = BackupMessage.Failed)
+            }
             else -> export(uri, password)
         }
     }

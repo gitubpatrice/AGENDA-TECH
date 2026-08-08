@@ -302,9 +302,15 @@ class DatabaseFactory @Inject constructor(
      * SQLite reads that as corruption, and it is the kind no reset flag is raised for, because it is
      * not a Keystore failure. The half-restore was worse than either whole.
      *
-     * So it is all or nothing. Stopping leaves every `.prerekey` copy on disk, the caller rethrows,
-     * and the user meets [com.filestech.agenda_tech.ui.StartupFailureScreen] with their agenda still
-     * recoverable — rather than a database silently destroyed by its own rescue.
+     * So it stops at the first file it cannot put back, rather than carrying on past it. To be exact
+     * about what that does and does not buy — the loop is not a transaction and cannot be one across
+     * three files: whatever was already renamed **stays** renamed. Stopping removes the ordering that
+     * made the mismatch systematic (database refused, sidecars restored anyway); it does not make the
+     * set atomic.
+     *
+     * What it does guarantee: every `.prerekey` copy still on disk is kept, the caller rethrows, and
+     * the user meets [com.filestech.agenda_tech.ui.StartupFailureScreen] with the material to recover
+     * from — rather than a database silently destroyed by its own rescue.
      */
     private fun restore(backups: List<File>, dbFile: File) {
         for (copy in backups) {
