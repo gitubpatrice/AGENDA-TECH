@@ -181,6 +181,53 @@ class ReminderSchedulerBudgetTest {
     }
 
     @Test
+    fun `a heavy group cannot starve the light reminders behind it`() = runTest {
+        // Audit F5-quinquies. Three schemes have now been tried on this one loop, and each was
+        // measured on the population that suited it:
+        //
+        //   population of N reminders   | shared (F5) | divided (F5-ter) | capped (F5-quater)
+        //   homogeneous, all expensive  |   most      |      NONE        |      most
+        //   a heavy group, then light   |   few       |      most        |      few
+        //
+        // This is the second row. Twelve old weekly series first, then twelve four-week ones: under
+        // F5-quater the heavy dozen drank the pass total in order and the light dozen each got the
+        // floor of one iteration, which is not enough for even a four-week series. Two rounds serve
+        // the cheap ones first, then come back for the rest — so BOTH groups are armed here.
+        val old = ZonedDateTime.now(zone).minusYears(20).toInstant().toEpochMilli()
+        eventRepo.rows.clear()
+        reminderRepo.rows.clear()
+        repeat(HEAVY_COUNT + LIGHT_COUNT) { i ->
+            val id = (i + 1).toLong()
+            val heavy = i < HEAVY_COUNT
+            val from = if (heavy) old else start
+            eventRepo.rows[id] = Event(
+                id = id,
+                calendarId = 1,
+                title = if (heavy) "Vieille série $i" else "Récent $i",
+                startUtcMillis = from,
+                endUtcMillis = from + 3_600_000,
+                timeZoneId = zone.id,
+                recurrence = RecurrenceRule(freq = RecurrenceFreq.WEEKLY),
+            )
+            reminderRepo.rows[id] = Reminder(id = id, eventId = id, minutesBefore = 15)
+        }
+        // Round one gives everyone 20 — plenty for a four-week series (4 iterations), nowhere near
+        // enough for a twenty-year one (~1 040). The pass total then only stretches to a few of the
+        // heavy ones in round two, which is the point: the light ones were already served.
+        scheduler.firstRoundIterations = 20
+        scheduler.perReminderIterations = 2_000
+        scheduler.newPassBudget = { ExpansionBudget(2_500) }
+
+        scheduler.rescheduleAll()
+
+        // Every light reminder armed, plus at least one heavy one out of the leftovers.
+        verify(atLeast = LIGHT_COUNT + 1) {
+            alarmManager.setExactAndAllowWhileIdle(any(), any(), any<PendingIntent>())
+        }
+        verify(exactly = 0) { alarmManager.cancel(any<PendingIntent>()) }
+    }
+
+    @Test
     fun `a series that really has ended is still cancelled`() = runTest {
         // The other half, and the reason the fix is a budget check and not "never cancel": with room
         // to look, a null means what it always meant, and the alarm must go. A test asserting only
@@ -200,5 +247,7 @@ class ReminderSchedulerBudgetTest {
 
     private companion object {
         const val HOMOGENEOUS_COUNT = 10
+        const val HEAVY_COUNT = 12
+        const val LIGHT_COUNT = 12
     }
 }

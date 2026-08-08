@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.annotation.VisibleForTesting
+import com.filestech.agenda_tech.core.prefs.OneShotFlag
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.Reminder
 import com.filestech.agenda_tech.domain.recurrence.ExpansionBudget
@@ -48,9 +49,12 @@ class ReminderScheduler @Inject constructor(
     @VisibleForTesting
     internal var newPassBudget: () -> ExpansionBudget = { ExpansionBudget() }
 
-    /** The other half of the seam above: [PER_REMINDER_ITERATIONS] is likewise out of a test's reach. */
+    /** The other half of the seam above: the two round sizes are likewise out of a test's reach. */
     @VisibleForTesting
     internal var perReminderIterations: Int = PER_REMINDER_ITERATIONS
+
+    @VisibleForTesting
+    internal var firstRoundIterations: Int = FIRST_ROUND_ITERATIONS
 
     /** (Re)schedule every reminder of one event — call after creating/editing it. */
     suspend fun rescheduleEvent(eventId: Long) {
@@ -84,26 +88,46 @@ class ReminderScheduler @Inject constructor(
      * "left as it is" means *left unarmed, permanently*. One pathological series silently cost every
      * recurring reminder behind it.
      *
-     * F5-ter then divided the allowance `total / n` — and made it worse, which is why it is written
-     * down. Division is only kind to a *heterogeneous* population. On a **homogeneous** one — the
-     * ordinary case — every reminder needs about the same number of iterations, so if the per-share
-     * amount falls below that need, **none** of them is armed instead of the first 90 %. With 1 000
-     * reminders on three-year daily series, each needs ~1 095 iterations and each share is 1 000:
-     * sharing armed ~913, dividing armed zero. Found by an internal review that did the arithmetic
-     * the two external reviews had not.
+     * F5-ter divided the allowance `total / n`, and made it worse. F5-quater capped each reminder at
+     * [PER_REMINDER_ITERATIONS] and served them in order, and made it worse *differently*. Both are
+     * written down because the shape of the mistake is the same twice: **each scheme was measured on
+     * the population that suited it.**
      *
-     * So: a **pass ceiling** that bounds the total, and a **per-reminder cap** that stops any single
-     * series from eating it. A series can spend at most [PER_REMINDER_ITERATIONS]; the rest are served
-     * in order until the pass total is gone, exactly as before F5-ter, with the hogging removed.
+     * | population of 1 000 reminders, 1 000 000 total | shared (F5) | divided (F5-ter) | capped (F5-quater) |
+     * |---|---|---|---|
+     * | homogeneous: all need ~1 095 | ~913 armed | **0 armed** | ~913 armed |
+     * | mixed: 112 need 9 000, then 888 need 100 | 111 | 888 | **111** |
+     *
+     * No single-round scheme wins both, and the arithmetic above is what two external reviews each
+     * missed once — one validated F5-ter, both then produced the mixed-population column.
+     *
+     * ## Two rounds, which is what actually works
+     *
+     * 1. Everyone gets [FIRST_ROUND_ITERATIONS] — enough for any series a person actually keeps
+     *    (~5 years daily, ~38 years weekly). Cheap reminders are all satisfied here, and no expensive
+     *    one can take more than its neighbour.
+     * 2. Whatever is left of the pass total is offered, up to [PER_REMINDER_ITERATIONS] each, to the
+     *    reminders that round one could not finish — in order, until it runs out.
+     *
+     * Work-conserving and starvation-free: on the mixed population above it arms ~964 rather than 111
+     * or 888, and on the homogeneous one it arms the same ~913 as the shared budget. It is never worse
+     * than the best of the three schemes above, on either.
      *
      * Non-recurring reminders never enter this arithmetic — [RecurrenceExpander.nextOccurrenceStart]
      * answers them before it looks at a budget — so they are armed even once the pass total is spent,
-     * and a hostile import cannot stop a plain reminder from being re-armed. That is also why the loop
-     * keeps calling [schedule] after exhaustion instead of breaking out of it.
+     * and a hostile import cannot stop a plain reminder from being re-armed. That is also why round
+     * one keeps calling [schedule] after exhaustion instead of breaking out of the loop.
      *
-     * The residue, stated rather than implied: a recurring series that outruns the per-reminder cap,
-     * or that arrives after the pass total is gone, is **not armed by this pass** and is logged. It
-     * fires again the next time its event is saved.
+     * ## What the ceiling really bounds, since "bounded by the total" was another overclaim
+     *
+     * `total + n`, not `total`: once the pass is spent every remaining reminder is still handed a
+     * floor of one iteration, because [ExpansionBudget] cannot be built with zero and because a
+     * non-recurring reminder must still be served. One iteration each is negligible CPU; the sentence
+     * claiming a strict bound was not.
+     *
+     * The residue, stated rather than implied: a recurring series that outruns both rounds is **not
+     * armed by this pass**. It does not fire again until its event is next saved — so unlike every
+     * earlier version of this comment, the user is now told, through [OneShotFlag.REMINDERS_INCOMPLETE].
      */
     suspend fun rescheduleAll() {
         val now = System.currentTimeMillis()
@@ -113,15 +137,19 @@ class ReminderScheduler @Inject constructor(
             .mapValues { (_, list) -> list.mapNotNull { it.originalStartUtcMillis }.toHashSet() }
         val eventCache = HashMap<Long, Event?>()
         val pass = newPassBudget()
+        val deferred = ArrayList<Pair<Reminder, Event>>()
+
+        // Round one — an equal, modest allowance for everyone, so no reminder can be starved by a
+        // neighbour that happens to come before it in the list.
         reminderRepository.getAll().forEach { reminder ->
             val event = eventCache.getOrPut(reminder.eventId) { eventRepository.getById(reminder.eventId) }
                 ?: return@forEach
             val excluded = if (event.isRecurring) excludedByParent[event.id].orEmpty() else emptySet()
-            // Floored at one rather than skipped: a budget of zero cannot be constructed, and more to
-            // the point a non-recurring reminder must still be armed once the pass total is gone — it
-            // never consults this at all.
-            val allowance = ExpansionBudget(maxOf(1, minOf(perReminderIterations, pass.remaining)))
-            schedule(
+            // Floored at one rather than skipped: an ExpansionBudget of zero cannot be built, and more
+            // to the point a non-recurring reminder must still be armed once the pass total is gone —
+            // it never consults this at all.
+            val allowance = ExpansionBudget(maxOf(1, minOf(firstRoundIterations, pass.remaining)))
+            val armed = schedule(
                 reminder,
                 event,
                 ReminderScheduling.initialEarliestStart(now, reminder.minutesBefore),
@@ -129,6 +157,37 @@ class ReminderScheduler @Inject constructor(
                 allowance,
             )
             pass.charge(allowance.spent)
+            if (!armed) deferred += reminder to event
+        }
+
+        // Round two — the leftovers go to whoever could not finish, in order, until they run out.
+        // This is what makes the scheme work-conserving: round one deliberately under-serves the
+        // expensive series, and refusing to come back for them would be F5-ter all over again.
+        var incomplete = false
+        deferred.forEach { (reminder, event) ->
+            if (pass.remaining <= 0) {
+                incomplete = true
+                return@forEach
+            }
+            val excluded = if (event.isRecurring) excludedByParent[event.id].orEmpty() else emptySet()
+            val allowance = ExpansionBudget(minOf(perReminderIterations, pass.remaining))
+            val armed = schedule(
+                reminder,
+                event,
+                ReminderScheduling.initialEarliestStart(now, reminder.minutesBefore),
+                excluded,
+                allowance,
+            )
+            pass.charge(allowance.spent)
+            if (!armed) incomplete = true
+        }
+
+        if (incomplete) {
+            // The whole point of this audit is that a silent loss is the worst kind. `Timber.w` is
+            // dropped by NoOpReleaseTree on the builds users run, so on its own it witnesses nothing —
+            // both external reviews called that out, one of them as the release blocker.
+            Timber.w("ReminderScheduler: %d reminder(s) left unarmed by this pass", deferred.size)
+            OneShotFlag.REMINDERS_INCOMPLETE.raise(context)
         }
     }
 
@@ -207,13 +266,18 @@ class ReminderScheduler @Inject constructor(
      */
     fun cancelReminders(reminderIds: Collection<Long>) = reminderIds.forEach(::cancel)
 
+    /**
+     * @return false **only** when the expansion budget ran out before an answer was reached — i.e.
+     * when asking again with more allowance could still arm this reminder. Every other outcome, armed
+     * or legitimately cancelled, is true: round two must retry what was starved and nothing else.
+     */
     private fun schedule(
         reminder: Reminder,
         event: Event,
         earliestOccurrenceStart: Long,
         extraExcludedStarts: Set<Long>,
         budget: ExpansionBudget? = null,
-    ) {
+    ): Boolean {
         val fire = ReminderScheduling.computeNextFire(
             expander,
             event,
@@ -244,28 +308,24 @@ class ReminderScheduler @Inject constructor(
             // that outran its own share. It stays unarmed until its event is next saved, and the log
             // says that rather than something reassuring.
             if (budget?.isExhausted == true) {
-                Timber.w(
-                    "ReminderScheduler: reminder %d outran its expansion share — not cancelled, but " +
-                        "not armed either; it will not fire until its event is saved again",
-                    reminder.id,
-                )
-                return
+                return false
             }
             cancel(reminder.id)
-            return
+            return true
         }
         val pendingIntent = buildPendingIntent(
             reminderId = reminder.id,
             eventId = event.id,
             occurrenceStartUtcMillis = fire.occurrenceStartUtcMillis,
             allowCreate = true,
-        ) ?: return
+        ) ?: return true
         if (canScheduleExact()) {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fire.fireAtUtcMillis, pendingIntent)
         } else {
             Timber.i("ReminderScheduler: exact alarms unavailable — using inexact alarm for reminder %d", reminder.id)
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fire.fireAtUtcMillis, pendingIntent)
         }
+        return true
     }
 
     private fun cancel(reminderId: Long) {
@@ -303,7 +363,18 @@ class ReminderScheduler @Inject constructor(
         const val SNOOZE_MINUTES = 10
 
         /**
-         * The most expansion iterations one reminder may spend during [rescheduleAll].
+         * What every reminder gets in round one of [rescheduleAll], before anything is offered twice.
+         *
+         * The expander scans from the event's own start, so this is ~5 years of a daily series or ~38
+         * years of a weekly one — past any series a person actually keeps, and small enough that a
+         * thousand of them cost a fifth of the pass total rather than all of it. Being equal is the
+         * property that matters: it is what stops the reminders early in the list from deciding
+         * whether the ones behind them get armed at all.
+         */
+        const val FIRST_ROUND_ITERATIONS = 2_000
+
+        /**
+         * The most expansion iterations one reminder may spend in round two of [rescheduleAll].
          *
          * Sized from what a real series costs, not from the pass total: the expander scans from the
          * event's own start, so a daily series pays one iteration per day since it began and a weekly

@@ -48,5 +48,16 @@ value class OneShotFlag(private val key: String) {
          * file carries `lock_enabled`, means **the app lock was switched off**.
          */
         val SETTINGS_RESET = OneShotFlag("settings_reset_pending")
+
+        /**
+         * A reboot pass could not re-arm every recurring reminder within its expansion allowance.
+         *
+         * Those reminders will not fire until their event is next saved. The only witness used to be
+         * a `Timber.w`, which `NoOpReleaseTree` drops on the builds users run — so on release the app
+         * knew its reminders were incomplete and said nothing. Both external reviews of that code
+         * named it, one as a release blocker, and they were right: a silent functional loss is the
+         * failure mode this whole audit exists to remove.
+         */
+        val REMINDERS_INCOMPLETE = OneShotFlag("reminders_incomplete")
     }
 }

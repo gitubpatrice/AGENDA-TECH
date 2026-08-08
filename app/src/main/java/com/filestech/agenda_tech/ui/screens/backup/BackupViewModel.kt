@@ -129,6 +129,20 @@ class BackupViewModel @Inject constructor(
     }
 
     fun export(uri: Uri, password: CharArray) = viewModelScope.launch {
+        // The wipe is guaranteed HERE, not only inside the use case — found by both reviews of this
+        // lot. `ExportBackupUseCase` scrubs the array on every path it reaches, but this coroutine can
+        // be cancelled before it reaches any of them (leaving the screen right after confirming), and
+        // then the plaintext password stayed in the heap, held by a dead closure, with nothing left
+        // holding a reference that could clear it. Wiping twice is free: the second pass overwrites
+        // spaces with spaces.
+        try {
+            exportInto(uri, password)
+        } finally {
+            password.wipe()
+        }
+    }
+
+    private suspend fun exportInto(uri: Uri, password: CharArray) {
         _state.update { it.copy(busy = BackupOp.EXPORT, message = null) }
         val message = when (val out = exportBackup(password, System.currentTimeMillis())) {
             is Outcome.Success -> writeFile(uri, out.value.bytes, out.value.events).also { result ->

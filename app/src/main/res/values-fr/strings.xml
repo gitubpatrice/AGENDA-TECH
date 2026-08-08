@@ -242,6 +242,7 @@
     <string name="startup_failure_title">Agenda Tech ne peut pas ouvrir vos données</string>
     <string name="startup_failure_body">Votre agenda est toujours là et n\'a pas été modifié. Cela vient en général d\'une version plus ancienne de l\'application installée par-dessus une plus récente : la base de données est plus récente que ce que cette version sait lire. Réinstaller la version plus récente rétablit l\'accès. L\'application n\'efface volontairement rien d\'elle-même.</string>
     <string name="settings_reset_notice">Vos réglages n\'ont pas pu être lus et ont été réinitialisés. Si vous aviez un verrou d\'application, il a été désactivé — réactivez-le dans les Réglages.</string>
+    <string name="reminders_incomplete_notice">Certains rappels répétés ne sont pas reprogrammés après le redémarrage. Ouvrez les événements concernés et enregistrez-les à nouveau pour les réactiver.</string>
     <string name="settings_section_security">Sécurité</string>
     <string name="settings_lock_enabled">Verrouiller l\'application</string>
     <string name="settings_lock_enabled_sub">Exiger un code PIN ou la biométrie à l\'ouverture</string>

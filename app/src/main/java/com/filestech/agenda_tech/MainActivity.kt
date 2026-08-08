@@ -175,6 +175,13 @@ class MainActivity : FragmentActivity() {
             if (OneShotFlag.SETTINGS_RESET.consume(this@MainActivity)) {
                 Toast.makeText(this@MainActivity, R.string.settings_reset_notice, Toast.LENGTH_LONG).show()
             }
+            // Same rule, third file: a reboot pass that ran out of expansion allowance leaves some
+            // recurring reminders unarmed until their event is saved again. Said out loud, for the
+            // reason the two notices above exist — the app must not know something is wrong with the
+            // user's reminders and keep it to itself.
+            if (OneShotFlag.REMINDERS_INCOMPLETE.consume(this@MainActivity)) {
+                Toast.makeText(this@MainActivity, R.string.reminders_incomplete_notice, Toast.LENGTH_LONG).show()
+            }
             val enabled = lockRepository.isLockEnabled()
             // Settles [lockConfigured] on the very first pass, so the window where onStop knows
             // nothing is as short as the splash — see the field's KDoc.

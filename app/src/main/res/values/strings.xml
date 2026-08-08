@@ -242,6 +242,7 @@
     <string name="startup_failure_title">Agenda Tech cannot open your data</string>
     <string name="startup_failure_body">Your agenda is still there and has not been changed. This usually means an older version of the app was installed over a newer one: the database is more recent than this version can read. Reinstalling the newer version restores access. The app deliberately does not erase anything by itself.</string>
     <string name="settings_reset_notice">Your settings could not be read and were reset. If you had an app lock, it has been switched off — set it again in Settings.</string>
+    <string name="reminders_incomplete_notice">Some repeating reminders could not be rescheduled after the restart. Open the events concerned and save them again to re-arm them.</string>
     <string name="settings_section_security">Security</string>
     <string name="settings_lock_enabled">Lock the app</string>
     <string name="settings_lock_enabled_sub">Require a PIN or biometrics on open</string>
