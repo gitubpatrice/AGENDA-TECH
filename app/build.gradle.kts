@@ -66,6 +66,16 @@ android {
         localeFilters += listOf("en", "fr")
     }
 
+    // `MigrationTestHelper` lit les schémas exportés depuis les ASSETS du test instrumenté, pas
+    // depuis `$projectDir/schemas`. Sans cette ligne, le helper échoue à l'exécution sur un
+    // « Cannot find the schema file » — donc les 4 migrations resteraient non testées alors que les
+    // 5 schémas sont bel et bien exportés.
+    sourceSets {
+        getByName("androidTest") {
+            assets.srcDir("$projectDir/schemas")
+        }
+    }
+
     signingConfigs {
         create("release") {
             if (keystoreProps.isNotEmpty()) {
@@ -242,5 +252,22 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.mockk.android)
     androidTestImplementation(libs.hilt.android.testing)
+    // Truth so the instrumented assertions read like the 241 JVM ones — one vocabulary, not two.
+    androidTestImplementation(libs.truth)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
+    //
+    // Deliberately NOT `room-testing`. Its `MigrationTestHelper` parses the exported schema JSON with
+    // kotlinx-serialization and was compiled against core >= 1.8.0, where
+    // `GeneratedSerializer.typeParametersSerializers()` gained a default body; this app pins 1.7.3,
+    // where it is still abstract. Measured on the S9: `AbstractMethodError`, before a single migration
+    // ran. AGP's consistent resolution then makes a test-only bump impossible — it imposes
+    // `{strictly 1.7.3}` on the androidTest classpath and fails to resolve, loudly.
+    //
+    // Bumping the SHIPPED serialization runtime for a test tool was the wrong trade: that library
+    // writes the `.atbak` backup, the one file holding the user's entire agenda, and its format was
+    // verified against an independent Python implementation on a signed release APK (audit H3,
+    // ed19126). `MigrationsTest` therefore drives the migrations through the real production path
+    // instead — `DatabaseFactory` + the real Keystore key + real SQLCipher — which also exercises
+    // strictly more than the helper would have.
     kspAndroidTest(libs.hilt.compiler)
 }

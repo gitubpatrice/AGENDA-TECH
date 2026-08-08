@@ -1,0 +1,136 @@
+name: CI
+
+# Agenda Tech was the only repository of the Files Tech portfolio with NO workflow at all: no build, no
+# test, no static analysis. Nothing verified this repo outside one developer's machine — and the
+# repository is public.
+#
+# `fix/**` and `feat/**` are triggers on purpose. Every other app in the portfolio builds only its
+# default branch and the PRs targeting it, so a work branch can pile up dozens of commits with nothing
+# ever running on them (measured on a sibling app: 25 commits, detekt failing since the morning,
+# unreported).
+on:
+  push:
+    branches: [main, 'fix/**', 'feat/**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # A newer push to the same ref cancels the previous run: its result is already stale.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Gate (build · tests · lint · detekt)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The four tools of the local gate, in one command, so CI and a developer's machine can never
+      # disagree about what "green" means. detekt is blocking; config/detekt/detekt.yml states which
+      # rules describe a behaviour (blocking) and which state a layout preference (off, with reasons).
+      - name: Gate
+        run: ./gradlew --no-daemon :app:assembleDebug testDebugUnitTest :app:lintDebug detekt
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  zero-network:
+    name: Zero-network promise
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Only the manifest merge, not a full release build: it needs no keystore and no R8, and it is
+      # the artefact that decides which permissions the published APK carries.
+      - name: Merge the release manifest
+        run: ./gradlew --no-daemon :app:processReleaseMainManifest
+
+      # The assertion lives in a script, not inline here, for three reasons: it parses the manifest as
+      # XML (a line-based grep misses `<uses-permission>` written across several lines, which is exactly
+      # how SCHEDULE_EXACT_ALARM appears — so a grep-based check would have reported success while
+      # blind to a whole shape of permission); it can be run by a developer before pushing; and its own
+      # failure paths were exercised against doctored manifests instead of being assumed.
+      - name: Assert the permissions of the merged release manifest
+        run: python3 tools/check-manifest-permissions.py
+
+  instrumented:
+    name: Instrumented tests (API 29)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # KVM has to be enabled explicitly on GitHub-hosted runners for the emulator to boot.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # API 29 to match the physical test device (Galaxy S9), so a green CI run and a green local run
+      # mean the same thing. These tests need a real SQLCipher and a real AndroidKeyStore, which is
+      # precisely why they cannot be JVM tests.
+      #
+      # ⚠️ `connectedDebugAndroidTest` is used HERE ONLY, where the emulator is the sole attached
+      # device. Never run it on a developer machine: it targets EVERY connected device and clears the
+      # app's data, and one of the devices attached locally is a real phone. Locally, target by serial:
+      #   adb -s <serial> shell am instrument -w -r \
+      #     com.filestech.agenda_tech.debug.test/com.filestech.agenda_tech.HiltTestRunner
+      - name: Run instrumented tests on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          target: default
+          arch: x86_64
+          profile: pixel_2
+          ram-size: 4096M
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: ./gradlew --no-daemon :app:connectedDebugAndroidTest
+
+      - name: Upload instrumented reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instrumented-reports
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+          retention-days: 14
+          if-no-files-found: ignore
