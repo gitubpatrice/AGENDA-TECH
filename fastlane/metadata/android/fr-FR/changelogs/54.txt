@@ -1,0 +1,12 @@
+v1.0.2 — Des builds vérifiables
+
+• L'application est inchangée : aucune
+  modification fonctionnelle.
+• Le build est désormais reproductible :
+  n'importe qui peut reconstruire cet APK
+  depuis les sources et obtenir le même
+  fichier, octet pour octet.
+• C'est ce qui permet à F-Droid de distribuer
+  le build que nous avons signé nous-mêmes,
+  au lieu de le resigner avec sa propre clé :
+  la même application des deux côtés.

@@ -1,0 +1,12 @@
+v1.0.2 — Verifiable builds
+
+• No change to the app itself: this release
+  contains no functional change.
+• The build is now reproducible. Anyone can
+  rebuild this APK from the source and get the
+  very same file, byte for byte.
+• That is what lets F-Droid ship the build we
+  signed ourselves, instead of re-signing it
+  with its own key — so the app you install
+  from either source stays the same app, and
+  keeps updating.
