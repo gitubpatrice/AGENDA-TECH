@@ -148,6 +148,20 @@ android {
         checkDependencies = true
     }
 
+    // AGP glisse par défaut un bloc « Dependency metadata » dans le bloc de signature de l'APK :
+    // la liste chiffrée de nos dépendances, destinée à la console Play. Nous ne publions pas sur
+    // Play, et un blob opaque et illisible n'a rien à faire dans un binaire dont tout l'argument
+    // est d'être vérifiable.
+    //
+    // Le scanner F-Droid le refuse : « Found extra signing block 'Dependency metadata' ». Il ne
+    // l'avait jamais signalé avant la v1.0.2 parce qu'il n'analysait que l'APK NON SIGNÉ qu'il
+    // reconstruisait — sans signature, pas de bloc de signature. En déclarant `Binaries:`, c'est
+    // notre binaire signé qu'il examine, et le bloc est apparu.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     // Splits ABI pour des APK plus légers (universal + per-ABI) — SQLCipher embarque
     // du natif, donc le split réduit sensiblement la taille par architecture.
     splits {

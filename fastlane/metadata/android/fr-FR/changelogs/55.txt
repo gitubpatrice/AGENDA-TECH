@@ -1,0 +1,11 @@
+v1.0.3 — Un binaire sans passager clandestin
+
+• L'application est inchangée : aucune
+  modification fonctionnelle.
+• L'outil de compilation de Google glissait
+  dans l'APK la liste chiffrée de nos
+  bibliothèques, à destination de sa console
+  Play. Nous ne publions pas sur Play, et un
+  bloc illisible n'a rien à faire dans un
+  binaire dont l'argument est d'être
+  vérifiable. Il est retiré.

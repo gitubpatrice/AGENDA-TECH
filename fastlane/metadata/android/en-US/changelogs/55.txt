@@ -1,0 +1,10 @@
+v1.0.3 — A binary with no stowaway
+
+• No change to the app itself: this release
+  carries no functional change.
+• Google's build tooling was quietly placing
+  an encrypted list of our libraries inside
+  the APK, meant for its Play console. We do
+  not publish on Play, and an unreadable blob
+  has no place in a binary whose whole point
+  is being verifiable. It is now gone.
