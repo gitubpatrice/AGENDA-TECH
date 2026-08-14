@@ -1,0 +1,13 @@
+v1.0.1 — Store description only
+
+• The app itself is unchanged: this release
+  carries no code change whatsoever.
+• The description shown on the store is now
+  written in the HTML that F-Droid renders,
+  instead of Markdown, which was displayed
+  literally — headings appeared as rows of
+  "=" characters.
+• It needs its own release because F-Droid
+  reads the description from the commit a
+  build entry points at, not from the latest
+  one.

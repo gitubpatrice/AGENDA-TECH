@@ -1,0 +1,13 @@
+v1.0.1 — Description du magasin uniquement
+
+• L'application est inchangée : cette version
+  ne contient aucune modification de code.
+• La description affichée sur le magasin est
+  désormais écrite dans le HTML que F-Droid
+  met en forme, au lieu du Markdown qu'il
+  affichait tel quel — les titres sortaient
+  suivis d'une ligne de « = ».
+• Elle demande sa propre version parce que
+  F-Droid lit la description dans le commit
+  visé par l'entrée de build, pas dans le
+  dernier commit.
