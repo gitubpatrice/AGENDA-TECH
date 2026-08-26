@@ -101,6 +101,9 @@
     <string name="reminder_unit_days">Jours</string>
     <string name="reminder_channel_name">Rappels d\'événements</string>
     <string name="reminder_channel_desc">Notifications des rappels d\'agenda</string>
+    <string name="reminder_notifications_blocked_title">Les rappels ne s\'afficheront pas</string>
+    <string name="reminder_notifications_blocked_body">Ce rappel est enregistré et sera réarmé après un redémarrage, mais Agenda Tech n\'est pas autorisée à afficher des notifications : rien n\'apparaîtra au moment voulu.</string>
+    <string name="reminder_notifications_blocked_action">Autoriser les notifications</string>
 
     <!-- Widget écran d'accueil -->
     <string name="widget_description">Date du jour et prochains événements</string>

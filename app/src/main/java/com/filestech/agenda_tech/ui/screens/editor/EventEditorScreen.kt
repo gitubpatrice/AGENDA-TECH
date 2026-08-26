@@ -78,7 +78,9 @@ import com.filestech.agenda_tech.domain.location.GeoLink
 import com.filestech.agenda_tech.domain.model.Weekday
 import com.filestech.agenda_tech.ui.theme.BrandDanger
 import com.filestech.agenda_tech.ui.theme.BrandSuccess
+import com.filestech.agenda_tech.ui.util.ReminderNotificationsBlockedNotice
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
+import com.filestech.agenda_tech.ui.util.rememberReminderNotifications
 import timber.log.Timber
 import java.time.DayOfWeek
 import java.time.Instant
@@ -766,6 +768,14 @@ private fun openOnMap(context: android.content.Context, coordinates: String, lab
         .onFailure { Timber.w(it, "EventEditor: no maps app to open a geo: link") }
 }
 
+/**
+ * Reminders, and the only place the app asks for POST_NOTIFICATIONS.
+ *
+ * Adding a reminder is the moment the permission becomes meaningful, so the request rides on that
+ * gesture rather than on app startup (F-Droid inclusion checklist — see [rememberReminderNotifications]).
+ * A reminder the user cannot be notified of is still saved and still re-armed after a reboot; the
+ * notice says so instead of silently doing nothing.
+ */
 @Composable
 private fun RemindersSection(
     reminderMinutes: List<Int>,
@@ -773,6 +783,13 @@ private fun RemindersSection(
     onRemove: (Int) -> Unit,
 ) {
     val context = LocalContext.current
+    val notifications = rememberReminderNotifications()
+    // Wraps `onAdd` rather than sitting beside it, so no future call site can add a reminder without
+    // asking — the asymmetry that would leave one path silently unnotified.
+    val addAndRequest: (Int) -> Unit = { minutes ->
+        onAdd(minutes)
+        notifications.request()
+    }
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = stringResource(R.string.editor_reminders),
@@ -805,7 +822,7 @@ private fun RemindersSection(
                     DropdownMenuItem(
                         text = { Text(reminderLabel(context, minutes)) },
                         onClick = {
-                            onAdd(minutes)
+                            addAndRequest(minutes)
                             expanded = false
                         },
                     )
@@ -824,11 +841,15 @@ private fun RemindersSection(
             CustomReminderDialog(
                 existing = reminderMinutes,
                 onConfirm = {
-                    onAdd(it)
+                    addAndRequest(it)
                     showCustomDialog = false
                 },
                 onDismiss = { showCustomDialog = false },
             )
+        }
+        // Only once there is a reminder to be blocked: an empty list has nothing to warn about.
+        if (reminderMinutes.isNotEmpty() && !notifications.enabled) {
+            ReminderNotificationsBlockedNotice(onAllow = notifications.request)
         }
     }
 }

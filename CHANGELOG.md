@@ -3,6 +3,111 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [1.0.3] — 2026-08-14
+
+Aucun changement fonctionnel. **La release qui rend le binaire analysable sans réserve.**
+
+### Corrigé
+
+- **L'APK transportait un bloc destiné à la console Google Play.** AGP glissait dans le bloc de
+  signature une liste chiffrée de nos dépendances (« Dependency metadata »), à destination d'un
+  magasin sur lequel Agenda Tech n'est pas publiée. Le scanner F-Droid le refuse, et un blob
+  illisible n'a rien à faire dans un binaire dont l'intérêt est précisément d'être vérifiable.
+  `dependenciesInfo { includeInApk = false }` le supprime. Le défaut ne pouvait pas apparaître
+  plus tôt : tant que `Binaries:` n'était pas déclaré, F-Droid n'analysait que l'APK **non signé**
+  qu'il reconstruisait lui-même, où le bloc de signature n'existe pas.
+
+## [1.0.2] — 2026-08-14
+
+Aucun changement fonctionnel. **La release qui rend la build reproductible.**
+
+### Corrigé
+
+- **Deux builds de la même source ne donnaient pas le même fichier.** Le plugin `foojay-resolver`
+  de `settings.gradle.kts` changeait `classes.dex` — R8 renommait autrement, +7 `field_ids` — ainsi
+  que le profil ART. Comme la recette F-Droid le retirait par `sed` alors que la release publiée
+  était construite avec, les deux binaires ne pouvaient structurellement pas coïncider. Le plugin
+  est retiré à la source. C'est ce qui permet à F-Droid de distribuer l'APK que **nous** avons
+  signé plutôt que de le resigner avec sa propre clé : l'application installée depuis l'un ou
+  l'autre canal reste la même, et continue de se mettre à jour.
+
+## [1.0.1] — 2026-08-14
+
+Aucun changement de code. **Uniquement la description affichée par le magasin.**
+
+### Corrigé
+
+- **La description du magasin s'affichait en Markdown brut.** F-Droid ne met pas en forme le
+  Markdown : les titres apparaissaient tels quels, soulignements « === » compris. La description
+  est réécrite dans le HTML restreint que F-Droid rend réellement (`<b>`, `<ul>`, `<li>`).
+- Plus aucune mention de Google dans la description.
+- Une release à part entière est nécessaire, malgré l'absence de changement de code : F-Droid lit
+  les métadonnées fastlane dans l'arbre du commit référencé par l'entrée de build, pas au `HEAD`.
+
+## [1.0.0] — 2026-08-08
+
+**Première version stable**, au terme de cinq passes d'audit (base et migrations, import `.ics`,
+crypto de sauvegarde, alarmes, widget et notifications, interactions), de quatre relectures externes
+croisées, de `detekt` ramené de 520 constats à 0 **sans baseline**, et de la première exécution de
+la CI de l'histoire du dépôt.
+
+### Sécurité
+
+- **Le widget continuait d'afficher les titres après l'activation du verrou.** Il les masque
+  désormais à l'instant où le verrou est activé, sans attendre le rafraîchissement suivant.
+- L'import `.ics` appliquait son plafond **par agenda** et non globalement, et tronquait sans le
+  dire.
+
+### Corrigé
+
+- **Les rappels n'étaient pas réarmés de façon fiable après un redémarrage du téléphone.** Le
+  correctif a demandé plusieurs passes : une version intermédiaire, écrite le même soir, effaçait
+  des événements qu'elle était censée protéger. Les deux défauts sont corrigés et couverts par des
+  tests.
+- **Une sauvegarde écrite par une version plus récente était reniée comme « pas une sauvegarde ».**
+  Le message poussait à supprimer un fichier parfaitement valide. Il indique maintenant qu'il faut
+  mettre l'application à jour — et surtout ne pas effacer le fichier.
+- L'export d'une sauvegarde pouvait échouer **en silence**.
+- La restauration annonçait un échec alors qu'elle était encore en train de remplacer l'agenda.
+- L'icône de l'écran de démarrage était découpée en cercle ; elle retrouve ses coins arrondis.
+
+## [0.5.4] — 2026-08-01
+
+Release de **sécurité**.
+
+### Sécurité
+
+- **Le déverrouillage biométrique n'était pas adossé au coffre matériel.** L'agenda s'ouvrait sur
+  la seule parole de l'application, sans que l'AndroidKeyStore ait à constater que l'appareil avait
+  réellement authentifié l'empreinte. La clé de déverrouillage est désormais liée à
+  l'authentification : sans elle, rien ne s'ouvre.
+- **Si la biométrie enregistrée sur l'appareil change, la clé est perdue pour de bon.** Le
+  déverrouillage biométrique se désactive alors de lui-même et le dit, au lieu de laisser un bouton
+  qui échoue à chaque fois. Le code PIN reste disponible.
+
+### Corrigé
+
+- Un agenda importé de très grande taille pouvait figer l'affichage.
+- Import `.ics` : une règle de répétition malformée faisait perdre sa récurrence à l'événement.
+
+## [0.5.3] — 2026-08-01
+
+Release de **sécurité**. Dix correctifs, dont un qui rendait l'application inutilisable sans recours.
+
+### Sécurité
+
+- **Un fichier `.ics` piégé pouvait faire planter l'agenda en boucle dès le lancement**, sans aucun
+  moyen de supprimer l'événement fautif — l'application se fermait avant d'avoir affiché de quoi
+  l'atteindre. Corrigé, y compris pour les événements **déjà enregistrés** avant la mise à jour.
+- **Un événement importé pouvait glisser de fausses lignes dans les `.ics` que vous exportez**
+  (injection de champs). Les valeurs sont désormais échappées à l'écriture.
+- **Biométrie : seuls les capteurs de Classe 3 sont acceptés.** Une photo ne suffit plus à
+  déverrouiller. Le code PIN reste disponible en toutes circonstances.
+
+### Corrigé
+
+- Un rendez-vous annulé réapparaissait après un import `.ics`.
+
 ## [0.5.2] — 2026-07-31
 
 Release de **sécurité**. Trois défauts trouvés par audit, dont un critique présent depuis le tout

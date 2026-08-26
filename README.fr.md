@@ -9,13 +9,12 @@ l'écosystème **Files Tech**, pensée pour sortir de Google Agenda sans rien co
 
 🇬🇧 [English version](README.md)
 
-> **Version de test** `v0.5.0`. Fonctionnelle de bout en bout ; en cours de finition avant une
-> première publication stable. Vos retours de bug sont les bienvenus dans les
+> Vos retours de bug sont les bienvenus dans les
 > [issues](https://github.com/gitubpatrice/AGENDA-TECH/issues).
 
 ## Installation
 
-1. Téléchargez l'APK **universel** (`agenda-tech-…-universal.apk`) depuis la
+1. Téléchargez l'APK **universel** (`agenda-tech-universel-<version>.apk`) depuis la
    [dernière release](https://github.com/gitubpatrice/AGENDA-TECH/releases/latest).
 2. Ouvrez-le sur votre téléphone Android (8.0 ou plus). Autorisez si besoin « installer des
    applications inconnues ».

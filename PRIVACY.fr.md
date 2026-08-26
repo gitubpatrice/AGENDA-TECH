@@ -1,6 +1,6 @@
 # Politique de confidentialité — Agenda Tech
 
-_Dernière mise à jour : 15 juillet 2026 — version 0.5.0_ · 🇬🇧 [English version](PRIVACY.md)
+_Dernière mise à jour : 26 août 2026 — version 1.0.3_ · 🇬🇧 [English version](PRIVACY.md)
 
 Agenda Tech (`com.filestech.agenda_tech`) est une application d'agenda **entièrement locale**.
 Elle est conçue autour d'un principe simple : **vos données ne quittent jamais votre appareil.**
@@ -48,14 +48,19 @@ cette liste (`tools/check-manifest-permissions.py`, exécuté à chaque intégra
 |---|---|---|---|
 | `USE_BIOMETRIC` | `androidx.biometric` | Déverrouiller l'application par empreinte ou visage, si vous activez le verrou. | Non |
 | `USE_FINGERPRINT` | `androidx.biometric` | Même chose sur Android 9 et antérieurs, où l'API biométrique moderne n'existe pas. | Non |
-| `WAKE_LOCK` | `androidx.work`, tirée par Glance (les widgets) | **Rien.** L'application ne planifie aucune tâche de fond. | Non |
-| `FOREGROUND_SERVICE` | `androidx.work`, tirée par Glance (les widgets) | **Rien.** L'application ne démarre aucun service au premier plan. | Non |
+| `WAKE_LOCK` | `androidx.work`, tirée par Glance (les widgets) | Prise un instant pendant qu'un widget de l'écran d'accueil se redessine. Glance confie ce redessin à WorkManager, qui prend un verrou de réveil partiel pour exécuter n'importe quelle tâche. Le code de l'application, lui, n'en planifie aucune. | Non |
+| `FOREGROUND_SERVICE` | `androidx.work`, tirée par Glance (les widgets) | **Rien.** Déclarée par `androidx.work`, qui n'en aurait besoin que pour une tâche « expedited » — il n'en est jamais planifié. | Non |
 | `com.filestech.agenda_tech.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | `androidx.core` | Permission **auto-attribuée**, de niveau « signature » : seule une application signée avec notre clé peut l'obtenir. Elle empêche les autres applications d'atteindre nos récepteurs internes. | Non |
 
-`WAKE_LOCK` et `FOREGROUND_SERVICE` ne couvrent aucun usage réel de l'application. Elles sont
-conservées parce que les retirer suppose de neutraliser l'initialiseur de `androidx.work`, ce qui doit
-d'abord être démontré sans effet sur les widgets. Tant que cette démonstration n'est pas faite, il
-vaut mieux une permission inutile **documentée** qu'un retrait qui casse un widget en silence.
+Corrigé le 26 août 2026. Ce paragraphe affirmait que ces deux permissions ne couvraient aucun usage
+réel. C'était vrai du code de l'application et **faux de l'application que vous installez** : Glance
+redessine un widget en confiant le travail à WorkManager, si bien que `WAKE_LOCK` est réellement prise,
+brièvement, à chaque rafraîchissement de widget. La retirer ferait échouer ces mises à jour.
+`FOREGROUND_SERVICE`, elle, est bien inutilisée, mais elle vient de la même bibliothèque et reste avec
+elle plutôt que d'être retirée seule.
+
+Ni l'une ni l'autre ne donne d'accès réseau, ni ne permet de lire quoi que ce soit. Le verrou de réveil
+empêche seulement le processeur de se rendormir pendant la fraction de seconde que dure un redessin.
 
 L'application ne demande **jamais** l'accès à la localisation, aux contacts, au micro, à la caméra,
 ni à Internet.

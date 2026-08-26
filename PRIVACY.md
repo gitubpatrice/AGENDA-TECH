@@ -1,6 +1,6 @@
 # Privacy Policy — Agenda Tech
 
-_Last updated: 15 July 2026 — version 0.5.0_ · 🇫🇷 [Version française](PRIVACY.fr.md)
+_Last updated: 26 August 2026 — version 1.0.3_ · 🇫🇷 [Version française](PRIVACY.fr.md)
 
 Agenda Tech (`com.filestech.agenda_tech`) is a **fully local** calendar app, built on one principle:
 **your data never leaves your device.**
@@ -48,13 +48,18 @@ fails any build whose merged manifest departs from this list
 |---|---|---|---|
 | `USE_BIOMETRIC` | `androidx.biometric` | Unlock the app with a fingerprint or face, if you enable the app lock. | No |
 | `USE_FINGERPRINT` | `androidx.biometric` | The same, on Android 9 and earlier, where the modern biometric API does not exist. | No |
-| `WAKE_LOCK` | `androidx.work`, pulled in by Glance (the widgets) | **Nothing.** The app schedules no background work. | No |
-| `FOREGROUND_SERVICE` | `androidx.work`, pulled in by Glance (the widgets) | **Nothing.** The app starts no foreground service. | No |
+| `WAKE_LOCK` | `androidx.work`, pulled in by Glance (the widgets) | Held for a moment while a home-screen widget is redrawn. Glance runs that redraw as a WorkManager job, and WorkManager takes a partial wake lock to run any job. The app's own code schedules nothing. | No |
+| `FOREGROUND_SERVICE` | `androidx.work`, pulled in by Glance (the widgets) | **Nothing.** Declared by `androidx.work`, which would need it only to run an expedited job — none is ever scheduled. | No |
 | `com.filestech.agenda_tech.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | `androidx.core` | A **self-granted**, signature-level permission: only an app signed with our key can hold it. It stops other apps from reaching our internal receivers. | No |
 
-`WAKE_LOCK` and `FOREGROUND_SERVICE` cover nothing the app does. They are kept because removing them
-means neutralising `androidx.work`'s initializer, which has to be shown harmless to the widgets first.
-Until that is shown, a documented useless permission beats a removal that quietly breaks a widget.
+Corrected on 26 August 2026. This paragraph used to say that both permissions covered nothing the app
+does. That was true of the app's own code and **false of the app you install**: Glance redraws a widget
+by scheduling a WorkManager job, so `WAKE_LOCK` is genuinely taken, briefly, every time a widget
+refreshes. Removing it would make widget updates fail. `FOREGROUND_SERVICE` really is unused, but it
+comes from the same library and is kept with it rather than removed on its own.
+
+Neither grants network access, and neither can be used to read anything. The wake lock only keeps the
+processor from sleeping for the fraction of a second a widget takes to redraw.
 
 The app **never** requests access to your location, contacts, microphone, camera, or the internet.
 

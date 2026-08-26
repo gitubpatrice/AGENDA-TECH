@@ -1,7 +1,13 @@
 Agenda Tech
-Copyright 2026 Files Tech
+Copyright 2026 Patrice Haltaya / Files Tech
 
 This product includes software developed by Files Tech.
+
+The copyright holder is stated here and nowhere else. LICENSE is the unmodified Apache-2.0 text,
+kept byte-for-byte identical to https://www.apache.org/licenses/LICENSE-2.0.txt (sha256
+cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30) so that any tool can identify it
+by hash. Editing a copyright line into it would break that, which is what the appendix and this
+file are for.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

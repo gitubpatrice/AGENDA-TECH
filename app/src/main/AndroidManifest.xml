@@ -20,9 +20,17 @@
       de cohérence vérifiable, pas de fuite.
 
       Pourquoi le retrait est sûr : WorkManager ne consulte l'état du réseau que pour honorer une
-      contrainte NetworkType, et l'app n'enfile AUCUN travail WorkManager (vérifié : aucune
-      référence à WorkManager/Constraints/NetworkType dans app/src/main). Glance ne pose pas non
-      plus de contrainte réseau sur la mise à jour d'un widget.
+      contrainte NetworkType, et aucun travail n'en pose ici.
+
+      ATTENTION à la formulation, corrigée le 2026-08-26 : ce commentaire affirmait que « l'app
+      n'enfile AUCUN travail WorkManager ». C'est vrai du CODE de l'app (aucune référence à
+      WorkManager/Constraints/NetworkType dans app/src/main) et FAUX du binaire — Glance en enfile
+      un pour son compte. Mesuré sur l'APK release 1.0.3 : androidx.glance.session.SessionWorker
+      est présent dans app/build/outputs/mapping/release/mapping.txt, et WorkManager
+      .enqueueUniqueWork y survit à R8. Le raccourci « pas de WorkManager » était donc une
+      justification qui ne tenait pas ; la bonne est plus étroite et, elle, exacte : ce worker est
+      enfilé SANS CONTRAINTE. NetworkStateTracker n'est sollicité que lorsqu'une WorkSpec porte une
+      contrainte réseau, donc rien ne lit jamais ConnectivityManager.
 
       Vérifié sur appareil (S24, 15/07/2026) : les deux widgets posés sur l'écran d'accueil se
       lient et s'affichent, sans SecurityException. Si un jour du travail contraint par le réseau
@@ -31,6 +39,29 @@
     <uses-permission
         android:name="android.permission.ACCESS_NETWORK_STATE"
         tools:node="remove" />
+
+    <!--
+      WAKE_LOCK et FOREGROUND_SERVICE : NON DÉCLARÉES ICI, et NON RETIRÉES NON PLUS. Elles arrivent
+      dans le manifeste fusionné par androidx.work, tiré par Glance. La revue F-Droid du 2026-08-26
+      les a relevées comme « sans usage visible » et proposait un tools:node="remove" à condition
+      que Glance n'enfile aucun Worker.
+
+      La condition n'est pas remplie : Glance ENFILE bien un Worker (SessionWorker, cf. le bloc
+      ACCESS_NETWORK_STATE ci-dessus). Or WorkManager prend un WakeLock partiel pour exécuter
+      n'importe quel worker — androidx.work.impl.utils.WakeLocks.newWakeLock survit à R8 dans
+      l'APK release, tout comme ForceStopRunnable, qui s'exécute à CHAQUE initialisation de
+      WorkManager via WorkManagerInitializer (présent dans le manifeste fusionné). Retirer
+      WAKE_LOCK ferait donc lever une SecurityException à la première mise à jour de widget.
+
+      Piège de vérification : ce défaut serait INVISIBLE en debug sur un widget non posé. Il ne se
+      manifeste qu'avec un widget réellement sur l'écran d'accueil, en release.
+
+      FOREGROUND_SERVICE serait techniquement retirable (SessionWorker n'appelle pas setForeground),
+      mais la retirer seule laisserait androidx.work à moitié amputé : le jour où une version de
+      Glance passe en expedited work, la panne serait silencieuse. Les deux restent, documentées.
+      L'allowlist de tools/check-manifest-permissions.py les autorise nommément — une troisième
+      permission transitive continuerait donc de faire échouer la CI.
+    -->
 
     <!--
       Import ponctuel des événements déjà synchronisés localement sur l'appareil

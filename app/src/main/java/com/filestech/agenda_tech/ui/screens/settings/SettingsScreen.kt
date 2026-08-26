@@ -67,6 +67,7 @@ import kotlinx.coroutines.withContext
 import com.filestech.agenda_tech.domain.settings.AppSettings
 import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.domain.settings.WeekStart
+import com.filestech.agenda_tech.ui.util.rememberReminderNotifications
 
 private val DURATION_OPTIONS = listOf(15, 30, 45, 60, 90, 120, 240)
 private val REMINDER_OPTIONS = listOf(AppSettings.NO_DEFAULT_REMINDER, 0, 5, 10, 15, 30, 60, 24 * 60)
@@ -87,6 +88,7 @@ fun SettingsScreen(
     // than the prompt accepts would let the user switch on a biometric unlock that then silently
     // never fires.
     val biometricAvailable = remember { StrongBiometrics.isAvailable(context) }
+    val reminderNotifications = rememberReminderNotifications()
     // Replacing the sound: release any persistable grant an earlier build's audio-file pick may still
     // hold (system ringtones never take one), so a stale grant doesn't linger against the per-app cap.
     val replaceSound = { newUri: String? ->
@@ -171,7 +173,13 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_default_reminder),
                 currentLabel = reminderLabel(context, settings.defaultReminderMinutes),
                 options = REMINDER_OPTIONS.map { it to reminderLabel(context, it) },
-                onSelect = viewModel::setDefaultReminder,
+                // The other half of moving the POST_NOTIFICATIONS request out of startup: turning a
+                // default reminder ON is the second gesture that makes the permission meaningful.
+                // Picking "None" asks for nothing — it removes the need rather than creating it.
+                onSelect = { minutes ->
+                    viewModel.setDefaultReminder(minutes)
+                    if (minutes != AppSettings.NO_DEFAULT_REMINDER) reminderNotifications.request()
+                },
             )
 
             HorizontalDivider()

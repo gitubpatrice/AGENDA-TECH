@@ -9,12 +9,12 @@ Tech** suite, built without cloud.
 
 🇫🇷 [Version française](README.fr.md)
 
-> **Test release** `v0.5.0`. Works end to end; being polished ahead of a first stable release. Bug
-> reports are welcome in the [issues](https://github.com/gitubpatrice/AGENDA-TECH/issues).
+> Bug reports are welcome in the
+> [issues](https://github.com/gitubpatrice/AGENDA-TECH/issues).
 
 ## Installation
 
-1. Download the **universal** APK (`agenda-tech-…-universal.apk`) from the
+1. Download the **universal** APK (`agenda-tech-universel-<version>.apk`) from the
    [latest release](https://github.com/gitubpatrice/AGENDA-TECH/releases/latest).
 2. Open it on your Android phone (8.0 or later). Allow "install unknown apps" if prompted.
 3. That's it — no sign-up, no account, no connection.
