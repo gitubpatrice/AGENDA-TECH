@@ -26,6 +26,18 @@ enum class ScopePrompt { SAVE, DELETE }
  */
 data class EventEditorUiState(
     val isEditing: Boolean = false,
+    /**
+     * True once the edited row has actually been read from the database — or immediately, for a new
+     * event, which has nothing to read.
+     *
+     * [isEditing] is true from the very first frame (it is derived from the nav argument), so
+     * without this flag the app bar offered "duplicate" and "delete" on a form that was still
+     * empty, and the ViewModel had not yet learnt the row's recurrence, source uid or override
+     * link. Deleting in that window was the damaging one: `isMasterOccurrence()` was still false,
+     * so tapping delete on one occurrence of a series removed the WHOLE series without ever asking
+     * the scope question.
+     */
+    val isLoaded: Boolean = false,
     val title: String = "",
     val allDay: Boolean = false,
     val startDateTime: LocalDateTime,

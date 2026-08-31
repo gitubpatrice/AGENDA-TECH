@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.AlertDialog
@@ -119,6 +120,7 @@ fun EventEditorScreen(
         onBack = onDone,
         onSave = viewModel::onSave,
         onDelete = viewModel::onDelete,
+        onDuplicate = viewModel::onDuplicate,
         onTitleChange = viewModel::onTitleChange,
         onAllDayChange = viewModel::onAllDayChange,
         onStartDateChange = viewModel::onStartDateChange,
@@ -182,6 +184,8 @@ private fun EventEditorContent(
     onBack: () -> Unit,
     onSave: () -> Unit,
     onDelete: () -> Unit,
+    /** Takes the already-localised title for the copy — the ViewModel holds no Context. */
+    onDuplicate: (String) -> Unit,
     onTitleChange: (String) -> Unit,
     onAllDayChange: (Boolean) -> Unit,
     onStartDateChange: (LocalDate) -> Unit,
@@ -245,7 +249,20 @@ private fun EventEditorContent(
                     }
                 },
                 actions = {
-                    if (state.isEditing) {
+                    // `isLoaded` guards both actions: until the row is read, duplicating copies an
+                    // empty form and deleting a recurring occurrence would take the whole series
+                    // without asking (see EventEditorUiState.isLoaded).
+                    if (state.isEditing && state.isLoaded) {
+                        // Duplicate turns this form into an unsaved copy in place — no navigation,
+                        // nothing written. Shown only while editing: there is nothing to copy from a
+                        // form that has never been saved.
+                        val copyTitle = stringResource(R.string.editor_duplicate_title, state.title)
+                        IconButton(onClick = { onDuplicate(copyTitle) }) {
+                            Icon(
+                                imageVector = Icons.Filled.ContentCopy,
+                                contentDescription = stringResource(R.string.editor_duplicate),
+                            )
+                        }
                         IconButton(onClick = {
                             // A recurring occurrence opens the scope dialog (this/series) — a deliberate
                             // choice, no extra confirm. A plain event gets an anti-mistap confirmation.

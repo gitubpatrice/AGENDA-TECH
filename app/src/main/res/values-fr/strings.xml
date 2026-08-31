@@ -38,6 +38,9 @@
     <string name="editor_edit_title">Modifier l\'événement</string>
     <string name="editor_save">Enregistrer</string>
     <string name="editor_delete">Supprimer</string>
+    <string name="editor_duplicate">Dupliquer</string>
+    <!-- Titre donné à la copie non enregistrée ; %1$s est le titre d'origine. -->
+    <string name="editor_duplicate_title">%1$s (copie)</string>
     <string name="editor_back">Retour</string>
     <string name="editor_title_label">Titre</string>
     <string name="editor_all_day">Toute la journée</string>

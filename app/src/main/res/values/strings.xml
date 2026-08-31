@@ -38,6 +38,9 @@
     <string name="editor_edit_title">Edit event</string>
     <string name="editor_save">Save</string>
     <string name="editor_delete">Delete</string>
+    <string name="editor_duplicate">Duplicate</string>
+    <!-- Title given to the unsaved copy; %1$s is the original title. -->
+    <string name="editor_duplicate_title">%1$s (copy)</string>
     <string name="editor_back">Back</string>
     <string name="editor_title_label">Title</string>
     <string name="editor_all_day">All day</string>

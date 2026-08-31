@@ -512,4 +512,163 @@ class EventEditorViewModelTest {
 
         assertThat(eventRepo.rows.getValue(10).timeZoneId).isEqualTo(zone.id)
     }
+
+    // --- EXDATE : une annulation ne doit pas survivre à un renommage de série ------
+
+    @Test
+    fun `renaming a series keeps the occurrences that were cancelled from it`() = runTest(dispatcher) {
+        // FIAB-DUP-1. The editor has no field for EXDATEs, so it used to rebuild the rule without
+        // them: one rename brought every deleted occurrence back. For a *moved* occurrence it was
+        // worse — the override row survives, so the event showed up twice on the same day.
+        val cancelled = at(2026, 7, 27, 9)
+        seedEvent(
+            id = 10,
+            title = "Sport",
+            recurrence = RecurrenceRule(freq = RecurrenceFreq.WEEKLY, exDatesUtcMillis = listOf(cancelled)),
+        )
+
+        val vm = viewModel(eventId = 10)
+        testScheduler.advanceUntilIdle()
+        vm.onTitleChange("Sport — renommé")
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(eventRepo.rows.getValue(10).recurrence!!.exDatesUtcMillis).containsExactly(cancelled)
+    }
+
+    // --- Duplication --------------------------------------------------------
+
+    @Test
+    fun `duplicating inserts a second row and leaves the original untouched`() = runTest(dispatcher) {
+        seedEvent(id = 10, title = "Dentiste")
+        val vm = viewModel(eventId = 10)
+        testScheduler.advanceUntilIdle()
+        vm.onAddReminder(15)
+
+        vm.onDuplicate("Dentiste (copie)")
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        val original = eventRepo.rows.getValue(10)
+        val copy = eventRepo.rows.values.single { it.id != 10L }
+        assertThat(original.title).isEqualTo("Dentiste")
+        assertThat(copy.title).isEqualTo("Dentiste (copie)")
+        // Same content, different identity — the whole contract of "duplicate".
+        assertThat(copy.startUtcMillis).isEqualTo(original.startUtcMillis)
+        assertThat(copy.calendarId).isEqualTo(original.calendarId)
+        // The reminders follow the copy, and only the copy.
+        assertThat(reminderRepo.rows.values.map { it.eventId }).containsExactly(copy.id)
+    }
+
+    @Test
+    fun `a duplicate claims neither the source uid nor the override link of its original`() =
+        runTest(dispatcher) {
+            // Two rows sharing one uid would fight over the same slot in the device import's
+            // uid → id map, and a copy presenting itself as an override would replace an
+            // occurrence of a series it is not part of.
+            eventRepo.rows[10] = seedEvent(id = 10, sourceUid = "uid-from-exchange")
+                .copy(recurrenceParentId = 7L, originalStartUtcMillis = at(2026, 7, 20, 9))
+
+            val vm = viewModel(eventId = 10)
+            testScheduler.advanceUntilIdle()
+            vm.onDuplicate("Dentiste (copie)")
+            vm.onSave()
+            testScheduler.advanceUntilIdle()
+
+            val copy = eventRepo.rows.values.single { it.id != 10L }
+            assertThat(copy.sourceUid).isNull()
+            assertThat(copy.recurrenceParentId).isNull()
+            assertThat(copy.originalStartUtcMillis).isNull()
+        }
+
+    @Test
+    fun `duplicating a series copies the rule but none of its cancelled occurrences`() =
+        runTest(dispatcher) {
+            val cancelled = at(2026, 7, 27, 9)
+            seedEvent(
+                id = 10,
+                title = "Sport",
+                recurrence = RecurrenceRule(freq = RecurrenceFreq.WEEKLY, exDatesUtcMillis = listOf(cancelled)),
+            )
+
+            val vm = viewModel(eventId = 10, occurrenceStart = at(2026, 8, 3, 9))
+            testScheduler.advanceUntilIdle()
+            vm.onDuplicate("Sport (copie)")
+            vm.onSave()
+            testScheduler.advanceUntilIdle()
+
+            // No scope dialog: the copy belongs to no series, so there is nothing to ask about.
+            assertThat(vm.state.value.scopePrompt).isNull()
+            val copy = eventRepo.rows.values.single { it.id != 10L }
+            assertThat(copy.recurrence!!.freq).isEqualTo(RecurrenceFreq.WEEKLY)
+            assertThat(copy.recurrence!!.exDatesUtcMillis).isEmpty()
+            assertThat(eventRepo.rows.getValue(10).recurrence!!.exDatesUtcMillis).containsExactly(cancelled)
+        }
+
+    @Test
+    fun `duplicating an unsaved event does nothing`() = runTest(dispatcher) {
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+        vm.onTitleChange("Brouillon")
+
+        vm.onDuplicate("Brouillon (copie)")
+
+        assertThat(vm.state.value.title).isEqualTo("Brouillon")
+    }
+
+    // --- La fenêtre avant chargement (relecture gpt-5.2, 2026-08-31) ---------
+
+    @Test
+    fun `duplicating before the row has been read is ignored`() = runTest(dispatcher) {
+        // `isEditing` comes from the nav argument, so it is true one frame after the editor opens —
+        // long before the encrypted read lands. Without the isLoaded guard, onDuplicate cleared the
+        // loaded* fields, then loadEvent repopulated them, and the "copy" saved with the ORIGINAL's
+        // source uid and override link. Not advancing the scheduler reproduces exactly that window.
+        eventRepo.rows[10] = seedEvent(id = 10, sourceUid = "uid-from-exchange")
+
+        val vm = viewModel(eventId = 10)
+        vm.onDuplicate("Dentiste (copie)") // le chargement n'a pas encore eu lieu
+        testScheduler.advanceUntilIdle()
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        // Refusée, donc l'éditeur édite toujours la même ligne : une seule, et son uid intact.
+        assertThat(eventRepo.rows.keys).containsExactly(10L)
+        assertThat(eventRepo.rows.getValue(10).sourceUid).isEqualTo("uid-from-exchange")
+    }
+
+    @Test
+    fun `deleting before the row has been read is ignored`() = runTest(dispatcher) {
+        // The damaging half of the same window: `loadedRecurrence` is still null, so
+        // isMasterOccurrence() answers "plain event" about a series and the delete would take the
+        // master outright — the user tapped one occurrence and loses every one of them.
+        seedEvent(id = 10, title = "Sport", recurrence = RecurrenceRule(freq = RecurrenceFreq.WEEKLY))
+
+        val vm = viewModel(eventId = 10, occurrenceStart = at(2026, 7, 27, 9))
+        vm.onDelete()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(eventRepo.rows.keys).containsExactly(10L)
+        assertThat(vm.state.value.isDeleted).isFalse()
+    }
+
+    @Test
+    fun `duplicating drops a scope question that was already on screen`() = runTest(dispatcher) {
+        // Answering it afterwards would run persist(asOverride = true) with eventId already NEW,
+        // writing an override whose master id is -1.
+        seedEvent(id = 10, title = "Sport", recurrence = RecurrenceRule(freq = RecurrenceFreq.WEEKLY))
+
+        val vm = viewModel(eventId = 10, occurrenceStart = at(2026, 7, 27, 9))
+        testScheduler.advanceUntilIdle()
+        vm.onSave()
+        assertThat(vm.state.value.scopePrompt).isEqualTo(ScopePrompt.SAVE)
+
+        vm.onDuplicate("Sport (copie)")
+        vm.confirmScope(applyToSeries = false) // réponse tardive à une question caduque
+        testScheduler.advanceUntilIdle()
+
+        assertThat(vm.state.value.scopePrompt).isNull()
+        assertThat(eventRepo.rows.keys).containsExactly(10L)
+        assertThat(eventRepo.rows.values.none { it.recurrenceParentId != null }).isTrue()
+    }
 }
