@@ -350,7 +350,6 @@
     <string name="backup_auto_folder_lost">Le dossier choisi n’est plus accessible. Désactivez puis réactivez pour en choisir un.</string>
     <string name="backup_auto_change_folder">Changer de dossier</string>
     <string name="backup_auto_run_now">Sauvegarder maintenant</string>
-    <string name="backup_auto_run_now_sub">Vérifie tout de suite que le dossier et le mot de passe fonctionnent.</string>
     <string name="backup_auto_never">Jamais encore exécutée</string>
     <!-- %1$s est une date et une heure formatées. -->
     <string name="backup_auto_last_ok">Dernière sauvegarde : %1$s</string>

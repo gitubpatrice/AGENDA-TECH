@@ -351,7 +351,6 @@
     <string name="backup_auto_folder_lost">The chosen folder is no longer reachable. Turn the switch off and on again to pick one.</string>
     <string name="backup_auto_change_folder">Change folder</string>
     <string name="backup_auto_run_now">Back up now</string>
-    <string name="backup_auto_run_now_sub">Checks straight away that the folder and the password work.</string>
     <string name="backup_auto_never">Never run yet</string>
     <!-- %1$s is a formatted date and time. -->
     <string name="backup_auto_last_ok">Last backup: %1$s</string>
