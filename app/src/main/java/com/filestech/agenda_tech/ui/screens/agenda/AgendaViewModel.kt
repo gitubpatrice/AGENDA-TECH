@@ -48,7 +48,7 @@ class AgendaViewModel @Inject constructor(
         observeOccurrences(windowStart, windowEnd),
         calendarRepository.observeAll(),
     ) { occurrences, calendars ->
-        val items = occurrences.toTimelineItems(calendars.associate { it.id to it.color.argb })
+        val items = occurrences.toTimelineItems(calendars.associate { it.id to it.color.argb }, zone)
         val days = items
             .groupBy { Instant.ofEpochMilli(it.startUtcMillis).atZone(zone).toLocalDate() }
             .toSortedMap()

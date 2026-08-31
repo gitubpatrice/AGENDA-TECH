@@ -41,6 +41,7 @@ abstract class AppDatabase : RoomDatabase() {
         // v5 (place details): events.address + postal_code + city + gps_coordinates.
         // v6 (time-zone repair): no schema change — repairs events.time_zone values written
         //    unresolvable by the .ics importer before audit F3. See Migrations.MIGRATION_5_6.
-        const val SCHEMA_VERSION = 6
+        // v7 (birthdays): events.kind — 0 ordinary, 1 birthday. NOT NULL DEFAULT 0, additive.
+        const val SCHEMA_VERSION = 7
     }
 }

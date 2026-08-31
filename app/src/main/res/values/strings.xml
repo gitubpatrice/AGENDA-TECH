@@ -330,4 +330,14 @@
     <string name="backup_prompt_stale_body">Your calendar has changed since your last backup. Those changes exist only on this phone.</string>
     <string name="backup_prompt_action">Back up</string>
     <string name="backup_prompt_later">Later</string>
+    <!-- Anniversaires -->
+    <string name="editor_kind_event">Event</string>
+    <string name="editor_kind_birthday">Birthday</string>
+    <string name="editor_birthday_date">Date of birth</string>
+    <string name="editor_birthday_hint">Repeats every year, all day. Leave the year as it is if you do not know it — the age is then simply not shown.</string>
+    <!-- Age marked by a birthday occurrence, e.g. "42 years". -->
+    <plurals name="birthday_age">
+        <item quantity="one">%1$d year</item>
+        <item quantity="other">%1$d years</item>
+    </plurals>
 </resources>

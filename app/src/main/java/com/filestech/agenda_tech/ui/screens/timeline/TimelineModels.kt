@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.ui.screens.timeline
 
+import com.filestech.agenda_tech.domain.birthday.BirthdayAge
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.recurrence.EventOccurrence
 import java.time.LocalDate
@@ -13,10 +14,15 @@ data class TimelineItem(
     val endUtcMillis: Long,
     val allDay: Boolean,
     val colorArgb: Int,
+    /** Age this birthday occurrence marks, or null — see [BirthdayAge] for when it is null. */
+    val birthdayAge: Int? = null,
 )
 
 /** Resolves each occurrence's colour (event override, else its calendar's) into a [TimelineItem]. */
-fun List<EventOccurrence>.toTimelineItems(colorByCalendarId: Map<Long, Int>): List<TimelineItem> =
+fun List<EventOccurrence>.toTimelineItems(
+    colorByCalendarId: Map<Long, Int>,
+    zone: ZoneId,
+): List<TimelineItem> =
     map { occurrence ->
         TimelineItem(
             eventId = occurrence.event.id,
@@ -27,6 +33,7 @@ fun List<EventOccurrence>.toTimelineItems(colorByCalendarId: Map<Long, Int>): Li
             colorArgb = occurrence.event.colorOverride?.argb
                 ?: colorByCalendarId[occurrence.event.calendarId]
                 ?: CalendarColor.DEFAULT.argb,
+            birthdayAge = BirthdayAge.of(occurrence.event, occurrence.startUtcMillis, zone),
         )
     }
 

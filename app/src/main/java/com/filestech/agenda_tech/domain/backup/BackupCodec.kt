@@ -5,6 +5,7 @@ import com.filestech.agenda_tech.core.time.TimeZones
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.Event
+import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Weekday
@@ -88,6 +89,7 @@ object BackupCodec {
         recurrenceParentId = recurrenceParentId,
         originalStartUtcMillis = originalStartUtcMillis,
         reminderMinutes = reminderMinutes,
+        kindRaw = kind.rawValue,
     )
 
     fun BackupCalendar.toDomain(): Calendar = Calendar(
@@ -156,5 +158,8 @@ object BackupCodec {
         recurrenceParentId = recurrenceParentId,
         originalStartUtcMillis = originalStartUtcMillis,
         sourceUid = sourceUid,
+        // Unknown values fall back to NORMAL rather than failing the restore — same policy as the
+        // DB read, and for the same reason: a backup is opened on the day the agenda is gone.
+        kind = EventKind.fromRaw(kindRaw),
     )
 }

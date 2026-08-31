@@ -8,6 +8,7 @@ import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.core.time.TimeZones
 import com.filestech.agenda_tech.domain.model.Event
+import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Reminder
@@ -213,6 +214,7 @@ class EventEditorViewModel @Inject constructor(
                 postalCode = event.postalCode.orEmpty(),
                 city = event.city.orEmpty(),
                 gpsCoordinates = event.gpsCoordinates.orEmpty(),
+                kind = event.kind,
                 deleteNeedsScope = editingOccurrence,
                 isLoaded = true,
             )
@@ -236,6 +238,31 @@ class EventEditorViewModel @Inject constructor(
     }
 
     fun onAllDayChange(allDay: Boolean) = _state.update { it.copy(allDay = allDay) }
+
+    /**
+     * Switching to a birthday fills in what a birthday always is, instead of asking the user to say
+     * it in three separate controls: all day, every year, never ending, and ending on its own day.
+     *
+     * Switching back to an ordinary event leaves those values alone. Clearing them would throw away
+     * a start date the user has just picked, and "yearly, all day" is a perfectly ordinary event —
+     * there is nothing to undo, only a label to change.
+     */
+    fun onKindChange(kind: EventKind) = _state.update { current ->
+        when {
+            kind == current.kind -> current
+            kind == EventKind.BIRTHDAY -> current.copy(
+                kind = kind,
+                allDay = true,
+                recurrenceFreq = RecurrenceFreq.YEARLY,
+                recurrenceInterval = 1,
+                recurrenceEnd = RecurrenceEnd.NEVER,
+                // All-day ends are inclusive here, so "the same day" is the birthday's whole span.
+                endDateTime = current.startDateTime,
+                error = null,
+            )
+            else -> current.copy(kind = kind)
+        }
+    }
 
     fun onStartDateChange(date: LocalDate) = _state.update {
         it.withStart(date.atTime(it.startDateTime.toLocalTime()))
@@ -495,6 +522,10 @@ class EventEditorViewModel @Inject constructor(
             // An override is a brand-new row, so it must NOT claim the master's uid — two rows sharing
             // one uid would fight over the same slot in the import's uid → id map.
             sourceUid = if (asOverride) null else loadedSourceUid,
+            // An override of a birthday stays a birthday, so reverting it or editing it again finds the
+            // same kind rather than a silently downgraded event. It shows no AGE, though: an override
+            // starts on the occurrence it replaces, and BirthdayAge says so explicitly.
+            kind = current.kind,
         )
         val reminderMinutes = current.reminderMinutes
         viewModelScope.launch {
@@ -563,6 +594,12 @@ class EventEditorViewModel @Inject constructor(
     }
 
     private fun EventEditorUiState.withStart(newStart: LocalDateTime): EventEditorUiState {
+        // A birthday has no end of its own — it is the one day. Left to the generic rule below, moving
+        // the birth date to a LATER year would keep the old end and silently make the event span every
+        // day in between, since an all-day end is inclusive.
+        if (kind == EventKind.BIRTHDAY) {
+            return copy(startDateTime = newStart, endDateTime = newStart, error = null)
+        }
         val newEnd = if (endDateTime.isBefore(newStart)) newStart.plusHours(1) else endDateTime
         return copy(startDateTime = newStart, endDateTime = newEnd, error = null)
     }

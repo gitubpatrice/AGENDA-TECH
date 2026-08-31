@@ -28,6 +28,8 @@ data class OccurrenceData(
     val endUtcMillis: Long,
     val allDay: Boolean,
     val colorArgb: Int,
+    /** Age this birthday occurrence marks, or null. */
+    val birthdayAge: Int? = null,
 )
 
 /**

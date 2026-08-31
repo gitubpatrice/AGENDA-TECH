@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.filestech.agenda_tech.ui.util.displayTitle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.ui.navigation.CalendarView
@@ -142,7 +143,7 @@ private fun AgendaRow(
     onOccurrenceClick: (Long, Long) -> Unit,
 ) {
     EventRow(
-        title = item.title,
+        title = displayTitle(item.title, item.birthdayAge),
         colorArgb = item.colorArgb,
         onClick = { onOccurrenceClick(item.eventId, item.startUtcMillis) },
     ) {

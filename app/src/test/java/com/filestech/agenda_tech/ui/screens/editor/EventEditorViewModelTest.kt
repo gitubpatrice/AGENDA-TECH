@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.Event
+import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Reminder
@@ -27,6 +28,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 
@@ -670,5 +672,82 @@ class EventEditorViewModelTest {
         assertThat(vm.state.value.scopePrompt).isNull()
         assertThat(eventRepo.rows.keys).containsExactly(10L)
         assertThat(eventRepo.rows.values.none { it.recurrenceParentId != null }).isTrue()
+    }
+
+    // --- Anniversaires ------------------------------------------------------
+
+    @Test
+    fun `choosing birthday fills in what a birthday always is`() = runTest(dispatcher) {
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+
+        vm.onKindChange(EventKind.BIRTHDAY)
+
+        val state = vm.state.value
+        assertThat(state.allDay).isTrue()
+        assertThat(state.recurrenceFreq).isEqualTo(RecurrenceFreq.YEARLY)
+        assertThat(state.recurrenceInterval).isEqualTo(1)
+        assertThat(state.recurrenceEnd).isEqualTo(RecurrenceEnd.NEVER)
+        // Its own day, not the hour the editor proposes for an ordinary event.
+        assertThat(state.endDateTime).isEqualTo(state.startDateTime)
+    }
+
+    @Test
+    fun `a saved birthday is a yearly all-day event that knows it is one`() = runTest(dispatcher) {
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+        vm.onKindChange(EventKind.BIRTHDAY)
+        vm.onTitleChange("Paul")
+        vm.onStartDateChange(LocalDate.of(1984, 3, 12))
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        val saved = eventRepo.rows.values.single()
+        assertThat(saved.kind).isEqualTo(EventKind.BIRTHDAY)
+        assertThat(saved.allDay).isTrue()
+        assertThat(saved.recurrence!!.freq).isEqualTo(RecurrenceFreq.YEARLY)
+        assertThat(saved.recurrence!!.isInfinite).isTrue()
+        // Exactly one day: an all-day end is stored as the exclusive next midnight.
+        assertThat(saved.endUtcMillis - saved.startUtcMillis).isEqualTo(ONE_DAY_MILLIS)
+    }
+
+    @Test
+    fun `moving a birth date to a later year does not stretch the birthday`() = runTest(dispatcher) {
+        // Without the special case in withStart, the generic rule keeps the old end whenever it is not
+        // before the new start — so pushing the birth date forward would leave an all-day event
+        // spanning every day in between, silently filling years of the agenda.
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+        vm.onKindChange(EventKind.BIRTHDAY)
+        vm.onTitleChange("Paul")
+        vm.onStartDateChange(LocalDate.of(1984, 3, 12))
+        vm.onStartDateChange(LocalDate.of(1990, 3, 12))
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        val saved = eventRepo.rows.values.single()
+        assertThat(saved.endUtcMillis - saved.startUtcMillis).isEqualTo(ONE_DAY_MILLIS)
+    }
+
+    @Test
+    fun `editing a birthday keeps it one`() = runTest(dispatcher) {
+        eventRepo.rows[10] = seedEvent(id = 10, title = "Paul").copy(
+            kind = EventKind.BIRTHDAY,
+            allDay = true,
+            recurrence = RecurrenceRule(freq = RecurrenceFreq.YEARLY),
+        )
+        val vm = viewModel(eventId = 10)
+        testScheduler.advanceUntilIdle()
+        assertThat(vm.state.value.kind).isEqualTo(EventKind.BIRTHDAY)
+
+        vm.onTitleChange("Paul Durand")
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(eventRepo.rows.getValue(10).kind).isEqualTo(EventKind.BIRTHDAY)
+    }
+
+    private companion object {
+        const val ONE_DAY_MILLIS = 24L * 60 * 60 * 1000
     }
 }

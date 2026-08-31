@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.ui.screens.editor
 
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
+import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.Weekday
 import java.time.LocalDate
@@ -39,6 +40,12 @@ data class EventEditorUiState(
      */
     val isLoaded: Boolean = false,
     val title: String = "",
+    /**
+     * A [EventKind.BIRTHDAY] fixes three of the fields below (all-day, yearly, no end date), so the
+     * screen hides them rather than showing controls that cannot be moved. They are still held here,
+     * and still what gets saved — the kind decides their value, it does not bypass them.
+     */
+    val kind: EventKind = EventKind.NORMAL,
     val allDay: Boolean = false,
     val startDateTime: LocalDateTime,
     val endDateTime: LocalDateTime,

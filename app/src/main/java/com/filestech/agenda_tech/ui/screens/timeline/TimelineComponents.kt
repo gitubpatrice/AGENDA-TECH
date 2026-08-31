@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.filestech.agenda_tech.ui.util.displayTitle
 
 /** Height of one hour row on the timeline; the whole day is 24× this. */
 val HOUR_HEIGHT: Dp = 60.dp
@@ -94,7 +95,7 @@ fun EventsColumn(
                     .padding(horizontal = 4.dp, vertical = 2.dp),
             ) {
                 Text(
-                    text = block.item.title,
+                    text = displayTitle(block.item.title, block.item.birthdayAge),
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White,
                     maxLines = 2,
@@ -135,7 +136,7 @@ fun AllDayStrip(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = item.title,
+                    text = displayTitle(item.title, item.birthdayAge),
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.White,
                     maxLines = 1,

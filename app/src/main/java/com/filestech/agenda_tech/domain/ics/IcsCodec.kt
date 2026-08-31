@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.ics
 
+import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.core.text.BidiSanitizer
@@ -29,6 +30,13 @@ import java.time.format.DateTimeFormatter
 object IcsCodec {
 
     private const val PRODID = "-//Files Tech//Agenda Tech//EN"
+
+    /**
+     * Non-standard property carrying [EventKind]. RFC 5545 §3.8.8.2 reserves the `X-` space for
+     * exactly this; a reader that does not know it ignores the line, so a birthday exported to
+     * Google or Thunderbird simply arrives as the yearly all-day event it already is.
+     */
+    private const val PROP_KIND = "X-AGENDA-TECH-KIND"
 
     private val UTC_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
     private val LOCAL_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss")
@@ -79,6 +87,11 @@ object IcsCodec {
             if (rule.exDatesUtcMillis.isNotEmpty()) {
                 out.appendContentLine("EXDATE:${rule.exDatesUtcMillis.joinToString(",") { utcStamp(it) }}")
             }
+        }
+        // Written from the enum's own name, never from stored text, so nothing attacker-controlled
+        // reaches the line (the concern audit F2/F4 raised about UID).
+        if (event.kind != EventKind.NORMAL) {
+            out.appendContentLine("$PROP_KIND:${event.kind.name}")
         }
         out.appendContentLine("END:VEVENT")
     }
@@ -203,6 +216,9 @@ object IcsCodec {
             // Audit F2/F4 - UID bypassed the sanitiser every other imported string goes through.
             // Line breaks and control characters are dropped outright: never legitimate in a UID,
             // and they are the injection primitive.
+            kind = props.first(PROP_KIND)?.value?.trim()?.uppercase()
+                ?.let { name -> EventKind.entries.firstOrNull { it.name == name } }
+                ?: EventKind.NORMAL,
             uid = props.first("UID")?.value?.let(IcsLines::unescapeText)
                 ?.filterNot { it == '\n' || it == '\r' || it.isISOControl() }
                 ?.let(::sanitizeText)

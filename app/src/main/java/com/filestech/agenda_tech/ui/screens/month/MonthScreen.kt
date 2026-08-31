@@ -66,6 +66,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.filestech.agenda_tech.ui.util.displayTitle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.domain.ImportLimits
@@ -505,7 +506,7 @@ private fun OccurrenceRow(
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = occurrence.title,
+                text = displayTitle(occurrence.title, occurrence.birthdayAge),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
             )

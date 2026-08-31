@@ -6,6 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.filestech.agenda_tech.domain.model.CalendarColor
+import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 
 /**
@@ -68,6 +69,9 @@ data class EventEntity(
     @ColumnInfo(name = "original_start") val originalStartUtcMillis: Long?,
     // Stable source id (iCalendar UID) for idempotent re-import; null for user-created events.
     @ColumnInfo(name = "source_uid") val sourceUid: String? = null,
+    // What the event is, not what it contains (v7). NOT NULL with a 0 default so every row that
+    // predates the column reads back as NORMAL without a rewrite.
+    @ColumnInfo(name = "kind", defaultValue = "0") val kind: EventKind = EventKind.NORMAL,
     // --- Appearance / audit ---
     @ColumnInfo(name = "color_override") val colorOverride: CalendarColor?,
     @ColumnInfo(name = "created_at") val createdAt: Long,

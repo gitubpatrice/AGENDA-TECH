@@ -329,4 +329,14 @@
     <string name="backup_prompt_stale_body">Votre agenda a changé depuis votre dernière sauvegarde. Ces modifications ne sont que sur ce téléphone.</string>
     <string name="backup_prompt_action">Sauvegarder</string>
     <string name="backup_prompt_later">Plus tard</string>
+    <!-- Anniversaires -->
+    <string name="editor_kind_event">Événement</string>
+    <string name="editor_kind_birthday">Anniversaire</string>
+    <string name="editor_birthday_date">Date de naissance</string>
+    <string name="editor_birthday_hint">Se répète chaque année, toute la journée. Si vous ne connaissez pas l\'année, laissez celle qui est proposée : l\'âge ne sera simplement pas affiché.</string>
+    <!-- Âge marqué par une occurrence d'anniversaire, par exemple « 42 ans ». -->
+    <plurals name="birthday_age">
+        <item quantity="one">%1$d an</item>
+        <item quantity="other">%1$d ans</item>
+    </plurals>
 </resources>

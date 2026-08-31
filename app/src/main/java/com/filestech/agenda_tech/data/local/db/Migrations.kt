@@ -180,6 +180,21 @@ object Migrations {
         }
     }
 
+    /**
+     * v7 (2026-08): birthdays. Adds `events.kind` — 0 = ordinary event, 1 = birthday.
+     *
+     * `NOT NULL DEFAULT 0` rather than a nullable column: every existing row is an ordinary event,
+     * and SQLite fills the default in place without rewriting them, so this stays additive in the
+     * sense the KDoc above requires. The default must also be declared on the entity
+     * (`@ColumnInfo(defaultValue = "0")`) or Room's schema validation refuses the upgraded database
+     * at open time — the identity hash covers defaults.
+     */
+    private val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE events ADD COLUMN kind INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
     /** How many repaired zone names the trace keeps; the count itself is always recorded. */
     private const val MAX_TRACED_REPAIRS = 20
 
@@ -197,5 +212,6 @@ object Migrations {
         MIGRATION_3_4,
         MIGRATION_4_5,
         migration5to6(),
+        MIGRATION_6_7,
     )
 }
