@@ -43,9 +43,14 @@ complète à la revue de `mgdx`. Séquence des six derniers intervenants : seekm
 gitubpatrice → seekme-seekyou → mgdx → linsui → **gitubpatrice**. La balle est donc chez les
 mainteneurs, pas chez l'auteur, mais le label dit le contraire et personne ne l'a retiré.
 
-C'est ainsi qu'une MR se fait oublier : la file est filtrée par label. **Si l'attente se prolonge,
-l'action utile n'est pas d'attendre davantage mais de faire tomber ce label** — une relance courte
-suffit généralement. À réévaluer si rien n'a bougé vers le **2026-09-08**.
+C'est ainsi qu'une MR se fait oublier : la file est filtrée par label. Le remède habituel est une
+relance courte, qui fait tomber le label.
+
+**Décision de Patrice, 2026-08-31 : on laisse courir encore un peu, pas de relance pour l'instant.**
+Ce n'est pas un oubli — c'est un choix, et il tient : les mainteneurs sont bénévoles, `linsui` a dit
+que la MR n'attendait plus qu'un testeur, et `mgdx` a fourni ce test le 26/08. Réévaluer vers le
+**2026-09-08**, et alors seulement en reparler à Patrice — **ne rien poster sur la MR sans son
+accord explicite**.
 
 ### À faire au moment du tag, et seulement à ce moment
 
