@@ -86,9 +86,17 @@ votre appareil, d'une application à l'autre :
   elle-même** : elle écrit à l'emplacement que vous désignez dans le sélecteur de fichiers système,
   et n'a de toute façon aucun moyen d'accéder au réseau. Le contenu est chiffré (AES-256) par une
   clé dérivée de **votre mot de passe seul** : ni nous, ni le service qui hébergerait ce fichier ne
-  peuvent le lire. Ce mot de passe n'est stocké nulle part — si vous l'oubliez, le fichier est
-  définitivement illisible, y compris pour nous. Ce que devient ensuite le fichier, une fois hors
-  de l'application, ne dépend plus que de vous.
+  peuvent le lire. Pour une sauvegarde que vous exportez à la main, ce mot de passe n'est stocké
+  nulle part — si vous l'oubliez, le fichier est définitivement illisible, y compris pour nous. Ce
+  que devient ensuite le fichier, une fois hors de l'application, ne dépend plus que de vous.
+- **Sauvegarde automatique** (facultative, désactivée par défaut) : une fois activée, l'application
+  écrit le même `.atbak` chiffré une fois par semaine dans un dossier que vous choisissez, en
+  conservant les quatre plus récents. Elle n'envoie toujours rien nulle part — elle écrit dans ce
+  dossier, et n'a aucun accès réseau. Parce qu'elle s'exécute sans vous, c'est le seul endroit où
+  **votre mot de passe est conservé sur le téléphone** : chiffré par une clé détenue par le
+  matériel sécurisé de l'appareil, qui ne le quitte jamais. Désactiver l'option efface le mot de
+  passe et cette clé. L'arbitrage est assumé — une sauvegarde que vous seul pouvez ouvrir, et qui
+  reste utilisable le jour où le téléphone n'est plus là. `SECURITY.md` l'énonce en entier.
 - **Ouvrir un lieu sur la carte** : si vous saisissez des coordonnées GPS sur un événement et que
   vous touchez le repère, l'application transmet **ces coordonnées et le libellé de l'événement** à
   l'application de cartes de votre téléphone. Rien d'autre n'est transmis, et rien ne part si vous

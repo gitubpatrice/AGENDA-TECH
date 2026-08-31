@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.data.local.db
 
 import androidx.room.TypeConverter
 import com.filestech.agenda_tech.domain.model.CalendarColor
+import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 
 /**
@@ -24,4 +25,10 @@ class AgendaEnumConverters {
 
     @TypeConverter
     fun recurrenceFreqToRaw(freq: RecurrenceFreq): Int = freq.rawValue
+
+    @TypeConverter
+    fun eventKindFromRaw(rawValue: Int): EventKind = EventKind.fromRaw(rawValue)
+
+    @TypeConverter
+    fun eventKindToRaw(kind: EventKind): Int = kind.rawValue
 }

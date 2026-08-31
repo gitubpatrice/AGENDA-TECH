@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.ui.screens.editor
 
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
+import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.Weekday
 import java.time.LocalDate
@@ -26,7 +27,25 @@ enum class ScopePrompt { SAVE, DELETE }
  */
 data class EventEditorUiState(
     val isEditing: Boolean = false,
+    /**
+     * True once the edited row has actually been read from the database — or immediately, for a new
+     * event, which has nothing to read.
+     *
+     * [isEditing] is true from the very first frame (it is derived from the nav argument), so
+     * without this flag the app bar offered "duplicate" and "delete" on a form that was still
+     * empty, and the ViewModel had not yet learnt the row's recurrence, source uid or override
+     * link. Deleting in that window was the damaging one: `isMasterOccurrence()` was still false,
+     * so tapping delete on one occurrence of a series removed the WHOLE series without ever asking
+     * the scope question.
+     */
+    val isLoaded: Boolean = false,
     val title: String = "",
+    /**
+     * A [EventKind.BIRTHDAY] fixes three of the fields below (all-day, yearly, no end date), so the
+     * screen hides them rather than showing controls that cannot be moved. They are still held here,
+     * and still what gets saved — the kind decides their value, it does not bypass them.
+     */
+    val kind: EventKind = EventKind.NORMAL,
     val allDay: Boolean = false,
     val startDateTime: LocalDateTime,
     val endDateTime: LocalDateTime,

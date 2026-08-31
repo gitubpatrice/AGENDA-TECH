@@ -33,6 +33,13 @@ sqlcipher = "4.16.0"
 # Glance (home-screen widget)
 glance = "1.1.1"
 
+# WorkManager + SAF — sauvegarde automatique planifiée.
+# Épinglés sur ce que Glance 1.1.1 résout DÉJÀ dans le classpath : les déclarer explicitement ne
+# change aucun artefact résolu, donc ne touche pas à la build reproductible que la MR F-Droid
+# !42991 fait vérifier. À remonter une fois la MR fusionnée, pas avant.
+work = "2.7.1"
+documentfile = "1.0.0"
+
 # Logging
 timber = "5.0.1"
 
@@ -101,6 +108,10 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 
 # Glance
 androidx-glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
+
+# WorkManager + Storage Access Framework
+androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
+androidx-documentfile = { module = "androidx.documentfile:documentfile", version.ref = "documentfile" }
 
 # SQLCipher
 sqlcipher-android = { module = "net.zetetic:sqlcipher-android", version.ref = "sqlcipher" }

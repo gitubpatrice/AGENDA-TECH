@@ -68,6 +68,7 @@ internal fun EventEntity.toDomain(): Event = Event(
     recurrenceParentId = recurrenceParentId,
     originalStartUtcMillis = originalStartUtcMillis,
     sourceUid = sourceUid,
+    kind = kind,
 )
 
 internal fun Event.toEntity(createdAt: Long, updatedAt: Long): EventEntity = EventEntity(
@@ -94,6 +95,7 @@ internal fun Event.toEntity(createdAt: Long, updatedAt: Long): EventEntity = Eve
     recurrenceParentId = recurrenceParentId,
     originalStartUtcMillis = originalStartUtcMillis,
     sourceUid = sourceUid,
+    kind = kind,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

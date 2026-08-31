@@ -39,7 +39,7 @@ class DayViewModel @Inject constructor(
         occurrences,
         calendarRepository.observeAll(),
     ) { date, occ, calendars ->
-        val items = occ.toTimelineItems(calendars.associate { it.id to it.color.argb })
+        val items = occ.toTimelineItems(calendars.associate { it.id to it.color.argb }, zone)
         DayUiState(TimelineBuilder.build(items, date, zone, LocalDate.now(zone), System.currentTimeMillis()))
     }.stateIn(
         scope = viewModelScope,

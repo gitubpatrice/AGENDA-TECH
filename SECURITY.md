@@ -261,8 +261,11 @@ par un secret que l'utilisateur connaît — d'où un mot de passe, et non la cl
 ```
 
 - **KDF** : PBKDF2-HMAC-SHA256, **600 000 itérations** (plancher OWASP), sel aléatoire de 16 octets,
-  clé de 256 bits. Mot de passe **12 caractères minimum**, jamais stocké : un mot de passe oublié
-  rend le fichier définitivement illisible — c'est le prix du chiffrement hors ligne.
+  clé de 256 bits. Mot de passe **12 caractères minimum**. Pour un export **manuel**, il n'est stocké
+  nulle part : un mot de passe oublié rend le fichier définitivement illisible — c'est le prix du
+  chiffrement hors ligne. La **sauvegarde automatique** est la seule exception, et elle est
+  documentée ci-dessous : elle ne peut pas demander le mot de passe chaque semaine, donc elle le
+  conserve.
 - **Chiffrement** : AES-256-GCM via `AeadCipher` (le même primitif que la clé de base).
 - **En-tête authentifié (AAD)** : l'en-tête n'est pas secret mais il est **authentifié**. Réécrire le
   sel, ou abaisser `iterations` à une valeur bon marché pour rendre une attaque hors ligne triviale,
@@ -285,6 +288,52 @@ par un secret que l'utilisateur connaît — d'où un mot de passe, et non la cl
   override pointant vers un parent absent (aucune FK ne couvre `recurrence_parent_id`).
 - Un mauvais mot de passe et un fichier corrompu sont **indistinguables** (tous deux = tag GCM
   invalide) : l'UI dit « mot de passe incorrect **ou** fichier endommagé », sans confirmer lequel.
+
+### Sauvegarde automatique (hebdomadaire) — le mot de passe est conservé
+
+C'est le **seul** endroit de l'application où un secret utilisateur est stocké de façon réversible.
+La contrepartie est explicite, et c'est l'utilisateur qui la choisit en activant l'option.
+
+- **Ce que ça coûte.** Le mot de passe existe désormais sur l'appareil, là où il n'existait que dans
+  la tête de l'utilisateur. Quiconque compromet complètement l'appareil **en fonctionnement** peut
+  faire déchiffrer ce mot de passe par l'application.
+- **Ce que ça achète.** Le fichier reste ouvrable à la main, sur n'importe quelle machine, avec ce
+  mot de passe. Une clé qui ne quitterait jamais ce téléphone produirait des sauvegardes qui meurent
+  avec lui — or une sauvegarde existe précisément pour le jour où le téléphone n'est plus là.
+- **Ce que l'enveloppe protège quand même.** Le mot de passe est chiffré en AES-256-GCM par une clé
+  **AndroidKeyStore dédiée** (`agendatech_autobackup_pw`), non exportable, adossée au TEE sur les
+  appareils compatibles, avant d'atterrir en Base64 dans le DataStore. Le **vol du fichier** — copie
+  du DataStore, exploit de lecture de fichier, sauvegarde adb — ne suffit donc pas : la clé ne quitte
+  pas l'appareil.
+- **Alias distinct de celui du PIN**, délibérément : désactiver le verrou d'application supprime
+  `agendatech_pin_wrap`, et cela ne doit pas emporter le mot de passe de sauvegarde avec lui. Ce sont
+  deux décisions indépendantes de l'utilisateur.
+- **Désactiver l'option efface le mot de passe** et supprime la clé Keystore qui l'enveloppait. Sans
+  cette suppression, le blob resterait déchiffrable par quiconque restaurerait plus tard le fichier
+  DataStore sur ce même appareil.
+- **Jamais de `String`.** Le mot de passe passe du champ de saisie au Keystore en `CharArray` puis en
+  `ByteArray`, tous deux wipés ; un `String` resterait dans le tas jusqu'au bon vouloir du GC, sans
+  moyen de l'effacer. (Le résiduel LOCK-8 du champ Compose reste identique à celui de l'export.)
+- **Aucune permission de stockage.** L'écriture passe par le Storage Access Framework : l'accès de
+  l'application se limite au dossier que l'utilisateur a désigné dans le sélecteur système, pour la
+  durée où il maintient l'autorisation. Chaque exécution revérifie cette autorisation au lieu de la
+  supposer acquise, et signale son absence dans l'écran Sauvegarde.
+- **La rotation ne peut atteindre que les fichiers écrits par cette fonction.** Elle ne supprime que
+  les noms `agenda-tech-auto-<date>.atbak`, jamais un export manuel `agenda-tech-<date>.atbak` ni
+  quoi que ce soit d'autre dans le dossier — l'utilisateur est censé viser un dossier qu'il utilise
+  déjà. C'est la règle la plus dangereuse de la fonction, donc elle vit dans le domaine et elle est
+  testée séparément.
+- **Limite connue — « Forcer l'arrêt » suspend la planification.** Android bloque les tâches en
+  attente d'une application que l'utilisateur a forcée à s'arrêter (ou que le constructeur a mise
+  en veille agressive), jusqu'à la prochaine ouverture de l'app. Le réglage reste sur « activé »,
+  l'écran affiche la dernière exécution connue, et **plus rien ne s'exécute**. L'application ne
+  peut pas le détecter depuis l'intérieur : elle ne tourne pas. L'alerte « votre agenda a changé
+  depuis votre dernière sauvegarde » reste le filet, puisque la date de dernière sauvegarde, elle,
+  ne bouge plus.
+- **Un échec ne peut pas se faire passer pour un succès.** Le résultat de chaque exécution est
+  enregistré et affiché ; seule une exécution qui a réellement produit un fichier déplace la date de
+  « dernière sauvegarde », donc l'alerte « votre agenda a changé depuis votre dernière sauvegarde »
+  reste armée tant que rien n'a été écrit.
 
 ## Signalement
 

@@ -27,7 +27,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import com.filestech.agenda_tech.data.backup.SafAutoBackupTarget
+import com.filestech.agenda_tech.domain.backup.AutoBackupOutcome
+import com.filestech.agenda_tech.domain.backup.AutoBackupSecret
+import com.filestech.agenda_tech.domain.backup.AutoBackupTarget
+import com.filestech.agenda_tech.domain.usecase.RunAutoBackupUseCase
+import com.filestech.agenda_tech.system.backup.AutoBackupScheduler
 import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
 
 /** What the screen is showing, one state at a time — the work is long enough to need a spinner. */
@@ -37,7 +44,19 @@ data class BackupUiState(
     val message: BackupMessage? = null,
     /** True once a picked file has been recognised as an `.atbak` and only its password is missing. */
     val awaitingRestorePassword: Boolean = false,
+    val autoBackupEnabled: Boolean = false,
+    /** Display name of the chosen folder, or null when none is set or it can no longer be reached. */
+    val autoBackupFolderName: String? = null,
+    /** True when a folder is stored but no longer usable — the grant was revoked, or the card is out. */
+    val autoBackupFolderLost: Boolean = false,
+    val autoBackupLastRunAtUtcMillis: Long = 0L,
+    val autoBackupLastOutcome: AutoBackupOutcome = AutoBackupOutcome.NEVER_RUN,
+    /** Non-null while turning the feature on: what the screen still has to ask for. */
+    val autoBackupStep: AutoBackupStep? = null,
 )
+
+/** The two things enabling automatic backups needs, asked one at a time. */
+enum class AutoBackupStep { PICK_FOLDER, ASK_PASSWORD }
 
 enum class BackupOp { EXPORT, RESTORE }
 
@@ -65,6 +84,10 @@ class BackupViewModel @Inject constructor(
     private val reminderRepository: ReminderRepository,
     private val reminderScheduler: ReminderScheduler,
     private val settingsRepository: SettingsRepository,
+    private val autoBackupSecret: AutoBackupSecret,
+    private val autoBackupTarget: AutoBackupTarget,
+    private val autoBackupScheduler: AutoBackupScheduler,
+    private val runAutoBackup: RunAutoBackupUseCase,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -93,6 +116,117 @@ class BackupViewModel @Inject constructor(
      * ViewModel, export parked its password in the composition.
      */
     private var pendingExportPassword: CharArray? = null
+
+    init {
+        // The settings are the source of truth for this section, including for a run that happened
+        // while the app was not open — which is the normal case for a weekly backup.
+        viewModelScope.launch {
+            settingsRepository.settings.collect { settings ->
+                val folderName =
+                    if (settings.autoBackupFolderUri != null) autoBackupTarget.folderName() else null
+                _state.update {
+                    it.copy(
+                        autoBackupEnabled = settings.autoBackupEnabled,
+                        autoBackupFolderName = folderName,
+                        // A stored folder the app can no longer reach is the one failure the user can
+                        // fix, and this screen is the only place they would ever learn of it.
+                        autoBackupFolderLost = settings.autoBackupFolderUri != null && folderName == null,
+                        autoBackupLastRunAtUtcMillis = settings.autoBackupLastRunAtUtcMillis,
+                        autoBackupLastOutcome = settings.autoBackupLastOutcome,
+                    )
+                }
+            }
+        }
+    }
+
+    // --- Sauvegarde automatique ---------------------------------------------
+
+    /**
+     * Turning the switch on asks for whatever is still missing, one step at a time; turning it off
+     * cancels the schedule and forgets the password.
+     *
+     * Off *deletes* the stored password rather than parking it: leaving a decryptable password behind
+     * for a feature the user has just switched off is exactly the leftover the threat model in
+     * [com.filestech.agenda_tech.domain.backup.AutoBackupSecret] exists to avoid. The folder grant is
+     * kept — re-picking a folder is the tedious half, and a grant the user gave themselves is not a
+     * secret.
+     */
+    fun onAutoBackupToggle(enabled: Boolean) = viewModelScope.launch {
+        if (!enabled) {
+            autoBackupScheduler.disable()
+            autoBackupSecret.clear()
+            settingsRepository.update { it.copy(autoBackupEnabled = false) }
+            _state.update { it.copy(autoBackupStep = null) }
+            return@launch
+        }
+        val step = when {
+            !autoBackupTarget.isWritable() -> AutoBackupStep.PICK_FOLDER
+            !autoBackupSecret.isSet() -> AutoBackupStep.ASK_PASSWORD
+            else -> null
+        }
+        if (step == null) armAutoBackup() else _state.update { it.copy(autoBackupStep = step) }
+    }
+
+    /**
+     * The folder came back from the system picker.
+     *
+     * The grant is persisted **before** the URI is stored: a URI in the settings the app holds no
+     * lasting permission for would look like a configured backup and write nothing, every week, in
+     * silence — the exact failure mode this whole feature exists to remove.
+     */
+    fun onAutoBackupFolderPicked(uri: Uri?) = viewModelScope.launch {
+        if (uri == null) {
+            _state.update { it.copy(autoBackupStep = null) }
+            return@launch
+        }
+        val granted = runCatching {
+            context.contentResolver.takePersistableUriPermission(uri, SafAutoBackupTarget.PERSIST_FLAGS)
+        }.isSuccess
+        if (!granted) {
+            Timber.e("AutoBackup: could not persist the folder grant")
+            _state.update { it.copy(autoBackupStep = null, message = BackupMessage.Failed) }
+            return@launch
+        }
+        settingsRepository.update { it.copy(autoBackupFolderUri = uri.toString()) }
+        val next = if (autoBackupSecret.isSet()) null else AutoBackupStep.ASK_PASSWORD
+        if (next == null) armAutoBackup() else _state.update { it.copy(autoBackupStep = next) }
+    }
+
+    fun onAutoBackupPasswordEntered(password: CharArray) = viewModelScope.launch {
+        // The same floor the manual export enforces: one weak password would undo the 600 000 PBKDF2
+        // iterations that protect the file.
+        if (password.size < BackupEnvelope.MIN_PASSWORD_LENGTH) {
+            password.wipe()
+            _state.update { it.copy(autoBackupStep = null, message = BackupMessage.PasswordTooShort) }
+            return@launch
+        }
+        // store() wipes the array, whether it succeeds or not.
+        if (!autoBackupSecret.store(password)) {
+            _state.update { it.copy(autoBackupStep = null, message = BackupMessage.Failed) }
+            return@launch
+        }
+        armAutoBackup()
+    }
+
+    fun dismissAutoBackupStep() = _state.update { it.copy(autoBackupStep = null) }
+
+    /**
+     * Runs one backup immediately, so the user finds out today whether the folder and the password
+     * actually work — rather than in a week, or on the day they need the file.
+     */
+    fun runAutoBackupNow() = viewModelScope.launch {
+        _state.update { it.copy(busy = BackupOp.EXPORT) }
+        runAutoBackup(nowUtcMillis = System.currentTimeMillis(), zone = ZoneId.systemDefault())
+        // No snackbar: the outcome is recorded in the settings and the section already states it, so a
+        // message would say the same thing twice and then disappear.
+        _state.update { it.copy(busy = null) }
+    }
+
+    private suspend fun armAutoBackup() {
+        settingsRepository.update { it.copy(autoBackupEnabled = true) }
+        autoBackupScheduler.enable()
+        _state.update { it.copy(autoBackupStep = null) }
+    }
 
     /** Called when the export dialog is confirmed, just before the file picker is launched. */
     fun onExportPasswordEntered(password: CharArray) {

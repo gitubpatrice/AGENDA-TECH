@@ -4,6 +4,7 @@ import com.filestech.agenda_tech.domain.backup.BackupCodec.toDomain
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.Event
+import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Weekday
@@ -46,6 +47,9 @@ class BackupCodecTest {
         ),
         colorOverride = CalendarColor.TOMATO,
         sourceUid = "uid-abc-123",
+        // Set for the reason stated above the fixture: left at its default, a `kind` dropped by the
+        // codec would round-trip "successfully" and nobody would notice until a restore.
+        kind = EventKind.BIRTHDAY,
     )
 
     private val overrideEvent = Event(
@@ -138,5 +142,23 @@ class BackupCodecTest {
     @Test
     fun `refuses malformed json`() {
         assertThrows<Exception> { BackupCodec.decodeFromJson("{ this is not json") }
+    }
+
+    @Test
+    fun `a backup written before birthdays existed restores as ordinary events`() {
+        // The field was added WITHOUT bumping FORMAT_VERSION, so this is the case that justifies it: a
+        // .atbak taken by 1.0.3 has no `kindRaw` key at all and must still restore, not be refused.
+        val json = BackupCodec.encodeToJson(
+            BackupCodec.toPayload(
+                calendars = calendars,
+                events = listOf(fullEvent),
+                remindersByEventId = emptyMap(),
+                exportedAtUtcMillis = 0,
+            ),
+        ).replace(",\"kindRaw\":1", "")
+
+        assertThat(json).doesNotContain("kindRaw")
+        assertThat(BackupCodec.decodeFromJson(json).events.single().toDomain().kind)
+            .isEqualTo(EventKind.NORMAL)
     }
 }

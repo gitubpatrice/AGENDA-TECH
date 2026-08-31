@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.AlertDialog
@@ -73,6 +74,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
+import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.location.GeoLink
 import com.filestech.agenda_tech.domain.model.Weekday
@@ -119,7 +121,9 @@ fun EventEditorScreen(
         onBack = onDone,
         onSave = viewModel::onSave,
         onDelete = viewModel::onDelete,
+        onDuplicate = viewModel::onDuplicate,
         onTitleChange = viewModel::onTitleChange,
+        onKindChange = viewModel::onKindChange,
         onAllDayChange = viewModel::onAllDayChange,
         onStartDateChange = viewModel::onStartDateChange,
         onStartTimeChange = viewModel::onStartTimeChange,
@@ -182,7 +186,10 @@ private fun EventEditorContent(
     onBack: () -> Unit,
     onSave: () -> Unit,
     onDelete: () -> Unit,
+    /** Takes the already-localised title for the copy — the ViewModel holds no Context. */
+    onDuplicate: (String) -> Unit,
     onTitleChange: (String) -> Unit,
+    onKindChange: (EventKind) -> Unit,
     onAllDayChange: (Boolean) -> Unit,
     onStartDateChange: (LocalDate) -> Unit,
     onStartTimeChange: (Int, Int) -> Unit,
@@ -245,7 +252,20 @@ private fun EventEditorContent(
                     }
                 },
                 actions = {
-                    if (state.isEditing) {
+                    // `isLoaded` guards both actions: until the row is read, duplicating copies an
+                    // empty form and deleting a recurring occurrence would take the whole series
+                    // without asking (see EventEditorUiState.isLoaded).
+                    if (state.isEditing && state.isLoaded) {
+                        // Duplicate turns this form into an unsaved copy in place — no navigation,
+                        // nothing written. Shown only while editing: there is nothing to copy from a
+                        // form that has never been saved.
+                        val copyTitle = stringResource(R.string.editor_duplicate_title, state.title)
+                        IconButton(onClick = { onDuplicate(copyTitle) }) {
+                            Icon(
+                                imageVector = Icons.Filled.ContentCopy,
+                                contentDescription = stringResource(R.string.editor_duplicate),
+                            )
+                        }
                         IconButton(onClick = {
                             // A recurring occurrence opens the scope dialog (this/series) — a deliberate
                             // choice, no extra confirm. A plain event gets an anti-mistap confirmation.
@@ -309,9 +329,27 @@ private fun EventEditorContent(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.editor_all_day), modifier = Modifier.weight(1f))
-                Switch(checked = state.allDay, onCheckedChange = onAllDayChange)
+            val isBirthday = state.kind == EventKind.BIRTHDAY
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                FilterChip(
+                    selected = !isBirthday,
+                    onClick = { onKindChange(EventKind.NORMAL) },
+                    label = { Text(stringResource(R.string.editor_kind_event)) },
+                )
+                FilterChip(
+                    selected = isBirthday,
+                    onClick = { onKindChange(EventKind.BIRTHDAY) },
+                    label = { Text(stringResource(R.string.editor_kind_birthday)) },
+                )
+            }
+
+            // A birthday is all-day by definition; the switch would only offer a wrong answer.
+            if (!isBirthday) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.editor_all_day), modifier = Modifier.weight(1f))
+                    Switch(checked = state.allDay, onCheckedChange = onAllDayChange)
+                }
             }
 
             CalendarDropdown(
@@ -323,7 +361,9 @@ private fun EventEditorContent(
             ColorPickerRow(selected = state.colorOverride, onSelect = onColorChange)
 
             DateTimeRow(
-                label = stringResource(R.string.editor_starts),
+                label = stringResource(
+                    if (isBirthday) R.string.editor_birthday_date else R.string.editor_starts,
+                ),
                 dateText = formatDate(state.startDateTime.toLocalDate(), locale),
                 timeText = formatTime(state.startDateTime.toLocalTime(), locale),
                 showTime = !state.allDay,
@@ -331,14 +371,25 @@ private fun EventEditorContent(
                 onTimeClick = { timePickerTarget = EditTarget.START },
             )
 
-            DateTimeRow(
-                label = stringResource(R.string.editor_ends),
-                dateText = formatDate(state.endDateTime.toLocalDate(), locale),
-                timeText = formatTime(state.endDateTime.toLocalTime(), locale),
-                showTime = !state.allDay,
-                onDateClick = { datePickerTarget = EditTarget.END },
-                onTimeClick = { timePickerTarget = EditTarget.END },
-            )
+            // Hidden for a birthday: it ends on the day it starts, and the ViewModel keeps the two in
+            // step (see withStart). Showing an end the user cannot usefully move would invite them to
+            // stretch a birthday over a decade.
+            if (!isBirthday) {
+                DateTimeRow(
+                    label = stringResource(R.string.editor_ends),
+                    dateText = formatDate(state.endDateTime.toLocalDate(), locale),
+                    timeText = formatTime(state.endDateTime.toLocalTime(), locale),
+                    showTime = !state.allDay,
+                    onDateClick = { datePickerTarget = EditTarget.END },
+                    onTimeClick = { timePickerTarget = EditTarget.END },
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.editor_birthday_hint),
+                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
             if (state.error == EditorError.END_BEFORE_START) {
                 Text(
@@ -348,9 +399,13 @@ private fun EventEditorContent(
                 )
             }
 
-            RecurrenceDropdown(selected = state.recurrenceFreq, onSelect = onRecurrenceSelect)
+            // Same reasoning: "every year" is what makes it a birthday, so it is stated by the chip
+            // above rather than offered as a choice that could contradict it.
+            if (!isBirthday) {
+                RecurrenceDropdown(selected = state.recurrenceFreq, onSelect = onRecurrenceSelect)
+            }
 
-            state.recurrenceFreq?.let { freq ->
+            state.recurrenceFreq?.takeIf { !isBirthday }?.let { freq ->
                 AdvancedRecurrenceSection(
                     freq = freq,
                     interval = state.recurrenceInterval,

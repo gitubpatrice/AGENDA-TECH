@@ -61,7 +61,7 @@ class WeekViewModel @Inject constructor(
         occurrences,
         calendarRepository.observeAll(),
     ) { start, occ, calendars ->
-        val items = occ.toTimelineItems(calendars.associate { it.id to it.color.argb })
+        val items = occ.toTimelineItems(calendars.associate { it.id to it.color.argb }, zone)
         buildWeek(start, items)
     }.stateIn(
         scope = viewModelScope,

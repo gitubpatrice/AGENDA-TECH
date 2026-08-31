@@ -238,6 +238,10 @@ dependencies {
     // Glance (home-screen widget)
     implementation(libs.androidx.glance.appwidget)
 
+    // Sauvegarde automatique : planification (WorkManager) + écriture dans le dossier choisi (SAF)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.documentfile)
+
     // SQLCipher
     implementation(libs.sqlcipher.android)
 

@@ -54,6 +54,12 @@ data class Event(
      * row in place instead of creating a duplicate (idempotent import).
      */
     val sourceUid: String? = null,
+    /**
+     * What the event is (see [EventKind]). A [EventKind.BIRTHDAY] anchors its own birth date: the
+     * master starts on it, so [com.filestech.agenda_tech.domain.birthday.BirthdayAge] derives the age
+     * of every occurrence without a second field to keep in step.
+     */
+    val kind: EventKind = EventKind.NORMAL,
 ) {
     init {
         require(endUtcMillis >= startUtcMillis) {

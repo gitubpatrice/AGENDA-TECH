@@ -8,6 +8,7 @@ import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.core.time.TimeZones
 import com.filestech.agenda_tech.domain.model.Event
+import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Reminder
@@ -46,7 +47,7 @@ class EventEditorViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()
-    private val eventId: Long = savedStateHandle.get<Long>(Routes.ARG_EVENT_ID) ?: NEW
+    private var eventId: Long = savedStateHandle.get<Long>(Routes.ARG_EVENT_ID) ?: NEW
     private val initialDateEpochDay: Long = savedStateHandle.get<Long>(Routes.ARG_DATE) ?: NO_DATE
 
     /** The start of the specific occurrence tapped in a view (-1 when N/A); drives the scope prompt. */
@@ -153,6 +154,8 @@ class EventEditorViewModel @Inject constructor(
         val start = date.atTime(DEFAULT_HOUR, 0)
         return EventEditorUiState(
             isEditing = eventId > 0L,
+            // A new event has nothing to read, so it is "loaded" from the start.
+            isLoaded = eventId <= 0L,
             startDateTime = start,
             endDateTime = start.plusHours(1),
             recurrenceUntilDate = date.plusMonths(1),
@@ -211,7 +214,9 @@ class EventEditorViewModel @Inject constructor(
                 postalCode = event.postalCode.orEmpty(),
                 city = event.city.orEmpty(),
                 gpsCoordinates = event.gpsCoordinates.orEmpty(),
+                kind = event.kind,
                 deleteNeedsScope = editingOccurrence,
+                isLoaded = true,
             )
         }
     }
@@ -233,6 +238,31 @@ class EventEditorViewModel @Inject constructor(
     }
 
     fun onAllDayChange(allDay: Boolean) = _state.update { it.copy(allDay = allDay) }
+
+    /**
+     * Switching to a birthday fills in what a birthday always is, instead of asking the user to say
+     * it in three separate controls: all day, every year, never ending, and ending on its own day.
+     *
+     * Switching back to an ordinary event leaves those values alone. Clearing them would throw away
+     * a start date the user has just picked, and "yearly, all day" is a perfectly ordinary event —
+     * there is nothing to undo, only a label to change.
+     */
+    fun onKindChange(kind: EventKind) = _state.update { current ->
+        when {
+            kind == current.kind -> current
+            kind == EventKind.BIRTHDAY -> current.copy(
+                kind = kind,
+                allDay = true,
+                recurrenceFreq = RecurrenceFreq.YEARLY,
+                recurrenceInterval = 1,
+                recurrenceEnd = RecurrenceEnd.NEVER,
+                // All-day ends are inclusive here, so "the same day" is the birthday's whole span.
+                endDateTime = current.startDateTime,
+                error = null,
+            )
+            else -> current.copy(kind = kind)
+        }
+    }
 
     fun onStartDateChange(date: LocalDate) = _state.update {
         it.withStart(date.atTime(it.startDateTime.toLocalTime()))
@@ -318,6 +348,11 @@ class EventEditorViewModel @Inject constructor(
 
     fun onDelete() {
         if (eventId <= 0L) return
+        // Same window as [onDuplicate]: before the row is read, `loadedRecurrence` is still null, so
+        // `isMasterOccurrence()` says "plain event" about a series and this would delete the master
+        // outright instead of asking. The screen already hides the button until then; the guard is
+        // here too because losing a whole series is not a mistake worth leaving to a call site.
+        if (!_state.value.isLoaded) return
         if (isMasterOccurrence()) {
             _state.update { it.copy(scopePrompt = ScopePrompt.DELETE) }
             return
@@ -364,6 +399,59 @@ class EventEditorViewModel @Inject constructor(
     }
 
     fun dismissScope() = _state.update { it.copy(scopePrompt = null) }
+
+    /**
+     * Turns the editor into an unsaved **copy** of the event it was editing, in place.
+     *
+     * No navigation and no write: the form keeps everything the user can see (times, recurrence,
+     * reminders, place, colour) and simply stops pointing at the row it was loaded from, so the next
+     * "Enregistrer" inserts instead of updating. The user lands on a filled form, changes the date,
+     * and saves — which is what "duplicate" means in an agenda.
+     *
+     * What is deliberately **not** copied is everything that is an identity rather than a content:
+     *  - [eventId] / `isEditing`, or the save would overwrite the original;
+     *  - [loadedSourceUid], or the copy would claim the imported event's uid and the next device
+     *    import would fight over which of the two rows it owns;
+     *  - [loadedParentId] / [loadedOriginalStart], or the copy would present itself as a
+     *    per-occurrence override of a series it does not belong to;
+     *  - [loadedRecurrence], whose EXDATEs are cancellations of the *original's* occurrences — a
+     *    fresh series has none (see FIAB-DUP-1 in [persist]). Clearing it also makes
+     *    [isMasterOccurrence] false, so saving the copy no longer asks "this occurrence or the
+     *    series?" about a series the copy is not part of.
+     *  - the loaded instants and zone, so [persist] authors the copy in the device zone like any
+     *    other new event.
+     *
+     * [newTitle] is passed in already localised: the ViewModel holds no Context, and the screen
+     * formats it the same way it maps every other typed value to a string.
+     */
+    fun onDuplicate(newTitle: String) {
+        // `isLoaded` and not just `isEditing` : before the row lands, every `loaded*` field below is
+        // still null, so the "copy" would be an empty form that later inherits the original's
+        // identity when `loadEvent` finishes and repopulates them.
+        val current = _state.value
+        if (!current.isEditing || !current.isLoaded) return
+        eventId = NEW
+        loadedRecurrence = null
+        loadedParentId = null
+        loadedOriginalStart = null
+        loadedSourceUid = null
+        loadedTimeZoneId = null
+        loadedStartUtcMillis = null
+        loadedEndUtcMillis = null
+        _state.update {
+            it.copy(
+                isEditing = false,
+                title = newTitle,
+                error = null,
+                deleteNeedsScope = false,
+                // A pending "this occurrence or the series?" is a question about the row we just
+                // stopped editing. Answering it after the fact would send `persist(asOverride = true)`
+                // down a path where `eventId` is already NEW — writing an override whose master id is
+                // -1. The question no longer applies, so it goes away with the link it was about.
+                scopePrompt = null,
+            )
+        }
+    }
 
     private fun persist(asOverride: Boolean) {
         val current = _state.value
@@ -415,7 +503,18 @@ class EventEditorViewModel @Inject constructor(
             },
             allDay = current.allDay,
             // An override is a single event; the whole-series save keeps the recurrence rule.
-            recurrence = if (asOverride) null else current.toRecurrenceRule(),
+            // FIAB-DUP-1 — les EXDATE du maître ne vivent dans aucun champ de l'éditeur, donc les
+            // réinjecter ici est le seul endroit où elles peuvent survivre à un enregistrement
+            // « toute la série ». Sans cela, chaque occurrence supprimée ou déplacée réapparaît au
+            // premier renommage de la série — et une occurrence déplacée s'affiche alors DEUX fois,
+            // sa dérogation étant toujours en base.
+            // `loadedRecurrence` est nul après une duplication : une copie neuve n'hérite d'aucune
+            // annulation, ce qui est exactement ce qu'on veut.
+            recurrence = if (asOverride) {
+                null
+            } else {
+                current.toRecurrenceRule(loadedRecurrence?.exDatesUtcMillis.orEmpty())
+            },
             colorOverride = current.colorOverride,
             recurrenceParentId = if (asOverride) eventId else loadedParentId,
             originalStartUtcMillis = if (asOverride) occurrenceStart else loadedOriginalStart,
@@ -423,6 +522,10 @@ class EventEditorViewModel @Inject constructor(
             // An override is a brand-new row, so it must NOT claim the master's uid — two rows sharing
             // one uid would fight over the same slot in the import's uid → id map.
             sourceUid = if (asOverride) null else loadedSourceUid,
+            // An override of a birthday stays a birthday, so reverting it or editing it again finds the
+            // same kind rather than a silently downgraded event. It shows no AGE, though: an override
+            // starts on the occurrence it replaces, and BirthdayAge says so explicitly.
+            kind = current.kind,
         )
         val reminderMinutes = current.reminderMinutes
         viewModelScope.launch {
@@ -491,6 +594,12 @@ class EventEditorViewModel @Inject constructor(
     }
 
     private fun EventEditorUiState.withStart(newStart: LocalDateTime): EventEditorUiState {
+        // A birthday has no end of its own — it is the one day. Left to the generic rule below, moving
+        // the birth date to a LATER year would keep the old end and silently make the event span every
+        // day in between, since an all-day end is inclusive.
+        if (kind == EventKind.BIRTHDAY) {
+            return copy(startDateTime = newStart, endDateTime = newStart, error = null)
+        }
         val newEnd = if (endDateTime.isBefore(newStart)) newStart.plusHours(1) else endDateTime
         return copy(startDateTime = newStart, endDateTime = newEnd, error = null)
     }
@@ -509,7 +618,7 @@ class EventEditorViewModel @Inject constructor(
     private fun defaultCalendarId(calendars: List<Calendar>): Long =
         (calendars.firstOrNull { it.isDefault } ?: calendars.firstOrNull())?.id ?: 0L
 
-    private fun EventEditorUiState.toRecurrenceRule(): RecurrenceRule? {
+    private fun EventEditorUiState.toRecurrenceRule(exDatesUtcMillis: List<Long>): RecurrenceRule? {
         val freq = recurrenceFreq ?: return null
         val count = if (recurrenceEnd == RecurrenceEnd.AFTER_COUNT) recurrenceCount.coerceAtLeast(1) else null
         val until = if (recurrenceEnd == RecurrenceEnd.ON_DATE) {
@@ -527,6 +636,7 @@ class EventEditorViewModel @Inject constructor(
             byWeekdays = if (freq == RecurrenceFreq.WEEKLY) recurrenceByWeekdays else emptySet(),
             count = count,
             untilUtcMillis = until,
+            exDatesUtcMillis = exDatesUtcMillis,
         )
     }
 

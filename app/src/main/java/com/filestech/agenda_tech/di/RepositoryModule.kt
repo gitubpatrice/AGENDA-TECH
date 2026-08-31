@@ -1,6 +1,10 @@
 package com.filestech.agenda_tech.di
 
+import com.filestech.agenda_tech.data.backup.SafAutoBackupTarget
+import com.filestech.agenda_tech.data.local.settings.AutoBackupSecretStore
 import com.filestech.agenda_tech.data.local.settings.LockRepositoryImpl
+import com.filestech.agenda_tech.domain.backup.AutoBackupSecret
+import com.filestech.agenda_tech.domain.backup.AutoBackupTarget
 import com.filestech.agenda_tech.data.local.settings.SettingsRepositoryImpl
 import com.filestech.agenda_tech.data.local.settings.SharedPrefsLockThrottleStore
 import com.filestech.agenda_tech.data.repository.BackupRepositoryImpl
@@ -51,4 +55,11 @@ abstract class RepositoryModule {
     /** Audit SEC-2 — the PIN back-off has to outlive the process to mean anything. */
     @Binds @Singleton
     abstract fun bindLockThrottleStore(impl: SharedPrefsLockThrottleStore): LockThrottleStore
+
+    /** Sauvegarde automatique : le mot de passe scellé et le dossier choisi par l'utilisateur. */
+    @Binds @Singleton
+    abstract fun bindAutoBackupSecret(impl: AutoBackupSecretStore): AutoBackupSecret
+
+    @Binds @Singleton
+    abstract fun bindAutoBackupTarget(impl: SafAutoBackupTarget): AutoBackupTarget
 }

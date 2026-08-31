@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.domain.ics
 
 import com.filestech.agenda_tech.domain.model.Event
+import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Weekday
@@ -776,5 +777,59 @@ class IcsCodecTest {
             "SUMMARY:Réunion projet\r\n" +
             "END:VEVENT\r\n" +
             "END:VCALENDAR\r\n"
+    }
+
+    @Test
+    fun `a birthday keeps its kind through an ics round trip`() {
+        val birthday = IcsEvent(
+            title = "Paul",
+            description = null,
+            location = null,
+            startUtcMillis = parisMillis(1984, 3, 12, 0, 0),
+            endUtcMillis = parisMillis(1984, 3, 13, 0, 0),
+            timeZoneId = "Europe/Paris",
+            allDay = true,
+            recurrence = RecurrenceRule(freq = RecurrenceFreq.YEARLY),
+            kind = EventKind.BIRTHDAY,
+        )
+
+        val text = IcsCodec.encode(listOf(birthday), now)
+        assertThat(text).contains("X-AGENDA-TECH-KIND:BIRTHDAY")
+        assertThat(IcsCodec.decode(text, paris).single().kind).isEqualTo(EventKind.BIRTHDAY)
+    }
+
+    @Test
+    fun `an ordinary event writes no kind property at all`() {
+        // The X- line is noise in every other calendar app, so it is only emitted when it says
+        // something. A file full of `X-AGENDA-TECH-KIND:NORMAL` would also make diffs unreadable.
+        val plain = IcsEvent(
+            title = "Dentiste",
+            description = null,
+            location = null,
+            startUtcMillis = parisMillis(2026, 6, 1, 9, 0),
+            endUtcMillis = parisMillis(2026, 6, 1, 10, 0),
+            timeZoneId = "Europe/Paris",
+            allDay = false,
+            recurrence = null,
+        )
+        assertThat(IcsCodec.encode(listOf(plain), now)).doesNotContain("X-AGENDA-TECH-KIND")
+    }
+
+    @Test
+    fun `a file written by any other calendar reads back as an ordinary event`() {
+        val foreign = buildString {
+            append("BEGIN:VCALENDAR\r\n")
+            append("VERSION:2.0\r\n")
+            append("BEGIN:VEVENT\r\n")
+            append("UID:x@example.com\r\n")
+            append("DTSTART;VALUE=DATE:19840312\r\n")
+            append("DTEND;VALUE=DATE:19840313\r\n")
+            append("SUMMARY:Paul\r\n")
+            append("RRULE:FREQ=YEARLY\r\n")
+            append("END:VEVENT\r\n")
+            append("END:VCALENDAR\r\n")
+        }
+
+        assertThat(IcsCodec.decode(foreign, paris).single().kind).isEqualTo(EventKind.NORMAL)
     }
 }

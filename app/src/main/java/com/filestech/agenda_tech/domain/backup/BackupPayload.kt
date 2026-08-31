@@ -69,4 +69,13 @@ data class BackupEvent(
     val originalStartUtcMillis: Long? = null,
     /** Minutes-before of each reminder — the whole point of a backup vs. an `.ics` export. */
     val reminderMinutes: List<Int> = emptyList(),
+    /**
+     * [com.filestech.agenda_tech.domain.model.EventKind] as its raw int; 0 (ordinary) when absent.
+     *
+     * Added without bumping [BackupPayload.FORMAT_VERSION], which is reserved for breaking changes:
+     * the default covers files written before it existed, and `ignoreUnknownKeys` covers the other
+     * direction — a build that predates birthdays still restores a file that carries them, simply
+     * reading every event as ordinary.
+     */
+    val kindRaw: Int = 0,
 )

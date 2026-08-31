@@ -1,6 +1,8 @@
 package com.filestech.agenda_tech.data.repository
 
+import com.filestech.agenda_tech.data.local.db.AgendaEnumConverters
 import com.filestech.agenda_tech.data.local.db.entity.EventEntity
+import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.google.common.truth.Truth.assertThat
@@ -60,4 +62,28 @@ class EntityMappersTest {
         createdAt = 0,
         updatedAt = 0,
     )
+
+    @Test
+    fun `the event kind survives both directions of the mapper`() {
+        val birthday = eventEntity(rruleInterval = 1).copy(kind = EventKind.BIRTHDAY)
+
+        assertThat(birthday.toDomain().kind).isEqualTo(EventKind.BIRTHDAY)
+        assertThat(birthday.toDomain().toEntity(createdAt = 0, updatedAt = 0).kind)
+            .isEqualTo(EventKind.BIRTHDAY)
+    }
+
+    @Test
+    fun `the raw 0 that migration 6 to 7 writes reads back as an ordinary event`() {
+        // Goes through the TypeConverter, which is what actually turns the column into the enum.
+        // Asserting on a Kotlin-constructed EventEntity instead would only re-state its own default
+        // and would still pass if `eventKindFromRaw` were broken. Signalled by the gpt-5.2 review of
+        // 2026-08-31, which is exactly the "test that does not test what it claims" it was asked for.
+        val converters = AgendaEnumConverters()
+
+        assertThat(converters.eventKindFromRaw(0)).isEqualTo(EventKind.NORMAL)
+        assertThat(converters.eventKindFromRaw(1)).isEqualTo(EventKind.BIRTHDAY)
+        // A value written by a newer build must not make an existing row unreadable.
+        assertThat(converters.eventKindFromRaw(99)).isEqualTo(EventKind.NORMAL)
+        assertThat(converters.eventKindToRaw(EventKind.BIRTHDAY)).isEqualTo(1)
+    }
 }

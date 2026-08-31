@@ -9,6 +9,8 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalContext
+import com.filestech.agenda_tech.domain.birthday.BirthdayAge
+import com.filestech.agenda_tech.ui.util.birthdayDisplayTitle
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.actionStartActivity
@@ -117,8 +119,15 @@ class AgendaWidget : GlanceAppWidget() {
                 } else {
                     Instant.ofEpochMilli(occurrence.startUtcMillis).atZone(zone).format(timeFormatter)
                 }
-                // SEC-W1 — respect the "hide titles in widget" privacy setting.
-                WidgetRow(time = time, title = if (hideTitles) "" else occurrence.event.title)
+                // SEC-W1 — respect the "hide titles in widget" privacy setting. The age rides with
+                // the title and is hidden with it: it is exactly the kind of thing the setting exists
+                // to keep off a home screen other people can see.
+                val title = birthdayDisplayTitle(
+                    resources = context.resources,
+                    title = occurrence.event.title,
+                    age = BirthdayAge.of(occurrence.event, occurrence.startUtcMillis, zone),
+                )
+                WidgetRow(time = time, title = if (hideTitles) "" else title)
             }
 
         val subtitle = today

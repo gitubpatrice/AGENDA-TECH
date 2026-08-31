@@ -56,10 +56,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Switch
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.core.crypto.BackupEnvelope
 import com.filestech.agenda_tech.domain.usecase.ExportBackupUseCase
+import com.filestech.agenda_tech.domain.backup.AutoBackupOutcome
 import com.filestech.agenda_tech.ui.theme.BrandDanger
+import com.filestech.agenda_tech.ui.util.rememberAppLocale
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 /**
  * Encrypted backup: export the whole agenda to a password-protected `.atbak` file, or restore one.
@@ -86,12 +97,19 @@ fun BackupScreen(
         ActivityResultContracts.CreateDocument(ExportBackupUseCase.MIME_TYPE),
     ) { uri -> viewModel.onExportTargetPicked(uri) }
 
+    // The system folder picker. Its result is handed straight to the ViewModel, which persists the
+    // grant before storing the URI — see onAutoBackupFolderPicked.
+    val pickFolder = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri -> viewModel.onAutoBackupFolderPicked(uri) }
+
     val openFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         // Hands the file straight to the ViewModel, which rejects a wrong pick on its magic bytes
         // before the password dialog is ever shown.
         if (uri != null) viewModel.onRestoreFilePicked(uri)
     }
 
+    val appLocale = rememberAppLocale()
     val messages = backupMessages(state.message)
     LaunchedEffect(state.message) {
         messages?.let {
@@ -143,6 +161,16 @@ fun BackupScreen(
                     enabled = state.busy == null,
                     onClick = { openFile.launch(arrayOf("*/*")) },
                 )
+
+                HorizontalDivider()
+
+                AutoBackupSection(
+                    state = state,
+                    locale = appLocale,
+                    onToggle = viewModel::onAutoBackupToggle,
+                    onChangeFolder = { pickFolder.launch(null) },
+                    onRunNow = viewModel::runAutoBackupNow,
+                )
             }
 
             state.busy?.let { BusyOverlay(it) }
@@ -159,6 +187,24 @@ fun BackupScreen(
                 viewModel.onExportPasswordEntered(password)
                 createFile.launch(viewModel.suggestedFileName())
             },
+        )
+    }
+
+    // Launching an activity is a side effect, never done during composition. Keyed on the step so a
+    // recomposition for any other reason cannot open a second picker on top of the first.
+    LaunchedEffect(state.autoBackupStep) {
+        if (state.autoBackupStep == AutoBackupStep.PICK_FOLDER) pickFolder.launch(null)
+    }
+
+    if (state.autoBackupStep == AutoBackupStep.ASK_PASSWORD) {
+        PasswordDialog(
+            title = stringResource(R.string.backup_auto_password_title),
+            // Typed twice: nobody will retype this one for a year, and it is what stands between the
+            // user and their own file the day they need it.
+            requireConfirmation = true,
+            destructiveWarning = stringResource(R.string.backup_auto_password_note),
+            onDismiss = viewModel::dismissAutoBackupStep,
+            onConfirm = viewModel::onAutoBackupPasswordEntered,
         )
     }
 
@@ -188,6 +234,97 @@ private fun backupMessages(message: BackupMessage?): String? = when (message) {
     BackupMessage.PasswordTooShort -> stringResource(R.string.backup_password_too_short)
     BackupMessage.Failed -> stringResource(R.string.backup_failed)
     null -> null
+}
+
+
+/**
+ * The automatic-backup block: the switch, which folder was chosen, and what the last run actually
+ * did.
+ *
+ * The status line is the point of the whole section. An automatic backup nobody watches is only
+ * worth having if its failures are visible, so this states the outcome plainly — including "nothing
+ * was written" — rather than showing a reassuring date that says only when it last *tried*.
+ */
+@Composable
+private fun AutoBackupSection(
+    state: BackupUiState,
+    locale: Locale,
+    onToggle: (Boolean) -> Unit,
+    onChangeFolder: () -> Unit,
+    onRunNow: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.backup_auto_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = stringResource(R.string.backup_auto_sub),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = state.autoBackupEnabled,
+                onCheckedChange = onToggle,
+                enabled = state.busy == null,
+            )
+        }
+
+        if (state.autoBackupEnabled) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = when {
+                    state.autoBackupFolderLost -> stringResource(R.string.backup_auto_folder_lost)
+                    state.autoBackupFolderName != null ->
+                        stringResource(R.string.backup_auto_folder, state.autoBackupFolderName)
+                    else -> stringResource(R.string.backup_auto_folder_none)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (state.autoBackupFolderLost) BrandDanger else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = autoBackupStatus(state, locale),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (state.autoBackupLastOutcome.isFailure) {
+                    BrandDanger
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onRunNow, enabled = state.busy == null) {
+                    Text(stringResource(R.string.backup_auto_run_now))
+                }
+                TextButton(onClick = onChangeFolder, enabled = state.busy == null) {
+                    Text(stringResource(R.string.backup_auto_change_folder))
+                }
+            }
+        }
+    }
+}
+
+/** What the last automatic run did, in one line. */
+@Composable
+private fun autoBackupStatus(state: BackupUiState, locale: Locale): String = when (state.autoBackupLastOutcome) {
+    AutoBackupOutcome.NEVER_RUN -> stringResource(R.string.backup_auto_never)
+    AutoBackupOutcome.OK -> stringResource(
+        R.string.backup_auto_last_ok,
+        DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+            .withLocale(locale)
+            .format(Instant.ofEpochMilli(state.autoBackupLastRunAtUtcMillis).atZone(ZoneId.systemDefault())),
+    )
+    AutoBackupOutcome.NO_FOLDER -> stringResource(R.string.backup_auto_err_no_folder)
+    AutoBackupOutcome.NO_PASSWORD -> stringResource(R.string.backup_auto_err_no_password)
+    AutoBackupOutcome.FOLDER_UNAVAILABLE -> stringResource(R.string.backup_auto_err_folder)
+    AutoBackupOutcome.EXPORT_FAILED -> stringResource(R.string.backup_auto_err_export)
+    AutoBackupOutcome.WRITE_FAILED -> stringResource(R.string.backup_auto_err_write)
 }
 
 @Composable

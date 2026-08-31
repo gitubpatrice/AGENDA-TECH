@@ -25,6 +25,7 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import com.filestech.agenda_tech.domain.birthday.BirthdayAge
 import java.time.ZoneId
 import java.time.temporal.WeekFields
 import java.util.Locale
@@ -244,6 +245,7 @@ class MonthViewModel @Inject constructor(
                     endUtcMillis = it.endUtcMillis,
                     allDay = it.event.allDay,
                     colorArgb = colorOf(it, colorByCalendarId),
+                    birthdayAge = BirthdayAge.of(it.event, it.startUtcMillis, zone),
                 )
             }
 
