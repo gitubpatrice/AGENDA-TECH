@@ -22,14 +22,37 @@ Promesse « zéro réseau » ✅.
 
 ---
 
-## 2. Les deux décisions qui restent
+## 2. Décisions prises le 2026-08-31
 
-1. **Fusionner dans `main`** — aucun risque pour F-Droid : la recette construit depuis le **tag
-   `v1.0.3` / commit `89e3435a`**, donc `main` peut bouger sans toucher à la MR `!42991`.
-2. **Taguer `v1.1.0`** — **à retenir jusqu'à la fusion de `!42991`**. C'est le seul mécanisme par
-   lequel ce travail peut retarder l'inclusion : un tag plus récent ferait demander un bump de la
-   recette, et la **vérification de build reproductible repartirait de zéro** — or c'est le seul
-   point encore ouvert de la revue du 26/08.
+**[PR #2](https://github.com/gitubpatrice/AGENDA-TECH/pull/2) ouverte** — `OPEN`, `MERGEABLE`,
+`CLEAN`, CI verte dans les deux contextes (`push` et `pull_request`).
+
+**Décidé : on attend `!42991` avant de taguer `v1.1.0`.** Fusionner la PR reste possible à tout
+moment — la recette F-Droid construit depuis le tag `v1.0.3` / commit `89e3435a`, donc `main` peut
+bouger sans rien changer à la MR. C'est le **tag** qui ferait demander un bump de la recette et
+**relancerait la vérification de build reproductible depuis zéro**, seul point encore ouvert de la
+revue du 26/08.
+
+### ⚠️ Le label de la MR est trompeur — vérifié le 2026-08-31
+
+`glab mr view 42991` : state **`open`**, labels `New App`, `reproducible-builds`,
+**`waiting-on-response`**.
+
+Or le **dernier commentaire est celui de l'auteur**, le 2026-08-26 à 12:09 UTC — la réponse
+complète à la revue de `mgdx`. Séquence des six derniers intervenants : seekme-seekyou →
+gitubpatrice → seekme-seekyou → mgdx → linsui → **gitubpatrice**. La balle est donc chez les
+mainteneurs, pas chez l'auteur, mais le label dit le contraire et personne ne l'a retiré.
+
+C'est ainsi qu'une MR se fait oublier : la file est filtrée par label. **Si l'attente se prolonge,
+l'action utile n'est pas d'attendre davantage mais de faire tomber ce label** — une relance courte
+suffit généralement. À réévaluer si rien n'a bougé vers le **2026-09-08**.
+
+### À faire au moment du tag, et seulement à ce moment
+
+1. Bumper `version.properties` à la main (`versionCode` + `versionName`).
+2. Écrire les changelogs fastlane **FR + EN** pour le nouveau `versionCode`, cap 500 caractères.
+3. Bumper les **cinq surfaces** de files-tech.com : carte d'accueil, page dédiée FR et EN, tableau
+   de téléchargement FR et EN.
 
 ---
 
