@@ -276,7 +276,7 @@
     <string name="backup_intro_title">Une copie complète, chiffrée</string>
     <string name="backup_intro_body">Le fichier contient tout : calendriers, événements, récurrences, lieux et rappels. Il est chiffré avec votre mot de passe (AES-256) — personne ne peut l\'ouvrir sans lui, pas même nous. Vous pouvez le ranger où vous voulez : clé USB, ordinateur, cloud.</string>
     <string name="backup_warn_title">Le mot de passe n\'est pas récupérable</string>
-    <string name="backup_warn_body">Il n\'est stocké nulle part. Si vous l\'oubliez, le fichier est définitivement illisible. Notez-le dans un gestionnaire de mots de passe.</string>
+    <string name="backup_warn_body">Pour une sauvegarde que vous exportez à la main, il n\'est stocké nulle part : si vous l\'oubliez, le fichier est définitivement illisible. Notez-le dans un gestionnaire de mots de passe. La sauvegarde automatique fait exception — elle doit conserver le sien sur ce téléphone, protégé par son matériel sécurisé, pour pouvoir s\'exécuter sans vous.</string>
     <string name="backup_export">Exporter une sauvegarde</string>
     <string name="backup_export_sub">Créer un fichier .atbak chiffré</string>
     <string name="backup_restore">Restaurer une sauvegarde</string>
@@ -339,4 +339,24 @@
         <item quantity="one">%1$d an</item>
         <item quantity="other">%1$d ans</item>
     </plurals>
+    <!-- Sauvegarde automatique -->
+    <string name="backup_auto_title">Sauvegarde automatique</string>
+    <string name="backup_auto_sub">Écrit un .atbak chiffré dans un dossier de votre choix, une fois par semaine. Les quatre plus récentes sont conservées, les plus anciennes sont supprimées.</string>
+    <string name="backup_auto_password_title">Mot de passe des sauvegardes automatiques</string>
+    <string name="backup_auto_password_note">Notez-le quelque part de sûr. Il est conservé sur ce téléphone, protégé par son matériel sécurisé, mais une sauvegarde qu\'on ne peut pas ouvrir n\'est pas une sauvegarde.</string>
+    <!-- %1$s est le nom du dossier renvoyé par le sélecteur système. -->
+    <string name="backup_auto_folder">Dossier : %1$s</string>
+    <string name="backup_auto_folder_none">Aucun dossier choisi pour le moment</string>
+    <string name="backup_auto_folder_lost">Le dossier choisi n’est plus accessible. Désactivez puis réactivez pour en choisir un.</string>
+    <string name="backup_auto_change_folder">Changer de dossier</string>
+    <string name="backup_auto_run_now">Sauvegarder maintenant</string>
+    <string name="backup_auto_run_now_sub">Vérifie tout de suite que le dossier et le mot de passe fonctionnent.</string>
+    <string name="backup_auto_never">Jamais encore exécutée</string>
+    <!-- %1$s est une date et une heure formatées. -->
+    <string name="backup_auto_last_ok">Dernière sauvegarde : %1$s</string>
+    <string name="backup_auto_err_no_folder">Rien n\'a été écrit : aucun dossier n\'est défini.</string>
+    <string name="backup_auto_err_no_password">Rien n\'a été écrit : le mot de passe n\'a pas pu être lu. Désactivez puis réactivez pour le redéfinir.</string>
+    <string name="backup_auto_err_folder">Rien n\'a été écrit : le dossier est inaccessible. Il a peut-être été déplacé, ou son autorisation retirée.</string>
+    <string name="backup_auto_err_export">L\'agenda n\'a pas pu être exporté. Rien n\'a été écrit.</string>
+    <string name="backup_auto_err_write">Le fichier n\'a pas pu être écrit dans le dossier.</string>
 </resources>

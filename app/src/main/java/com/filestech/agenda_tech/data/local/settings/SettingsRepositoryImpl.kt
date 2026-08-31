@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.filestech.agenda_tech.domain.backup.AutoBackupOutcome
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.settings.AppSettings
@@ -46,6 +47,12 @@ class SettingsRepositoryImpl @Inject constructor(
         restorePromptDismissed = this[Keys.RESTORE_PROMPT_DISMISSED] ?: false,
         lastBackupAtUtcMillis = this[Keys.LAST_BACKUP_AT] ?: 0L,
         backupPromptSnoozedUntilUtcMillis = this[Keys.BACKUP_PROMPT_SNOOZED_UNTIL] ?: 0L,
+        autoBackupEnabled = this[Keys.AUTO_BACKUP_ENABLED] ?: false,
+        autoBackupFolderUri = this[Keys.AUTO_BACKUP_FOLDER],
+        autoBackupLastRunAtUtcMillis = this[Keys.AUTO_BACKUP_LAST_RUN] ?: 0L,
+        autoBackupLastOutcome = AutoBackupOutcome.fromRaw(
+            this[Keys.AUTO_BACKUP_LAST_OUTCOME] ?: AutoBackupOutcome.NEVER_RUN.rawValue,
+        ),
         notifSound = this[Keys.NOTIF_SOUND] ?: true,
         notifSoundUri = this[Keys.NOTIF_SOUND_URI],
         notifVibrate = this[Keys.NOTIF_VIBRATE] ?: true,
@@ -64,6 +71,14 @@ class SettingsRepositoryImpl @Inject constructor(
         this[Keys.RESTORE_PROMPT_DISMISSED] = settings.restorePromptDismissed
         this[Keys.LAST_BACKUP_AT] = settings.lastBackupAtUtcMillis
         this[Keys.BACKUP_PROMPT_SNOOZED_UNTIL] = settings.backupPromptSnoozedUntilUtcMillis
+        this[Keys.AUTO_BACKUP_ENABLED] = settings.autoBackupEnabled
+        // Absent key = no folder chosen, so clear it rather than storing an empty string that
+        // would later read back as a URI the SAF cannot resolve.
+        settings.autoBackupFolderUri
+            ?.let { this[Keys.AUTO_BACKUP_FOLDER] = it }
+            ?: remove(Keys.AUTO_BACKUP_FOLDER)
+        this[Keys.AUTO_BACKUP_LAST_RUN] = settings.autoBackupLastRunAtUtcMillis
+        this[Keys.AUTO_BACKUP_LAST_OUTCOME] = settings.autoBackupLastOutcome.rawValue
         this[Keys.NOTIF_SOUND] = settings.notifSound
         // Absent key = system default ringtone, so clear it rather than storing a sentinel.
         settings.notifSoundUri
@@ -85,6 +100,10 @@ class SettingsRepositoryImpl @Inject constructor(
         val RESTORE_PROMPT_DISMISSED = booleanPreferencesKey("restore_prompt_dismissed")
         val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
         val BACKUP_PROMPT_SNOOZED_UNTIL = longPreferencesKey("backup_prompt_snoozed_until")
+        val AUTO_BACKUP_ENABLED = booleanPreferencesKey("auto_backup_enabled")
+        val AUTO_BACKUP_FOLDER = stringPreferencesKey("auto_backup_folder")
+        val AUTO_BACKUP_LAST_RUN = longPreferencesKey("auto_backup_last_run")
+        val AUTO_BACKUP_LAST_OUTCOME = intPreferencesKey("auto_backup_last_outcome")
         val NOTIF_SOUND = booleanPreferencesKey("notif_sound")
         val NOTIF_SOUND_URI = stringPreferencesKey("notif_sound_uri")
         val NOTIF_VIBRATE = booleanPreferencesKey("notif_vibrate")

@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.settings
 
+import com.filestech.agenda_tech.domain.backup.AutoBackupOutcome
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import timber.log.Timber
 
@@ -61,6 +62,20 @@ data class AppSettings(
     val lastBackupAtUtcMillis: Long = 0L,
     /** Until when the backup reminder stays quiet after a "later". 0 = not snoozed. */
     val backupPromptSnoozedUntilUtcMillis: Long = 0L,
+    /** Whether a backup is written on its own every week. Off until the user turns it on. */
+    val autoBackupEnabled: Boolean = false,
+    /**
+     * The folder the user picked, as a SAF tree URI, or null if none.
+     *
+     * Held as the plain string the picker returned: the app has no storage permission and this URI
+     * IS the whole of its access — a grant the user can revoke from the system settings at any time,
+     * which is why every run re-checks it rather than trusting it.
+     */
+    val autoBackupFolderUri: String? = null,
+    /** When the automatic backup last *ran*, whether or not it produced a file. 0 = never. */
+    val autoBackupLastRunAtUtcMillis: Long = 0L,
+    /** How that run ended — see [AutoBackupOutcome] for why a failure has to be visible. */
+    val autoBackupLastOutcome: AutoBackupOutcome = AutoBackupOutcome.NEVER_RUN,
     val notifSound: Boolean = true,
     /**
      * Ringtone to play for reminders, as a content URI string. Null (the default) means the system

@@ -32,9 +32,17 @@ The APK is **universal** (works on every device, no variant to pick) and **signe
   `RECURRENCE-ID` model).
 - **Reminders** via exact alarms, re-armed after a reboot: preset delays or a free value, and your
   choice of sound (a system ringtone or your own audio file).
+- **Birthdays**: a first-class kind of event — all-day, yearly, endless, set in one tap — with the
+  age shown beside the name ("Paul · 42"), derived from the date of birth and never stored. Not
+  shown at all if you do not know the year.
+- **Duplicate an event**: the copy keeps everything but the identity; change the date and save.
 - **Encrypted `.atbak` backup**: export/restore **everything** (calendars, events, recurrences,
   places, reminders) in a password-protected file (PBKDF2 600,000 iterations + AES-256-GCM) — keep
   it wherever you like, cloud included.
+- **Automatic backup** (optional): the same encrypted `.atbak`, written on its own once a week into
+  a folder you pick, keeping the four most recent. It is the one place where the app keeps a
+  password — wrapped by the AndroidKeyStore, erased when you turn the option off; the trade-off is
+  spelled out in [SECURITY.md](SECURITY.md).
 - **`.ics` import / export** (RFC 5545) through the system file picker — an interchange format,
   which does not replace the backup (it loses reminders, colours and the calendar structure).
 - **Import from the device calendar** (Google, Exchange, local calendars), **read-only** — the app
@@ -100,8 +108,8 @@ one.
 `version.properties`, at the root, is the **single source** of `versionCode` / `versionName`:
 
 ```properties
-versionCode=47
-versionName=0.5.0
+versionCode=55
+versionName=1.0.3
 ```
 
 The `versionCode` must **always increase**: Android refuses to install an APK whose `versionCode` is

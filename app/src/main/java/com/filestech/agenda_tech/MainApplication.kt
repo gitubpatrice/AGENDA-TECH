@@ -4,7 +4,9 @@ import android.app.Application
 import com.filestech.agenda_tech.core.logging.LineNumberDebugTree
 import com.filestech.agenda_tech.core.logging.NoOpReleaseTree
 import com.filestech.agenda_tech.di.ApplicationScope
+import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.EnsureDefaultCalendarUseCase
+import com.filestech.agenda_tech.system.backup.AutoBackupScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +31,10 @@ class MainApplication : Application() {
 
     @Inject @ApplicationScope lateinit var appScope: CoroutineScope
 
+    /** Providers for the same reason as above: neither may pull the database graph onto Main. */
+    @Inject lateinit var settingsRepository: Provider<SettingsRepository>
+    @Inject lateinit var autoBackupScheduler: Provider<AutoBackupScheduler>
+
     override fun onCreate() {
         super.onCreate()
         if (BuildConfig.LOG_ENABLED) {
@@ -45,6 +51,25 @@ class MainApplication : Application() {
         appScope.launch {
             runCatching { withContext(Dispatchers.IO) { ensureDefaultCalendar.get()(defaultCalendarName) } }
                 .onFailure { Timber.w(it, "ensureDefaultCalendar failed") }
+        }
+
+        // Re-arm the weekly backup if it should be running.
+        //
+        // WorkManager already survives a reboot on its own, so this is not about that. It is about the
+        // cases where its own database does NOT survive and the setting does: a reinstall over the top,
+        // a restore onto a new phone, "clear storage" on the WorkManager process. The setting would
+        // then say "on", the screen would show a date, and nothing would ever be written again.
+        //
+        // `ExistingPeriodicWorkPolicy.KEEP` makes this a no-op when the work is already queued, so the
+        // next run is never pushed back by simply opening the app.
+        appScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    if (settingsRepository.get().current().autoBackupEnabled) {
+                        autoBackupScheduler.get().enable()
+                    }
+                }
+            }.onFailure { Timber.w(it, "auto-backup re-arm failed") }
         }
     }
 }

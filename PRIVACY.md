@@ -82,9 +82,16 @@ from one app to another:
   synced to a cloud, if that is your choice. **The app never sends it anywhere itself**: it writes
   to the location you point at in the system file picker, and has no way to reach a network anyway.
   The contents are encrypted (AES-256) with a key derived from **your password alone**: neither we
-  nor whichever service might host that file can read it. That password is stored nowhere — if you
-  forget it, the file is permanently unreadable, **including to us**. What becomes of the file once
-  it leaves the app is entirely up to you.
+  nor whichever service might host that file can read it. For a backup you export by hand that
+  password is stored nowhere — if you forget it, the file is permanently unreadable, **including to
+  us**. What becomes of the file once it leaves the app is entirely up to you.
+- **Automatic backup** (optional, off by default): once you turn it on, the app writes the same
+  encrypted `.atbak` once a week into a folder you pick, keeping the four most recent. It still
+  sends nothing anywhere — it writes to that folder and has no network access. Because it runs
+  without you, it is the one place where **your password is kept on the phone**: encrypted by a key
+  held in the device's secure hardware, which never leaves it. Turning the option off erases the
+  password and that key. The trade is deliberate — a backup only you can open, kept usable on the
+  day the phone is gone. `SECURITY.md` states it in full.
 - **Opening a place on a map**: if you enter GPS coordinates on an event and tap the marker, the app
   hands **those coordinates and the event's label** to your phone's maps app. Nothing else is sent,
   and nothing leaves if you don't tap the marker. What that maps app then does with the information

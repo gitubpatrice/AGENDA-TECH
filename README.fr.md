@@ -33,9 +33,18 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
   occurrence** (modèle iCalendar `RECURRENCE-ID`).
 - **Rappels** par alarmes exactes, avec re-programmation après redémarrage : délais prédéfinis ou
   valeur libre, et son au choix (sonnerie système ou votre propre fichier audio).
+- **Anniversaires** : un type d'événement à part entière — journée entière, chaque année, sans fin,
+  posés d'un appui — avec l'âge affiché à côté du nom (« Paul · 42 ans »), déduit de la date de
+  naissance et jamais stocké. Non affiché si vous ne connaissez pas l'année.
+- **Dupliquer un événement** : la copie garde tout sauf l'identité, vous changez la date, vous
+  enregistrez.
 - **Sauvegarde chiffrée `.atbak`** : export/restauration de **tout** l'agenda (calendriers,
   événements, récurrences, lieux, rappels) dans un fichier protégé par mot de passe
   (PBKDF2 600 000 itérations + AES-256-GCM) — à ranger où vous voulez, y compris un cloud.
+- **Sauvegarde automatique** (facultative) : le même `.atbak` chiffré, écrit tout seul une fois par
+  semaine dans un dossier que vous choisissez, les quatre plus récents conservés. C'est le seul
+  endroit où l'app conserve un mot de passe — enveloppé par l'AndroidKeyStore, effacé si vous
+  désactivez l'option ; l'arbitrage est expliqué dans [SECURITY.md](SECURITY.md).
 - **Import / export `.ics`** (RFC 5545) via le sélecteur de fichiers système — format d'échange,
   qui ne remplace pas la sauvegarde (il perd rappels, couleurs et structure des calendriers).
 - **Import depuis le calendrier de l'appareil** (Google, Exchange, calendriers locaux) en
@@ -101,8 +110,8 @@ de debug n'en a pas besoin.
 `version.properties`, à la racine, est la **source unique** de `versionCode` / `versionName` :
 
 ```properties
-versionCode=47
-versionName=0.5.0
+versionCode=55
+versionName=1.0.3
 ```
 
 Le `versionCode` doit **toujours augmenter** : Android refuse d'installer un APK dont le

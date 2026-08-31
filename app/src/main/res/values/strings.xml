@@ -276,7 +276,7 @@
     <string name="backup_intro_title">A complete, encrypted copy</string>
     <string name="backup_intro_body">The file holds everything: calendars, events, recurrences, places and reminders. It is encrypted with your password (AES-256) — nobody can open it without that password, us included. Keep it wherever you like: USB stick, computer, cloud.</string>
     <string name="backup_warn_title">The password cannot be recovered</string>
-    <string name="backup_warn_body">It is stored nowhere. If you forget it, the file is permanently unreadable. Save it in a password manager.</string>
+    <string name="backup_warn_body">For a backup you export by hand it is stored nowhere: if you forget it, the file is permanently unreadable. Save it in a password manager. Automatic backups are the exception — they have to keep their password on this phone, protected by its secure hardware, in order to run without you.</string>
     <string name="backup_export">Export a backup</string>
     <string name="backup_export_sub">Create an encrypted .atbak file</string>
     <string name="backup_restore">Restore a backup</string>
@@ -340,4 +340,24 @@
         <item quantity="one">%1$d year</item>
         <item quantity="other">%1$d years</item>
     </plurals>
+    <!-- Sauvegarde automatique -->
+    <string name="backup_auto_title">Automatic backup</string>
+    <string name="backup_auto_sub">Writes an encrypted .atbak into a folder of your choice, once a week. The four most recent are kept; older ones are deleted.</string>
+    <string name="backup_auto_password_title">Password for automatic backups</string>
+    <string name="backup_auto_password_note">Write it down somewhere safe. It is stored on this phone, protected by its secure hardware, but a backup you cannot open is not a backup.</string>
+    <!-- %1$s is the folder name returned by the system picker. -->
+    <string name="backup_auto_folder">Folder: %1$s</string>
+    <string name="backup_auto_folder_none">No folder chosen yet</string>
+    <string name="backup_auto_folder_lost">The chosen folder is no longer reachable. Turn the switch off and on again to pick one.</string>
+    <string name="backup_auto_change_folder">Change folder</string>
+    <string name="backup_auto_run_now">Back up now</string>
+    <string name="backup_auto_run_now_sub">Checks straight away that the folder and the password work.</string>
+    <string name="backup_auto_never">Never run yet</string>
+    <!-- %1$s is a formatted date and time. -->
+    <string name="backup_auto_last_ok">Last backup: %1$s</string>
+    <string name="backup_auto_err_no_folder">Nothing was written: no folder is set.</string>
+    <string name="backup_auto_err_no_password">Nothing was written: the password could not be read. Turn the switch off and on again to set it.</string>
+    <string name="backup_auto_err_folder">Nothing was written: the folder is unreachable. It may have been moved, or its permission withdrawn.</string>
+    <string name="backup_auto_err_export">The agenda could not be exported. Nothing was written.</string>
+    <string name="backup_auto_err_write">The file could not be written to the folder.</string>
 </resources>

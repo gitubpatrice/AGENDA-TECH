@@ -17,6 +17,9 @@ import javax.inject.Singleton
  * One key per logical purpose:
  *  - [ALIAS_DB_MASTER] : wraps the SQLCipher master key.
  *  - [ALIAS_PIN_WRAP] : wraps the salted app-lock PIN hash blob.
+ *  - [ALIAS_AUTOBACKUP_PW] : wraps the automatic-backup password (reversibly — see
+ *    [com.filestech.agenda_tech.domain.backup.AutoBackupSecret] for why that one is encrypted and
+ *    not hashed).
  *
  * `allowUserIv` (= `setRandomizedEncryptionRequired(false)`) defaults to **false**, i.e. the OS
  * enforces IV randomisation. [ALIAS_DB_MASTER] opts in to `true` because
@@ -110,5 +113,11 @@ class KeystoreManager @Inject constructor() {
         const val ALIAS_DB_MASTER = "agendatech_db_master"
         const val ALIAS_PIN_WRAP = "agendatech_pin_wrap"
         const val ALIAS_BIOMETRIC_GATE = "agendatech_biometric_gate"
+
+        /**
+         * Wraps the automatic-backup password. Separate from [ALIAS_PIN_WRAP] because turning the app
+         * lock off deletes that one, and it must not take the backup password with it.
+         */
+        const val ALIAS_AUTOBACKUP_PW = "agendatech_autobackup_pw"
     }
 }

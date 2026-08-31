@@ -1,5 +1,8 @@
 package com.filestech.agenda_tech.domain.usecase
 
+import com.filestech.agenda_tech.core.crypto.wipe
+import com.filestech.agenda_tech.domain.backup.AutoBackupSecret
+import com.filestech.agenda_tech.domain.backup.AutoBackupTarget
 import com.filestech.agenda_tech.domain.model.AgendaStats
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
@@ -227,9 +230,56 @@ internal class FakeReminderRepository : ReminderRepository {
 
 /** Settings held in memory; the editor only reads them to seed a new event's defaults. */
 internal class FakeSettingsRepository(private var current: AppSettings = AppSettings()) : SettingsRepository {
+    /** DataStore can refuse to write — a full disk is enough. Lets a test reproduce that. */
+    var updateThrows: Boolean = false
+
+    /** Runs before each [update], so a test can change the settings mid-run. */
+    var beforeUpdate: (() -> Unit)? = null
+
     override val settings: Flow<AppSettings> get() = flowOf(current)
     override suspend fun current(): AppSettings = current
     override suspend fun update(transform: (AppSettings) -> AppSettings) {
+        beforeUpdate?.invoke()
+        if (updateThrows) error("DataStore could not write")
         current = transform(current)
+    }
+}
+
+/** In-memory stand-in for the Keystore-wrapped password. */
+internal class FakeAutoBackupSecret(private var password: CharArray? = null) : AutoBackupSecret {
+    override suspend fun isSet(): Boolean = password != null
+    override suspend fun store(password: CharArray): Boolean {
+        this.password = password.copyOf()
+        password.wipe()
+        return true
+    }
+
+    /** A fresh copy every call, like the real one: the exporter wipes what it is given. */
+    override suspend fun read(): CharArray? = password?.copyOf()
+    override suspend fun clear() {
+        password = null
+    }
+}
+
+/** Records what would have been written, so a test can assert on names and rotation. */
+internal class FakeAutoBackupTarget(
+    var writable: Boolean = true,
+    var writeSucceeds: Boolean = true,
+    var throwOnWrite: Boolean = false,
+) : AutoBackupTarget {
+    val written = mutableListOf<String>()
+    var prunedKeeping: Int? = null
+
+    override suspend fun isWritable(): Boolean = writable
+    override suspend fun folderName(): String? = "Documents".takeIf { writable }
+    override suspend fun write(fileName: String, bytes: ByteArray): Boolean {
+        if (throwOnWrite) error("the card was removed mid-write")
+        if (writeSucceeds) written += fileName
+        return writeSucceeds
+    }
+
+    override suspend fun prune(keep: Int): Int {
+        prunedKeeping = keep
+        return 0
     }
 }
