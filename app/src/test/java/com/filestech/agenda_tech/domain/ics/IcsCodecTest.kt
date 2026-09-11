@@ -833,3 +833,180 @@ class IcsCodecTest {
         assertThat(IcsCodec.decode(foreign, paris).single().kind).isEqualTo(EventKind.NORMAL)
     }
 }
+
+/**
+ * Ce qu'un VEVENT vaut quand il ne dit PAS quand il finit (audit AG-1).
+ *
+ * Classe a part, et pas par gout : detekt a signale `IcsCodecTest` en LargeClass des l'ajout de ces
+ * cas, et il avait raison — ils ne parlent pas du meme sujet que le reste du fichier. Celui-ci teste
+ * ce que le codec comprend ; celle-ci teste ce qu'il SUPPOSE quand le fichier se tait, ce qui est la
+ * question a laquelle il repondait mal.
+ */
+class IcsEndOfEventTest {
+
+    private val paris = ZoneId.of("Europe/Paris")
+
+    private fun parisMillis(y: Int, mo: Int, d: Int, h: Int, mi: Int): Long =
+        LocalDateTime.of(y, mo, d, h, mi).atZone(paris).toInstant().toEpochMilli()
+
+    // --- Audit AG-1 : DTEND facultatif, DURATION, et le piège de la durée nulle -------------------
+    //
+    // RFC 5545 §3.6.1 : DTEND est FACULTATIF et DURATION peut le remplacer. Le repli était `?: start`
+    // dans tous les cas, ce qui produisait `end == start`. Les filtres de recouvrement de
+    // l'application étant stricts des deux côtés et les fenêtres de vue commençant à minuit, un
+    // événement journée entière ainsi importé tombait exactement sur la borne et n'était visible
+    // NULLE PART — alors que l'écran d'import annonçait « 1 événement importé ».
+    //
+    // `assertVisibleOn` est le contrôle qui compte : il rejoue le prédicat réel des vues plutôt que
+    // de se contenter d'un `end > start`, parce que c'est le prédicat, et non la durée, qui décidait
+    // de la disparition.
+
+    private fun icsVEvent(vararg lines: String): String = buildString {
+        append("BEGIN:VCALENDAR\r\n")
+        append("VERSION:2.0\r\n")
+        append("BEGIN:VEVENT\r\n")
+        append("UID:ag1@example.com\r\n")
+        lines.forEach { append(it).append("\r\n") }
+        append("END:VEVENT\r\n")
+        append("END:VCALENDAR\r\n")
+    }
+
+    /** Le prédicat exact des vues (MonthViewModel, DayViewModel, RecurrenceExpander). */
+    private fun assertVisibleOn(event: IcsEvent, day: LocalDate) {
+        val dayStart = day.atStartOfDay(paris).toInstant().toEpochMilli()
+        val dayEnd = day.plusDays(1).atStartOfDay(paris).toInstant().toEpochMilli()
+        assertThat(event.startUtcMillis < dayEnd && event.endUtcMillis > dayStart).isTrue()
+    }
+
+    @Test
+    fun `an all-day VEVENT without DTEND lasts one day and is visible on that day`() {
+        val decoded = IcsCodec.decode(
+            icsVEvent("DTSTART;VALUE=DATE:20260714", "SUMMARY:Fete nationale"),
+            paris,
+        ).single()
+
+        assertThat(decoded.startUtcMillis).isEqualTo(parisMillis(2026, 7, 14, 0, 0))
+        assertThat(decoded.endUtcMillis).isEqualTo(parisMillis(2026, 7, 15, 0, 0))
+        assertVisibleOn(decoded, LocalDate.of(2026, 7, 14))
+    }
+
+    @Test
+    fun `an all-day VEVENT spanning a DST change ends at the real next midnight, not 24h later`() {
+        // Nuit du 29 mars 2026 : l'Europe passe à l'heure d'été, la journée fait 23 h. Ajouter une
+        // constante de 24 h placerait la borne à 01:00 le 30 au lieu de minuit.
+        val decoded = IcsCodec.decode(
+            icsVEvent("DTSTART;VALUE=DATE:20260329", "SUMMARY:Bascule"),
+            paris,
+        ).single()
+
+        assertThat(decoded.endUtcMillis).isEqualTo(parisMillis(2026, 3, 30, 0, 0))
+        assertThat(decoded.endUtcMillis - decoded.startUtcMillis)
+            .isEqualTo(23L * 60 * 60 * 1000)
+        assertVisibleOn(decoded, LocalDate.of(2026, 3, 29))
+    }
+
+    @Test
+    fun `a broken all-day export whose DTEND equals DTSTART still lasts one day`() {
+        val decoded = IcsCodec.decode(
+            icsVEvent(
+                "DTSTART;VALUE=DATE:20260714",
+                "DTEND;VALUE=DATE:20260714",
+                "SUMMARY:Export casse",
+            ),
+            paris,
+        ).single()
+
+        assertThat(decoded.endUtcMillis).isEqualTo(parisMillis(2026, 7, 15, 0, 0))
+        assertVisibleOn(decoded, LocalDate.of(2026, 7, 14))
+    }
+
+    @Test
+    fun `a timed VEVENT carrying DURATION instead of DTEND keeps that duration`() {
+        val decoded = IcsCodec.decode(
+            icsVEvent(
+                "DTSTART;TZID=Europe/Paris:20260714T090000",
+                "DURATION:PT1H30M",
+                "SUMMARY:Reunion",
+            ),
+            paris,
+        ).single()
+
+        assertThat(decoded.startUtcMillis).isEqualTo(parisMillis(2026, 7, 14, 9, 0))
+        assertThat(decoded.endUtcMillis).isEqualTo(parisMillis(2026, 7, 14, 10, 30))
+    }
+
+    @Test
+    fun `a timed VEVENT with neither DTEND nor DURATION falls back to one hour`() {
+        val decoded = IcsCodec.decode(
+            icsVEvent("DTSTART;TZID=Europe/Paris:20260714T090000", "SUMMARY:Sans fin"),
+            paris,
+        ).single()
+
+        assertThat(decoded.endUtcMillis).isEqualTo(parisMillis(2026, 7, 14, 10, 0))
+        assertVisibleOn(decoded, LocalDate.of(2026, 7, 14))
+    }
+
+    @Test
+    fun `a malformed DURATION does not collapse the event to zero length`() {
+        // RfcDuration rend 0 sur entrée illisible ; sans le `takeIf { it > 0 }` du codec, ce 0
+        // repartait en `start + 0` et reproduisait exactement le défaut que DTEND avait.
+        val decoded = IcsCodec.decode(
+            icsVEvent(
+                "DTSTART;TZID=Europe/Paris:20260714T090000",
+                "DURATION:pas-une-duree",
+                "SUMMARY:Duree illisible",
+            ),
+            paris,
+        ).single()
+
+        assertThat(decoded.endUtcMillis).isGreaterThan(decoded.startUtcMillis)
+        assertVisibleOn(decoded, LocalDate.of(2026, 7, 14))
+    }
+
+    // Les deux cas ci-dessous viennent de la relecture gpt-5.2 du 2026-09-11 : la premiere version
+    // du correctif AG-1 ne verifiait `parsedEnd > start` que pour les journees entieres, et ajoutait
+    // les DUREE en millisecondes meme sur une journee entiere.
+
+    @Test
+    fun `a timed VEVENT whose DTEND precedes its DTSTART falls back instead of collapsing`() {
+        val decoded = IcsCodec.decode(
+            icsVEvent(
+                "DTSTART;TZID=Europe/Paris:20260714T100000",
+                "DTEND;TZID=Europe/Paris:20260714T090000",
+                "SUMMARY:Export a l'envers",
+            ),
+            paris,
+        ).single()
+
+        // `maxOf(end, start)` rabattait la fin sur le debut : duree nulle, et l'evenement devenait
+        // invisible des qu'il tombait sur une frontiere de journee.
+        assertThat(decoded.endUtcMillis).isEqualTo(parisMillis(2026, 7, 14, 11, 0))
+        assertVisibleOn(decoded, LocalDate.of(2026, 7, 14))
+    }
+
+    @Test
+    fun `an all-day DURATION of one day lands on midnight even across a DST change`() {
+        val decoded = IcsCodec.decode(
+            icsVEvent("DTSTART;VALUE=DATE:20260329", "DURATION:P1D", "SUMMARY:Bascule"),
+            paris,
+        ).single()
+
+        // 24 h ajoutees a minuit le 29 mars donneraient 01:00 le 30 : la nuit fait 23 heures.
+        assertThat(decoded.endUtcMillis).isEqualTo(parisMillis(2026, 3, 30, 0, 0))
+    }
+
+    @Test
+    fun `DTEND still wins over DURATION when both are present`() {
+        val decoded = IcsCodec.decode(
+            icsVEvent(
+                "DTSTART;TZID=Europe/Paris:20260714T090000",
+                "DTEND;TZID=Europe/Paris:20260714T113000",
+                "DURATION:PT9H",
+                "SUMMARY:Les deux",
+            ),
+            paris,
+        ).single()
+
+        assertThat(decoded.endUtcMillis).isEqualTo(parisMillis(2026, 7, 14, 11, 30))
+    }
+}

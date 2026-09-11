@@ -24,6 +24,14 @@ import java.time.format.DateTimeFormatter
  * not exported. Import is tolerant: unknown properties are ignored, lines are unfolded, and both
  * UTC (`…Z`), zoned (`TZID=`) and floating date-times are accepted.
  *
+ * **`RECURRENCE-ID` n'est pas lu** (audit AG-14). Cette limite manquait à la liste ci-dessus, et son
+ * absence coûtait plus qu'elle-même : en RFC 5545, un maître récurrent et chacune de ses occurrences
+ * modifiées partagent leur `UID` et ne se distinguent QUE par cette propriété. Un fichier qui en
+ * contient est donc lu comme N événements de même UID — ce que [ImportEventsUseCase] sait désormais
+ * traiter sans écraser N-1 lignes, mais sans reconstituer la relation maître/dérogation pour autant.
+ * Les occurrences modifiées arrivent comme des événements ordinaires. C'est visible et corrigeable à
+ * la main ; le dire ici évite qu'on le redécouvre en croyant à un bug de l'import.
+ *
  * The **line syntax** it is written in — folding, unfolding, TEXT escaping, parameter quoting,
  * splitting a content line — lives in [IcsLines]. This object owns only what a calendar means.
  */
@@ -37,6 +45,31 @@ object IcsCodec {
      * Google or Thunderbird simply arrives as the yearly all-day event it already is.
      */
     private const val PROP_KIND = "X-AGENDA-TECH-KIND"
+
+    /** Durée d'un VEVENT horodaté dépourvu de DTEND et de DURATION (audit AG-1). */
+    private const val DEFAULT_DURATION_MILLIS = 60L * 60 * 1000
+    private const val DAY_MILLIS = 24L * 60 * 60 * 1000
+
+    /**
+     * Minuit local suivant [startUtcMillis], en arithmétique calendaire.
+     *
+     * Audit AG-1 — la borne de fin d'une journée entière ne peut pas s'obtenir en ajoutant 24 h :
+     * une nuit de changement d'heure dure 23 ou 25 heures, et la borne tomberait alors une heure
+     * avant ou après le vrai minuit. `plusDays(1)` sur la date locale donne la bonne réponse dans
+     * les trois cas, comme le fait déjà [com.filestech.agenda_tech.domain.device.DeviceEventMapper].
+     */
+    private fun nextMidnightAfter(startUtcMillis: Long, zone: ZoneId): Long =
+        midnightAfterDays(startUtcMillis, zone, days = 1)
+
+    /** Minuit local [days] jours apres [startUtcMillis], en arithmetique calendaire. */
+    private fun midnightAfterDays(startUtcMillis: Long, zone: ZoneId, days: Long): Long =
+        Instant.ofEpochMilli(startUtcMillis)
+            .atZone(zone)
+            .toLocalDate()
+            .plusDays(days)
+            .atStartOfDay(zone)
+            .toInstant()
+            .toEpochMilli()
 
     private val UTC_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
     private val LOCAL_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss")
@@ -188,9 +221,43 @@ object IcsCodec {
             } ?: return null
         val dtStart = props.first("DTSTART") ?: return null
         val start = parseDateTime(dtStart, defaultZone) ?: return null
-        val dtEnd = props.first("DTEND")
-        val end = dtEnd?.let { parseDateTime(it, defaultZone) } ?: start
         val allDay = dtStart.params["VALUE"] == "DATE"
+        // Audit AG-1 — RFC 5545 §3.6.1 : DTEND est FACULTATIF, et DURATION peut le remplacer. Sans
+        // l'un ni l'autre, un VEVENT de type DATE dure UN JOUR et un VEVENT horodaté dure zéro.
+        //
+        // Le repli était `?: start` dans tous les cas, ce qui donnait `end == start`. Or les filtres
+        // de recouvrement de l'application sont stricts des deux côtés
+        // (`start < fenêtreFin && end > fenêtreDébut`, cf. RecurrenceExpander.singleOccurrenceIfOverlaps
+        // et MonthViewModel), et les fenêtres de vue commencent à `atStartOfDay` SUR LE MÊME FUSEAU
+        // que celui résolu ici pour une date. `end > débutDuJour` était donc faux à l'égalité exacte :
+        // un fichier de jours fériés s'importait, l'écran annonçait « N événements importés », et
+        // RIEN n'apparaissait — ni mois, ni jour, ni semaine, ni agenda, ni widget.
+        //
+        // Le jumeau faisait déjà bien : DeviceEventMapper force `days.coerceAtLeast(1)` pour une
+        // journée entière et lit `DURATION` depuis la colonne du fournisseur. C'est son repli qui est
+        // recopié ici — et le parseur de durée, lui, n'est plus recopié du tout (cf. RfcDuration).
+        val dtEnd = props.first("DTEND")
+        val parsedEnd = dtEnd?.let { parseDateTime(it, defaultZone) }
+        val durationMillis = props.first("DURATION")?.value?.let(RfcDuration::parseMillis)?.takeIf { it > 0 }
+        val end = when {
+            // DTEND n'est retenu que s'il dit quelque chose : un DTEND ANTERIEUR ou EGAL a DTSTART
+            // est un export casse, pas une duree. La condition ne le verifiait que pour les journees
+            // entieres ; pour un evenement horodate, `maxOf(end, start)` plus bas rabattait la fin
+            // sur le debut et produisait la duree nulle que tout ce bloc existe pour eviter.
+            // Signale par la relecture gpt-5.2 du 2026-09-11.
+            parsedEnd != null && parsedEnd > start -> parsedEnd
+            // Une DUREE sur une journee entiere doit rester CALENDAIRE : `P1D` ajoute a un minuit du
+            // 30 mars donne 01:00 le 31, la nuit faisant 23 heures. Meme piege que celui traite par
+            // `nextMidnightAfter` — il manquait simplement sur cette branche-ci.
+            allDay && durationMillis != null && durationMillis % DAY_MILLIS == 0L ->
+                midnightAfterDays(start, defaultZone, durationMillis / DAY_MILLIS)
+            durationMillis != null -> start + durationMillis
+            // Un jour CALENDAIRE, pas 24 h : les nuits de changement d'heure en font 23 ou 25, et
+            // ajouter une constante décalerait la borne d'une heure — exactement ce que
+            // DeviceEventMapper évite en passant par LocalDate.
+            allDay -> nextMidnightAfter(start, defaultZone)
+            else -> start + DEFAULT_DURATION_MILLIS
+        }
         // Audit F3a/F3b — store the zone the instant was actually computed in, resolved once here and
         // by the same resolver parseDateTime used. Storing the file's raw spelling instead meant an
         // unknown name (every Outlook export names zones the Windows way) was read as the device zone

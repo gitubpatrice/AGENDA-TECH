@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.domain.device
 
 import com.filestech.agenda_tech.core.text.BidiSanitizer
 import com.filestech.agenda_tech.core.time.TimeZones
+import com.filestech.agenda_tech.domain.ics.RfcDuration
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.DeviceEvent
 import com.filestech.agenda_tech.domain.model.Event
@@ -28,10 +29,9 @@ object DeviceEventMapper {
     private const val DAY_MILLIS = 24L * 60 * 60 * 1000
     private const val DEFAULT_DURATION_MILLIS = 60L * 60 * 1000 // 1h when nothing else is known
 
-    // Untrusted third-party calendars could carry pathological durations; bound them. (Field length is
-    // capped by BidiSanitizer.stripAndCap — one shared ceiling, never a second copy of the number.)
-    private const val MAX_DURATION_DAYS = 3_650L // ~10 years, per-component bound to avoid overflow
-    private const val MAX_DURATION_MILLIS = MAX_DURATION_DAYS * DAY_MILLIS // anything longer is bogus
+    // Les bornes des durées pathologiques (un agenda tiers peut en porter) vivent desormais dans
+    // RfcDuration, partage avec IcsCodec — un seul plafond, jamais une seconde copie du nombre
+    // (audit AG-1). La longueur des champs, elle, reste plafonnee par BidiSanitizer.stripAndCap.
 
     private val BYDAY_TO_WEEKDAY = mapOf(
         "MO" to Weekday.MONDAY, "TU" to Weekday.TUESDAY, "WE" to Weekday.WEDNESDAY,
@@ -69,7 +69,10 @@ object DeviceEventMapper {
             zoneId = TimeZones.resolve(device.eventTimeZone, defaultZone)
             start = device.dtStartUtcMillis
             end = device.dtEndUtcMillis
-                ?: device.durationRfc?.let { device.dtStartUtcMillis + parseDurationMillis(it) }
+                ?: device.durationRfc
+                    ?.let(RfcDuration::parseMillis)
+                    ?.takeIf { it > 0 }
+                    ?.let { device.dtStartUtcMillis + it }
                 ?: (device.dtStartUtcMillis + DEFAULT_DURATION_MILLIS)
             if (end < start) return null
         }
@@ -169,21 +172,4 @@ object DeviceEventMapper {
                 runCatching { LocalDate.parse(s, DATE_STAMP).atStartOfDay(zone).toInstant().toEpochMilli() }.getOrNull()
         }
     }
-
-    /**
-     * RFC 2445/5545 duration (e.g. `P1D`, `PT1H30M`, `PT3600S`) → milliseconds; 0 on failure. Each
-     * component is bounded so a pathological value (`P999999999D`) can't overflow the Long cascade.
-     */
-    private fun parseDurationMillis(duration: String): Long {
-        val m = DURATION_REGEX.matchEntire(duration.trim()) ?: return 0L
-        val (weeks, days, hours, minutes, seconds) = m.destructured
-        fun comp(token: String) = token.dropLast(1).toLongOrNull()?.coerceIn(0, MAX_DURATION_DAYS) ?: 0
-        val w = comp(weeks); val d = comp(days); val h = comp(hours); val mi = comp(minutes); val se = comp(seconds)
-        val millis = ((((w * 7 + d) * 24 + h) * 60 + mi) * 60 + se) * 1000
-        return millis.coerceIn(0, MAX_DURATION_MILLIS)
-    }
-
-    // Optional sign is tolerated but ignored (durations here are always positive event lengths).
-    private val DURATION_REGEX =
-        Regex("[+-]?P(?:(\\d+W)|)(?:(\\d+D)|)(?:T(?:(\\d+H)|)(?:(\\d+M)|)(?:(\\d+S)|))?")
 }

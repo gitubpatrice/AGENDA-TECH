@@ -128,4 +128,49 @@ class ImportEventsUseCaseTest {
 
         assertThat(useCase(atLimit, ZONE)).isEqualTo(ImportLimits.MAX_EVENTS)
     }
+
+    // --- UID partagés : le cas que la RFC autorise et que personne ne testait --------------------
+    //
+    // En RFC 5545, un maître récurrent et chacune de ses occurrences modifiées PARTAGENT leur `UID`
+    // (elles se distinguent par `RECURRENCE-ID`, que ce codec ne lit pas). Aucun test ne couvrait ce
+    // fichier-là, et il cachait deux défauts successifs :
+    //
+    //  1. à l'origine, `associate {}` ne gardait qu'un id par UID, donc `upsertAll` écrasait les N
+    //     VEVENT sur UNE ligne — les N-1 autres restaient en base, périmées, jamais mises à jour ;
+    //  2. un premier correctif (un HashSet d'ids déjà revendiqués) a remplacé ça par PIRE : le
+    //     deuxième VEVENT ne retrouvait jamais sa ligne et s'insérait à neuf à chaque passage.
+    //
+    // Le deuxième test ci-dessous est celui qui aurait attrapé (2). Il n'existait pas.
+
+    @Test
+    fun `two VEVENT sharing a UID import as two distinct rows`() = runTest {
+        calendars.stored += Calendar(id = 1, name = "Perso", isDefault = true)
+        val fichier = ics(
+            vevent("serie@example.com", "Cours"),
+            vevent("serie@example.com", "Cours déplacé", start = "20251128T140000Z"),
+        )
+
+        assertThat(useCase(fichier, ZONE)).isEqualTo(2)
+        assertThat(events.rows).hasSize(2)
+    }
+
+    @Test
+    fun `re-importing a file with shared UIDs does NOT grow the agenda`() = runTest {
+        calendars.stored += Calendar(id = 1, name = "Perso", isDefault = true)
+        val fichier = ics(
+            vevent("serie@example.com", "Cours"),
+            vevent("serie@example.com", "Cours déplacé", start = "20251128T140000Z"),
+        )
+
+        useCase(fichier, ZONE)
+        val apresPremier = events.rows.keys.toSet()
+
+        useCase(fichier, ZONE)
+        useCase(fichier, ZONE)
+
+        // Les MÊMES lignes, pas seulement le même nombre : le n-ième VEVENT doit retrouver la
+        // n-ième ligne, sinon l'idempotence n'est qu'une coïncidence de comptage.
+        assertThat(events.rows).hasSize(2)
+        assertThat(events.rows.keys).isEqualTo(apresPremier)
+    }
 }

@@ -5,9 +5,10 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.core.io.BoundedRead
-import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.domain.usecase.ExportEventsUseCase
 import com.filestech.agenda_tech.domain.usecase.ImportEventsUseCase
+import com.filestech.agenda_tech.system.AgendaChangeNotifier
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -44,6 +45,7 @@ class IcsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val exportEvents: ExportEventsUseCase,
     private val importEvents: ImportEventsUseCase,
+    private val agendaChanged: AgendaChangeNotifier,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -54,7 +56,13 @@ class IcsViewModel @Inject constructor(
         val outcome = withContext(io) {
             runCatching {
                 val exported = exportEvents(System.currentTimeMillis())
-                context.contentResolver.openOutputStream(uri)?.use {
+                // Audit AG-7 — "wt" TRONQUE, et son absence était le jumeau non corrigé de l'export
+                // de sauvegarde (BackupViewModel.writeFile, qui porte la même note depuis plus
+                // longtemps). Le sélecteur CreateDocument rend le fichier EXISTANT quand l'utilisateur
+                // écrase : sans troncature, réexporter par-dessus un .ics plus gros laissait la queue
+                // de l'ancien collée après END:VCALENDAR. Un lecteur tolérant y importe alors un
+                // événement fantôme — et un lecteur strict refuse le fichier entier.
+                context.contentResolver.openOutputStream(uri, "wt")?.use {
                     it.write(exported.ics.toByteArray(Charsets.UTF_8))
                 } ?: error("no output stream for $uri")
                 exported.eventCount
@@ -89,6 +97,10 @@ class IcsViewModel @Inject constructor(
                 importEvents(bytes.toString(Charsets.UTF_8), ZoneId.systemDefault().id)
             }
         }
+        // Audit AG-8 — un evenement deja importe, deplace dans l'agenda source puis re-importe,
+        // gardait son alarme a l'ANCIENNE heure : aucun des deux imports n'appelait le
+        // planificateur. Et le widget ne voyait rien des lignes neuves pendant une demi-heure.
+        if (outcome.isSuccess) agendaChanged.onAgendaChanged()
         _result.value = outcome.fold(
             onSuccess = { IcsResult.Imported(it) },
             onFailure = { error ->

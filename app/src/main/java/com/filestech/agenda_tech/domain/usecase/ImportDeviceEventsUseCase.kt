@@ -131,7 +131,11 @@ class ImportDeviceEventsUseCase @Inject constructor(
                     .filter { it.originalId != null && it.originalInstanceTime != null }
                     .groupBy({ it.originalId!! }, { it.originalInstanceTime!! })
                 // Map source uid → existing row id so a re-import updates in place instead of duplicating.
-                val existing = eventRepository.sourceUidMap(targetCalendarId)
+                // `.firstOrNull()` : cote fournisseur systeme, un uid identifie une ligne et une
+                // seule (c'est le `_sync_id` ou le `rowid:`), donc le groupe a toujours un element.
+                // La signature est plurielle a cause du .ics, ou la RFC autorise le partage d'UID.
+                val existing = eventRepository.sourceUidGroups(targetCalendarId)
+                    .mapValues { (_, ids) -> ids.first() }
                 val mapped = deviceEvents.mapNotNull { de ->
                     val ev = DeviceEventMapper.toEvent(de, targetCalendarId) ?: return@mapNotNull null
                     val rule = ev.recurrence

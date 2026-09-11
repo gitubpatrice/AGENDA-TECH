@@ -68,8 +68,19 @@ interface EventRepository {
     /** Atomically inserts/updates a batch of events (import). All or nothing — no half-populated import. */
     suspend fun upsertAll(events: List<Event>)
 
-    /** (source_uid → existing event id) for a calendar's imported events — to update them in place. */
-    suspend fun sourceUidMap(calendarId: Long): Map<String, Long>
+    /**
+     * (source_uid → ids existants, par id croissant) des événements importés d'un calendrier.
+     *
+     * Une LISTE, et non un id unique (relecture externe du 2026-09-11). `source_uid` n'est pas
+     * unique et ne peut pas l'être : en RFC 5545, un maître récurrent et chacune de ses
+     * occurrences modifiées partagent leur `UID`. L'ancienne signature `Map<String, Long>`
+     * venait d'un `associate {}` où la DERNIÈRE ligne gagnait — les autres devenaient
+     * invisibles au ré-import, et rien ne pouvait donc les mettre à jour.
+     *
+     * L'ordre est ce qui rend le ré-import idempotent : le n-ième VEVENT d'un UID retrouve
+     * toujours la n-ième ligne.
+     */
+    suspend fun sourceUidGroups(calendarId: Long): Map<String, List<Long>>
 
     suspend fun delete(id: Long)
 }
