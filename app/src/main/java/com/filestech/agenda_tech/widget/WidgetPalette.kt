@@ -35,9 +35,16 @@ import androidx.glance.unit.ColorProvider
  *
  * ## Pourquoi le FOND n'est pas ici
  *
- * Les deux widgets posent leur fond par le drawable `widget_background.xml`, qui seul sait porter les
- * angles arrondis sous Android 12. L'exposer AUSSI ici serait du code que personne n'appelle, et il
- * donnerait a croire qu'il existe deux facons de poser ce fond.
+ * Les fonds passent par des drawables, qui seuls savent porter les angles arrondis sous Android 12 :
+ * `widget_zone_blue.xml` et `widget_zone_red.xml` pour les deux zones du grand widget,
+ * `widget_icon_background.xml` pour le petit. Tous lisent `@color/widget_background` (ou
+ * `@color/widget_events_background` pour la zone rouge), donc la teinte reste definie une seule fois.
+ *
+ * Exposer ces couleurs AUSSI ici serait du code que personne n'appelle, et surtout cela donnerait a
+ * croire qu'il existe deux facons de poser un fond. Note : cette KDoc citait un `widget_background.xml`
+ * qui n'existe plus — il a ete scinde en trois le jour meme de son ecriture, et la documentation n'a
+ * pas suivi. Releve par l'audit pre-release de la v1.1.0 ; c'est la meme derive que le fichier
+ * denonce, appliquee a lui-meme.
  */
 internal object WidgetPalette {
     /**

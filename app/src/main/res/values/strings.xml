@@ -241,6 +241,7 @@
     <string name="device_import_pick">Choose the calendars to import:</string>
     <string name="device_import_fallback_name">Imported calendar</string>
     <string name="device_import_empty">No calendar found on this device.</string>
+    <string name="device_import_failed">The device calendars could not be read. Nothing was changed — try again.</string>
     <string name="device_import_action">Import (%1$d)</string>
     <string name="device_import_running">Importing…</string>
     <string name="device_import_done">%1$d events imported from %2$d calendar(s).</string>

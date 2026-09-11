@@ -31,7 +31,22 @@ internal class FakeDeviceCalendars(
     private val calendars: List<DeviceCalendar> = emptyList(),
     var events: List<DeviceEvent> = emptyList(),
 ) : DeviceCalendarRepository {
-    override suspend fun listCalendars(): List<DeviceCalendar> = calendars
+
+    /**
+     * Fait lever la PROCHAINE liste, puis se desarme.
+     *
+     * Le vrai fournisseur leve `SecurityException` si la permission est revoquee entre l'octroi et la
+     * requete — un scenario que seul un double peut reproduire en test JVM.
+     */
+    var failNextListCalendars = false
+
+    override suspend fun listCalendars(): List<DeviceCalendar> {
+        if (failNextListCalendars) {
+            failNextListCalendars = false
+            error("device calendar provider refused (test)")
+        }
+        return calendars
+    }
 
     /**
      * Honours [limit] like the real implementation, and reports the truncation the same way — a fake
@@ -55,6 +70,7 @@ internal class FakeCalendarRepository : CalendarRepository {
      */
     var failNextUpsert = false
     var failNextDelete = false
+    var failNextDeleteImported = false
 
     override fun observeAll(): Flow<List<Calendar>> = flowOf(stored.toList())
     override fun observeVisible(): Flow<List<Calendar>> = flowOf(stored.filter { it.isVisible })
@@ -100,7 +116,15 @@ internal class FakeCalendarRepository : CalendarRepository {
     }
 
     // Mirrors the DAO predicate exactly: only rows that carry a source_id, never a hand-made calendar.
-    override suspend fun deleteImported() { stored.removeAll { !it.isDefault && it.sourceId != null } }
+    override suspend fun deleteImported() {
+        if (failNextDeleteImported) {
+            failNextDeleteImported = false
+            // `deleteImported()` est un DELETE SQLCipher brut, garde par rien dans toute la chaine :
+            // c'est le chemin d'exception que le ViewModel doit tenir.
+            error("deleteImported refused (test)")
+        }
+        stored.removeAll { !it.isDefault && it.sourceId != null }
+    }
 }
 
 internal class FakeEventRepository : EventRepository {

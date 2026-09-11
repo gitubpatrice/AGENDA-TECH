@@ -238,6 +238,7 @@
     <string name="device_import_pick">Choisissez les calendriers à importer :</string>
     <string name="device_import_fallback_name">Calendrier importé</string>
     <string name="device_import_empty">Aucun calendrier trouvé sur cet appareil.</string>
+    <string name="device_import_failed">Les calendriers de l’appareil n’ont pas pu être lus. Rien n’a été modifié — réessayez.</string>
     <string name="device_import_action">Importer (%1$d)</string>
     <string name="device_import_running">Import en cours…</string>
     <string name="device_import_done">%1$d événements importés depuis %2$d calendrier(s).</string>

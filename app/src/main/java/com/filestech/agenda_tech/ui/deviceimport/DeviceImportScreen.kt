@@ -72,6 +72,7 @@ fun DeviceImportScreen(
     val importing by viewModel.importing.collectAsStateWithLifecycle()
     val result by viewModel.result.collectAsStateWithLifecycle()
     val cleared by viewModel.cleared.collectAsStateWithLifecycle()
+    val failed by viewModel.failed.collectAsStateWithLifecycle()
     var confirmClear by remember { mutableStateOf(false) }
     // Resolved here: the domain has no access to string resources, so the localised name for a device
     // calendar that reports neither display name nor account is handed to it.
@@ -116,6 +117,19 @@ fun DeviceImportScreen(
         }
     }
 
+    // Un echec d'ecriture doit se dire : l'ecran verrouille le retour pendant l'operation, donc un
+    // echec muet laissait l'utilisateur devant un ecran qui ne repond plus et ne dit rien.
+    LaunchedEffect(failed, resources) {
+        if (failed) {
+            android.widget.Toast.makeText(
+                context,
+                resources.getString(R.string.device_import_failed),
+                android.widget.Toast.LENGTH_LONG,
+            ).show()
+            viewModel.consumeFailed()
+        }
+    }
+
     LaunchedEffect(cleared, resources) {
         if (cleared) {
             android.widget.Toast.makeText(
@@ -155,6 +169,12 @@ fun DeviceImportScreen(
                 DeviceImportViewModel.UiState.Loading -> CircularProgressIndicator()
 
                 DeviceImportViewModel.UiState.Empty -> CenteredMessage(stringResource(R.string.device_import_empty))
+
+                // Distinct d'`Empty` a dessein : « aucun calendrier » et « on n'a pas pu lire »
+                // appellent des gestes differents, et les confondre dirait a l'utilisateur que son
+                // telephone n'a pas d'agenda alors que la permission vient d'etre revoquee.
+                DeviceImportViewModel.UiState.Failed ->
+                    CenteredMessage(stringResource(R.string.device_import_failed))
 
                 is DeviceImportViewModel.UiState.Ready -> ReadyContent(
                     calendars = s.calendars,
