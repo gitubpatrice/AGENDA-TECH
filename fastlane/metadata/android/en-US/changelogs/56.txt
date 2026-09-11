@@ -1,0 +1,12 @@
+v1.1.0 — Three new features, and an audit
+
+• Encrypted backups now run on their own,
+  every week, to a folder you pick.
+• Birthdays: the age works itself out.
+• Duplicate an event in one tap.
+
+Fixed:
+• An all-day .ics event with no end time
+  imported, then stayed invisible.
+• Reminders survive a "force stop".
+• The widget redraws at once.

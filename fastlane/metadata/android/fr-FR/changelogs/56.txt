@@ -1,0 +1,13 @@
+v1.1.0 — Trois nouveautés, et un audit
+
+• Sauvegarde chiffrée automatique, chaque
+  semaine, dans le dossier de votre choix.
+• Anniversaires : l'âge se calcule seul.
+• Dupliquer un événement en une tape.
+
+Corrigé :
+• Un .ics « toute la journée » sans heure de
+  fin s'importait puis restait invisible.
+• Les rappels survivent à un « forcer
+  l'arrêt ».
+• Le widget se redessine aussitôt.

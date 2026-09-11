@@ -3,6 +3,55 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [1.1.0] — 2026-09-11
+
+Trois fonctionnalités nouvelles, et l'audit global le plus profond que l'application ait reçu :
+20 constats corrigés, puis 6 déviations de cohérence, chacune revérifiée dans le code avant
+correction.
+
+### Ajouté
+
+- **Sauvegarde chiffrée automatique.** Une fois par semaine, dans le dossier de votre choix, sans
+  rien faire. Le mot de passe est conservé dans le magasin sécurisé du téléphone.
+- **Événements d'anniversaire.** L'âge se déduit de l'année de naissance et se met à jour tout
+  seul : rien à ressaisir chaque année.
+- **Dupliquer un événement** en une tape, depuis l'éditeur.
+
+### Corrigé
+
+- **Un `.ics` « toute la journée » sans `DTEND` devenait invisible.** La RFC 5545 rend `DTEND`
+  facultatif et admet `DURATION` à sa place ; l'import donnait à ces événements une durée nulle,
+  et tous les filtres par jour les écartaient. L'événement était bien en base, mais introuvable
+  dans les vues mois, jour et semaine. Mesuré sur appareil, avec contrôle négatif.
+- **Les rappels ne survivaient pas à un « forcer l'arrêt »** jusqu'au redémarrage du téléphone,
+  alors que la sauvegarde automatique, elle, était bien ré-armée au lancement.
+- **Le widget n'était jamais redessiné après une écriture.** Un événement supprimé y restait
+  affiché jusqu'à une demi-heure. Tous les points d'écriture passent désormais par une couture
+  unique, et un test refuse à quiconque de redessiner le widget à la main.
+- **Un double-tap créait deux événements**, et sur l'écran Calendriers, deux calendriers.
+- **Un échec d'enregistrement pouvait passer inaperçu** : le PIN, le calendrier et la suppression
+  se refermaient comme si l'écriture avait eu lieu.
+- **Un ré-import `.ics` d'un fichier déjà importé** pouvait écraser des lignes lorsque plusieurs
+  événements partageaient un `UID`, ce que la RFC 5545 autorise.
+- **Supprimer un calendrier laissait ses alarmes armées** : la cascade effaçait les rappels sans
+  que rien ne désarme les alarmes déjà posées auprès du système.
+
+### Modifié
+
+- **Les widgets prennent les couleurs du logo** — le bleu et le rouge de son damier, prélevés au
+  pixel — et des angles arrondis qui fonctionnent dès Android 8, non plus seulement à partir
+  d'Android 12. La date sur le bleu, les événements sur le rouge.
+- **L'import `.ics` affiche enfin qu'il travaille**, au lieu de laisser l'écran immobile.
+
+### Sécurité
+
+- **Aucune vulnérabilité trouvée.** La promesse « aucune permission Internet » est désormais
+  vérifiée **au niveau du noyau** sur appareil : le processus n'appartient pas au groupe
+  `AID_INET` (gid 3003), sans lequel l'ouverture d'un socket réseau échoue quoi que le code
+  tente. Mesuré avec un témoin positif dans la même session.
+- La CI construit maintenant la variante **release minifiée** : R8 n'était exercé par aucun job,
+  donc aucune règle `keep` manquante n'aurait été vue avant la publication. CodeQL a été ajouté.
+
 ## [1.0.3] — 2026-08-14
 
 Aucun changement fonctionnel. **La release qui rend le binaire analysable sans réserve.**
