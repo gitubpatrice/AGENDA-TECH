@@ -156,9 +156,28 @@ mesurer sur API 26-28.
   `NoSuchMethod` — la règle R8 retirée était bien morte, et le code neuf survit à R8.
 - Contrôle « zéro réseau » : 11 permissions, ni `INTERNET` ni `ACCESS_NETWORK_STATE`.
 
-⚠️ **Non vérifié sur appareil** : le parcours d'import `.ics` de bout en bout par l'interface. Le
-codec est une fonction pure — le test unitaire l'exerce au bon niveau, avec un contrôle négatif qui
-rejoue le prédicat exact des vues. Un passage par l'écran d'import reste souhaitable avant le tag.
+**Parcours d'import `.ics` de bout en bout, fait par l'interface** (menu → sélecteur système →
+fichier poussé en `/sdcard/Download`) :
+
+| Cas du fichier de test | Avec le correctif | Sans le correctif (contrôle négatif sur appareil) |
+|---|---|---|
+| `DTSTART;VALUE=DATE` **sans `DTEND`** | « AG1 Fete nationale », **Toute la journée**, visible au 14 | **« Aucun événement ce jour »** |
+| `DURATION:PT1H30M` sans `DTEND` | **09:00 – 10:30** | **09:00 – 09:00** |
+| `DTEND` normal (témoin) | 14:00 – 15:00 | 14:00 – 15:00 |
+
+Et **deux imports du même fichier ne produisent qu'un exemplaire de chaque** — idempotence vérifiée
+sur appareil, pas seulement en test.
+
+⚠️ **Ce contrôle négatif a rectifié le rapport d'audit.** J'y avais écrit que l'événement
+n'apparaissait « ni mois, ni jour, ni semaine, ni agenda, ni widget ». La mesure dit autre chose :
+la **vue Agenda l'affiche**, parce qu'elle groupe par date de début sur une fenêtre de ±1 an. Ce qui
+le cache, ce sont les filtres **par jour**. Le défaut reste sérieux — la grille du mois est la
+surface principale — mais « nulle part » était une inférence tirée de la lecture du code, pas une
+mesure. Corrigé dans le rapport.
+
+⚠️ **Non vérifiable en capture d'écran** : `FLAG_SECURE` bloque `screencap` (fichier à 0 octet).
+C'est la protection de l'application qui fonctionne ; les constats ci-dessus viennent donc de
+`uiautomator dump`, qui lit l'arbre d'interface.
 
 ---
 

@@ -230,8 +230,16 @@ object IcsCodec {
         // (`start < fenêtreFin && end > fenêtreDébut`, cf. RecurrenceExpander.singleOccurrenceIfOverlaps
         // et MonthViewModel), et les fenêtres de vue commencent à `atStartOfDay` SUR LE MÊME FUSEAU
         // que celui résolu ici pour une date. `end > débutDuJour` était donc faux à l'égalité exacte :
-        // un fichier de jours fériés s'importait, l'écran annonçait « N événements importés », et
-        // RIEN n'apparaissait — ni mois, ni jour, ni semaine, ni agenda, ni widget.
+        // un fichier de jours fériés s'importait, l'écran annonçait « N événements importés », et le
+        // jour concerné affichait « Aucun événement ce jour ».
+        //
+        // Portée exacte, MESURÉE sur S9 le 2026-09-11 par contrôle négatif (le correctif retiré, le
+        // même fichier réimporté) : ce sont les filtres PAR JOUR qui cachent l'événement — grille du
+        // mois, vue Jour, vue Semaine —, là où la borne de fenêtre coïncide exactement avec son
+        // instant. La vue Agenda, elle, l'affichait : elle groupe par date de début sur une fenêtre
+        // de ±1 an, que l'égalité ne met pas en défaut. Une première rédaction de ce commentaire
+        // disait « nulle part » ; c'était une inférence tirée de la lecture, pas une mesure.
+        // Le cas DURATION, lui, s'affichait « 09:00 – 09:00 » — mesuré aussi.
         //
         // Le jumeau faisait déjà bien : DeviceEventMapper force `days.coerceAtLeast(1)` pour une
         // journée entière et lit `DURATION` depuis la colonne du fournisseur. C'est son repli qui est

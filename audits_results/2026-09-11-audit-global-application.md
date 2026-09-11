@@ -90,8 +90,17 @@ qu'une base SQLCipher et une clé enveloppée par une clé AndroidKeyStore non e
   `atStartOfDay` **sur le même fuseau** que le parseur (`IcsCodec.kt:233`) : `end > dayStart` est donc
   faux à l'égalité exacte.
 - **Reproduction** : importer `BEGIN:VEVENT / DTSTART;VALUE=DATE:20260714 / SUMMARY:Fête nationale /
-  END:VEVENT`. L'app annonce « 1 événement importé ». Rien ne s'affiche : ni mois, ni jour, ni
-  semaine, ni agenda, ni widget.
+  END:VEVENT`. L'app annonce « 1 événement importé », et le jour concerné affiche **« Aucun
+  événement ce jour »**.
+
+  ⚠️ **Portée rectifiée après mesure sur appareil (S9, 2026-09-11).** Ce paragraphe disait « rien ne
+  s'affiche : ni mois, ni jour, ni semaine, ni agenda, ni widget ». **Trop fort.** Le contrôle
+  négatif sur appareil montre que la **vue Agenda l'affiche bien** : elle groupe par date de début
+  et sa fenêtre couvre ±1 an, donc le filtre strict ne le rejette pas. Ce qui le cache, ce sont les
+  filtres **par jour** — grille du mois, vue Jour, vue Semaine — où la borne de la fenêtre coïncide
+  exactement avec l'instant de l'événement. C'est la surface principale de l'application, donc le
+  défaut reste sérieux ; mais il n'est pas total, et l'écrire ainsi était une inférence, pas une
+  mesure.
 - **Impact** : RFC 5545 §3.6.1 rend `DTEND` optionnel. Un fichier de jours fériés, de calendrier
   scolaire ou un export Outlook s'importe et disparaît. Une fonction annoncée qui ne marche pas sur
   une entrée légitime.
@@ -269,8 +278,9 @@ avant la fusion de `!42991`. Les remonter casserait la vérification de build re
 
 ## Les 5 problèmes que je refuserais de laisser passer
 
-1. **AG-1** — un `.ics` de jours fériés s'importe, l'app annonce « N événements importés », et rien
-   n'apparaît nulle part.
+1. **AG-1** — un `.ics` de jours fériés s'importe, l'app annonce « N événements importés », et le
+   jour concerné affiche « Aucun événement ce jour » dans la grille du mois et la vue Jour
+   (la vue Agenda, elle, le montre — portée rectifiée par mesure sur appareil).
 2. **AG-5** — deux documents publics et le manifeste affirment ce que le code contredit depuis le
    31 août. Sur une app dont l'argument est la vérifiabilité, c'est le défaut le plus coûteux.
 3. **AG-4** — un « forcer l'arrêt » tue les rappels jusqu'au prochain redémarrage, sans un mot, alors
