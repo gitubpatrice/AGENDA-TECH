@@ -35,7 +35,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       # The four tools of the local gate, in one command, so CI and a developer's machine can never
       # disagree about what "green" means. detekt is blocking; config/detekt/detekt.yml states which
@@ -79,7 +79,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       # Only the manifest merge, not a full release build: it needs no keystore and no R8, and it is
       # the artefact that decides which permissions the published APK carries.
@@ -106,7 +106,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       # KVM has to be enabled explicitly on GitHub-hosted runners for the emulator to boot.
       - name: Enable KVM
