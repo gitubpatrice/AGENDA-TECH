@@ -9,7 +9,7 @@
 
 | Mesure | Avant | Après |
 |---|---|---|
-| Tests unitaires JVM | 364 | **385** — 0 échec, **0 ignoré** |
+| Tests unitaires JVM | 364 | **387** — 0 échec, **0 ignoré** |
 | Tests instrumentés (Galaxy S9, API 29, SQLCipher + Keystore réels) | 15 | **15 verts** |
 | detekt | 0 (sur `main` + `test`) | **0**, et désormais **`androidTest` inclus** |
 | lint | 0 erreur | 0 erreur |
@@ -105,6 +105,30 @@ construit trois minutes plus tôt. Un constat sur sept, ce qui est cohérent ave
 mémoire pour ces relectures : **vérifier chacun, toujours**.
 
 ---
+
+## 3 bis. La plongée sécurité de fin de turn — un HIGH, et c'était encore moi
+
+Le hook de fin de turn impose une plongée `android-code-quality-deep-dive` dès qu'un fichier
+critique est touché. Elle a trouvé **un HIGH confirmé, et c'était mon correctif AG-9 qui était
+incomplet** — le deuxième de la journée, après la régression d'import.
+
+Sur la suppression de calendrier et sur `clearImported()`, je m'étais contenté d'appeler
+`onAgendaChanged()`. Ça ne pouvait pas marcher : `rescheduleAll()` itère
+`reminderRepository.getAll()`, c'est-à-dire les rappels **encore en base**. Les lignes que la
+cascade de clé étrangère vient d'effacer n'y figurent plus, donc leurs alarmes ne sont désarmées
+par personne. Et le commentaire que j'avais écrit décrivait le scénario F7 en toutes lettres.
+
+**Décrire un défaut et poser à côté un appel qui ne le traite pas est pire que de ne rien écrire :
+ça ferme la question pour le prochain lecteur.** C'est le motif à retenir de cette journée.
+
+L'énumération doit avoir lieu **avant** la suppression — seule fenêtre où `getForEvent` rend encore
+quelque chose. Deux tests, contrôle négatif vérifié, dont un contre le défaut symétrique (désarmer
+trop large). Leur absence est exactement ce qui avait laissé passer le correctif incomplet.
+
+Le reste de la plongée : les 7 autres points examinés sont sains. À noter, elle a **mesuré**
+`MY_PACKAGE_REPLACED` comme diffusion protégée sur l'API 29 du S9 (extraction de `framework-res.apk`
++ `aapt2 dump xmltree`) plutôt que de le supposer — et signale honnêtement ne pas avoir pu le
+mesurer sur API 26-28.
 
 ## 4. Délibérément NON fait
 
