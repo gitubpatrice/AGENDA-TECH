@@ -17,12 +17,12 @@ import java.io.File
 import java.time.ZoneId
 
 /**
- * The five Room migrations (v1 → v6), driven through the **real** production path.
+ * The six Room migrations (v1 → v7), driven through the **real** production path.
  *
  * ## Why this test exists
  *
  * `d015632` recorded "pas de test MigrationTestHelper (aucune migration n'en a)" as a known,
- * non-blocking gap. That was accurate when there were no migrations. There are now five, and each runs
+ * non-blocking gap. That was accurate when there were no migrations. There are now six, and each runs
  * on a file holding the user's only copy of their agenda (`allowBackup=false`). A migration that
  * dropped a column, or that Room judged inconsistent with the entity definitions, would surface as a
  * crash on the *user's* device after an `adb install -r` — never here, because nothing ran them.
@@ -96,6 +96,16 @@ class MigrationsTest {
             assertColumnsAreNull("source_uid")
             // v5 — place details.
             assertColumnsAreNull("address", "postal_code", "city", "gps_coordinates")
+            // v7 — la colonne `kind` (anniversaires). NON NULL DEFAULT 0, donc elle ne peut pas
+            // s'asserter comme les precedentes : une ligne d'avant la migration doit en
+            // ressortir a EventKind.NORMAL, pas a NULL. Rien ne la verifiait — la KDoc de ce
+            // fichier annoncait encore « cinq migrations (v1 → v6) » alors que Migrations.all()
+            // en rend six et que AppDatabase declare SCHEMA_VERSION = 7 (audit, gravite faible).
+            openHelper.readableDatabase.query("SELECT kind FROM events WHERE id = 1").use { cursor ->
+                assertThat(cursor.moveToFirst()).isTrue()
+                assertThat(cursor.isNull(0)).isFalse()
+                assertThat(cursor.getInt(0)).isEqualTo(0)
+            }
 
             // The calendar the event hangs off survived too — the foreign key is ON DELETE CASCADE, so
             // losing the calendar would have taken the event with it and this assertion is what tells

@@ -1,7 +1,7 @@
 package com.filestech.agenda_tech.data.repository
 
 import com.filestech.agenda_tech.data.local.db.dao.ReminderDao
-import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.domain.model.Reminder
 import com.filestech.agenda_tech.domain.repository.ReminderRepository
 import kotlinx.coroutines.CoroutineDispatcher

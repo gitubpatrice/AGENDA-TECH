@@ -2,7 +2,7 @@ package com.filestech.agenda_tech.domain.usecase
 
 import com.filestech.agenda_tech.core.crypto.wipe
 import com.filestech.agenda_tech.core.result.Outcome
-import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.domain.backup.AutoBackupOutcome
 import com.filestech.agenda_tech.domain.backup.AutoBackupSecret
 import com.filestech.agenda_tech.domain.backup.AutoBackupTarget

@@ -20,8 +20,14 @@
     <string name="menu_more">Plus</string>
     <string name="menu_import_ics">Importer .ics…</string>
     <string name="menu_export_ics">Exporter .ics…</string>
-    <string name="ics_export_ok">%1$d événements exportés</string>
-    <string name="ics_import_ok">%1$d événements importés</string>
+    <plurals name="ics_export_ok">
+        <item quantity="one">%1$d événement exporté</item>
+        <item quantity="other">%1$d événements exportés</item>
+    </plurals>
+    <plurals name="ics_import_ok">
+        <item quantity="one">%1$d événement importé</item>
+        <item quantity="other">%1$d événements importés</item>
+    </plurals>
     <string name="ics_error">Impossible de lire le fichier agenda</string>
     <string name="ics_import_too_many">Ce fichier contient plus d’événements que l’application n’en accepte (%1$d au maximum). Divisez-le et importez les parties.</string>
 
@@ -64,6 +70,7 @@
     <string name="editor_gps_open">Ouvrir sur la carte</string>
     <string name="editor_error_blank_title">Le titre est obligatoire</string>
     <string name="editor_error_end_before_start">La fin doit être après le début</string>
+    <string name="editor_error_delete_failed">L’événement n’a pas pu être supprimé. Rien n’a été retiré — réessayez.</string>
     <string name="editor_error_save_failed">Échec de l\'enregistrement</string>
     <string name="editor_ok">OK</string>
     <string name="editor_cancel">Annuler</string>
@@ -235,7 +242,7 @@
     <string name="device_import_running">Import en cours…</string>
     <string name="device_import_done">%1$d événements importés depuis %2$d calendrier(s).</string>
     <string name="device_import_partial">%1$d événements importés depuis %2$d calendrier(s). %3$d calendrier(s) n\'ont pas pu être lus.</string>
-    <string name="device_import_truncated">%1$d événements importés depuis %2$d agenda(s). La sélection en contenait plus que les %3$d acceptés en un seul import — importez les agendas restants séparément.</string>
+    <string name="device_import_truncated">%1$d événements importés depuis %2$d calendrier(s). La sélection en contenait plus que les %3$d acceptés en un seul import — importez les calendriers restants séparément.</string>
     <string name="device_import_clear">Effacer les calendriers déjà importés</string>
     <string name="device_import_cleared">Calendriers importés effacés.</string>
     <string name="device_import_clear_confirm_title">Effacer les calendriers importés ?</string>
@@ -253,6 +260,7 @@
     <string name="settings_lock_enabled">Verrouiller l\'application</string>
     <string name="settings_lock_enabled_sub">Exiger un code PIN ou la biométrie à l\'ouverture</string>
     <string name="settings_lock_change_pin">Modifier le code PIN</string>
+    <string name="settings_lock_pin_save_failed">Le code PIN n’a pas pu être enregistré : le coffre de clés de l’appareil a refusé. Votre réglage de verrou précédent est inchangé.</string>
     <string name="settings_lock_biometric">Utiliser la biométrie</string>
     <string name="settings_lock_set_pin">Définir un code PIN</string>
     <string name="settings_lock_confirm_pin">Confirmer le code PIN</string>
@@ -315,7 +323,7 @@
     <string name="search_hidden_calendar">calendrier masqué</string>
 
     <!-- URL de la politique de confidentialité, localisée : voir values/strings.xml. -->
-    <string name="about_privacy_policy_url" translatable="false">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/PRIVACY.fr.md</string>
+    <string name="about_privacy_policy_url">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/PRIVACY.fr.md</string>
     <!-- %1$d = minutes de report -->
     <string name="reminder_snooze">Répéter %1$d min</string>
     <!-- Proposition de restauration, sur un agenda vide (1er lancement / nouveau téléphone) -->

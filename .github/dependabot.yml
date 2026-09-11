@@ -1,0 +1,47 @@
+# Agenda Tech — surveillance des dépendances (audit AG-19).
+#
+# Le dépôt n'avait que `ci.yml` : ni Dependabot, ni analyse de sécurité, là où d'autres applications
+# du portefeuille en ont trois ou quatre. Rien ne signalait donc qu'une dépendance embarquait une
+# faille connue — sur une application qui chiffre l'agenda de ses utilisateurs.
+#
+# ⚠️ POINT D'ATTENTION, à lire avant de fusionner quoi que ce soit ici.
+#
+# `androidx.work` et `androidx.documentfile` sont **volontairement figés** aux versions que Glance
+# résout déjà (2.7.1 et 1.0.0), pour qu'AUCUN artefact résolu ne change tant que la MR F-Droid
+# !42991 n'est pas fusionnée : la vérification de build reproductible repose là-dessus. Une PR
+# Dependabot qui les remonte doit être **fermée**, pas fusionnée, jusqu'à cette fusion.
+#
+# Les deux écosystèmes sont surveillés parce que les actions GitHub sont, elles aussi, du code
+# exécuté avec accès au dépôt.
+version: 2
+
+updates:
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    # Groupées : dix PR isolées se ferment sans être lues, une PR groupée se relit.
+    groups:
+      androidx:
+        patterns:
+          - "androidx.*"
+      kotlin-et-outils:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "com.google.dagger*"
+          - "io.gitlab.arturbosch.detekt*"
+    ignore:
+      # Cf. l'avertissement en tête de fichier. À retirer une fois !42991 fusionnée.
+      - dependency-name: "androidx.work:*"
+      - dependency-name: "androidx.documentfile:*"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies

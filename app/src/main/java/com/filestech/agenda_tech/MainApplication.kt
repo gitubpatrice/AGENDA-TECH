@@ -3,7 +3,7 @@ package com.filestech.agenda_tech
 import android.app.Application
 import com.filestech.agenda_tech.core.logging.LineNumberDebugTree
 import com.filestech.agenda_tech.core.logging.NoOpReleaseTree
-import com.filestech.agenda_tech.di.ApplicationScope
+import com.filestech.agenda_tech.core.di.ApplicationScope
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.EnsureDefaultCalendarUseCase
 import com.filestech.agenda_tech.system.backup.AutoBackupScheduler

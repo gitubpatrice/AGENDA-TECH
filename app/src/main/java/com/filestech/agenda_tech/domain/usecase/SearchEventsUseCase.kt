@@ -1,7 +1,7 @@
 package com.filestech.agenda_tech.domain.usecase
 
 import com.filestech.agenda_tech.core.text.SearchText
-import com.filestech.agenda_tech.di.DefaultDispatcher
+import com.filestech.agenda_tech.core.di.DefaultDispatcher
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.recurrence.ExpansionBudget

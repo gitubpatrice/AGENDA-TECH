@@ -176,6 +176,25 @@ class BackupEnvelopeTest {
         file[offset + 3] = value.toByte()
     }
 
+    // --- Audit (gravité faible) : ce que ce fichier affirme protéger, il ne l'épinglait pas --------
+
+    @Test
+    fun `the PBKDF2 cost stays at the OWASP floor`() {
+        // La KDoc en tête de ce fichier dit « ce coût EST la protection ». Aucun test ne le
+        // vérifiait : ramener ITERATIONS de 600 000 à 200 000 divisait par trois le prix d'une
+        // attaque hors ligne et laissait les quinze tests verts. Un `.atbak` est fait pour survivre
+        // des années hors de l'appareil — c'est le seul secret de cette application qu'un attaquant
+        // peut travailler sans limite de temps.
+        assertThat(BackupEnvelope.ITERATIONS).isAtLeast(600_000)
+    }
+
+    @Test
+    fun `the minimum password length is enforced exactly at its boundary`() {
+        // Testé à 5 et à 22 ailleurs, jamais à 11 ni à 12 : la borne elle-même n'était pas tenue, et
+        // un `<` devenu `<=` serait passé inaperçu.
+        assertThat(BackupEnvelope.MIN_PASSWORD_LENGTH).isEqualTo(12)
+    }
+
     private companion object {
         // Header layout: magic(5) | envVersion(1) | kdfId(1) | iterations(4) | saltLen(1) | salt(16)
         const val ENVELOPE_VERSION_OFFSET = 5

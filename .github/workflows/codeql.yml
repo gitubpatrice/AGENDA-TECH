@@ -1,0 +1,57 @@
+# Analyse statique de sécurité (audit AG-19).
+#
+# Le dépôt n'avait que `ci.yml`. CodeQL couvre ici du Kotlin natif dans son intégralité — contrairement
+# aux applications Flutter du portefeuille, où il ne voit que la coque `android/` et laisse la crypto
+# Dart hors de portée. C'est donc le dépôt du portefeuille où il sert le plus.
+#
+# Il ne remplace pas detekt : detekt juge le style et les motifs, CodeQL suit les FLUX de données
+# (une entrée non fiable qui atteint une opération sensible). Les deux ne trouvent pas les mêmes
+# choses, et aucun des deux ne trouve ce que trouve une relecture.
+name: CodeQL
+
+on:
+  push:
+    branches: [main, 'fix/**', 'feat/**']
+  pull_request:
+  schedule:
+    # Le lundi matin : une faille publiée dans une dépendance n'attend pas le prochain commit.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyse (java-kotlin)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java-kotlin
+          queries: security-and-quality
+
+      # Compilation explicite plutôt qu'`autobuild` : le projet a une chaîne KSP (Room, Hilt) et un
+      # `version.properties` lu au moment du build. `autobuild` devine, et ce qu'il devine mal, il
+      # l'analyse en moins — une analyse partielle qui se présente comme complète est pire que pas
+      # d'analyse du tout.
+      - name: Build
+        run: ./gradlew --no-daemon :app:assembleDebug
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java-kotlin"

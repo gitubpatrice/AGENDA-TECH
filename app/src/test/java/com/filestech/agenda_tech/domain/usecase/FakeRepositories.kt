@@ -159,12 +159,20 @@ internal class FakeEventRepository : EventRepository {
         }
     }
 
-    override suspend fun sourceUidMap(calendarId: Long): Map<String, Long> =
+    /** Groupe par uid et trie par id, exactement comme la vraie implementation. */
+    override suspend fun sourceUidGroups(calendarId: Long): Map<String, List<Long>> =
         rows.values
             .filter { it.calendarId == calendarId && it.sourceUid != null }
-            .associate { it.sourceUid!! to it.id }
+            .groupBy({ it.sourceUid!! }, { it.id })
+            .mapValues { (_, ids) -> ids.sorted() }
 
-    override suspend fun delete(id: Long) { rows.remove(id) }
+    /** Pour exercer le chemin d'echec de suppression (relecture du 2026-09-11). */
+    var deleteThrows = false
+
+    override suspend fun delete(id: Long) {
+        if (deleteThrows) error("base indisponible")
+        rows.remove(id)
+    }
 }
 
 /**
@@ -270,11 +278,25 @@ internal class FakeAutoBackupTarget(
     val written = mutableListOf<String>()
     var prunedKeeping: Int? = null
 
+    /**
+     * Le contenu réellement écrit (audit AG-16).
+     *
+     * **Copié**, et pas référencé : `RunAutoBackupUseCase` fait `export.bytes.wipe()` dans son
+     * `finally` dès l'écriture terminée. Garder la référence donnerait un tableau de zéros à la
+     * relecture, et un test qui échouerait pour une raison n'ayant rien à voir avec ce qu'il mesure.
+     */
+    private val contents = mutableMapOf<String, ByteArray>()
+
+    fun contentOf(fileName: String): ByteArray? = contents[fileName]
+
     override suspend fun isWritable(): Boolean = writable
     override suspend fun folderName(): String? = "Documents".takeIf { writable }
     override suspend fun write(fileName: String, bytes: ByteArray): Boolean {
         if (throwOnWrite) error("the card was removed mid-write")
-        if (writeSucceeds) written += fileName
+        if (writeSucceeds) {
+            written += fileName
+            contents[fileName] = bytes.copyOf()
+        }
         return writeSucceeds
     }
 

@@ -68,8 +68,8 @@ android {
 
     // `MigrationTestHelper` lit les schémas exportés depuis les ASSETS du test instrumenté, pas
     // depuis `$projectDir/schemas`. Sans cette ligne, le helper échoue à l'exécution sur un
-    // « Cannot find the schema file » — donc les 4 migrations resteraient non testées alors que les
-    // 5 schémas sont bel et bien exportés.
+    // « Cannot find the schema file » — donc les 6 migrations resteraient non testées alors que les
+    // 7 schémas sont bel et bien exportés. (Le compte disait « 4 » et « 5 » : périmé de deux crans.)
     sourceSets {
         getByName("androidTest") {
             assets.srcDir("$projectDir/schemas")

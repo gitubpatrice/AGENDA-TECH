@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
-import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.domain.backup.AutoBackupTarget
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.ExportBackupUseCase

@@ -7,7 +7,12 @@
 # La lib charge son .so via System.loadLibrary("sqlcipher") + JNI. Les classes du
 # package sont référencées par nom côté natif : ne pas les renommer/supprimer.
 -keep class net.zetetic.database.** { *; }
--keep class net.sqlcipher.** { *; }
+# `-keep class net.sqlcipher.** { *; }` a ete RETIRE le 2026-09-11 (audit).
+# Vestige de l'ancien artefact `android-database-sqlcipher`. Le projet depend de
+# `net.zetetic:sqlcipher-android`, dont le package est `net.zetetic.database` : mesure sur
+# seeds.txt de la release, la regle retenait 0 entree, contre 1074 pour la ligne au-dessus.
+# Une regle qui ne correspond a rien n'est pas neutre : elle fait croire que quelque chose
+# est protege.
 
 # --- Room ---------------------------------------------------------------------
 # Room génère des implémentations _Impl référencées par réflexion à l'ouverture.

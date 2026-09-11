@@ -20,8 +20,17 @@
     <string name="menu_more">More</string>
     <string name="menu_import_ics">Import .ics…</string>
     <string name="menu_export_ics">Export .ics…</string>
-    <string name="ics_export_ok">%1$d events exported</string>
-    <string name="ics_import_ok">%1$d events imported</string>
+    <!-- Audit — etaient des <string> : « 1 events exported ». Un .ics d'invitation unique est
+         le cas le plus courant, donc le fautif s'affichait plus souvent que le correct. Le
+         projet avait deja l'outil (<plurals name="birthday_age">). -->
+    <plurals name="ics_export_ok">
+        <item quantity="one">%1$d event exported</item>
+        <item quantity="other">%1$d events exported</item>
+    </plurals>
+    <plurals name="ics_import_ok">
+        <item quantity="one">%1$d event imported</item>
+        <item quantity="other">%1$d events imported</item>
+    </plurals>
     <string name="ics_error">Couldn\'t read the calendar file</string>
     <string name="ics_import_too_many">This file holds more events than the app accepts (%1$d maximum). Split it and import the parts.</string>
 
@@ -64,6 +73,7 @@
     <string name="editor_gps_open">Open on the map</string>
     <string name="editor_error_blank_title">Title is required</string>
     <string name="editor_error_end_before_start">End must be after start</string>
+    <string name="editor_error_delete_failed">The event could not be deleted. Nothing was removed — try again.</string>
     <string name="editor_error_save_failed">Couldn\'t save the event</string>
     <string name="editor_ok">OK</string>
     <string name="editor_cancel">Cancel</string>
@@ -253,6 +263,7 @@
     <string name="settings_lock_enabled">Lock the app</string>
     <string name="settings_lock_enabled_sub">Require a PIN or biometrics on open</string>
     <string name="settings_lock_change_pin">Change PIN</string>
+    <string name="settings_lock_pin_save_failed">The PIN could not be saved: the device keystore refused. Your previous lock setting is unchanged.</string>
     <string name="settings_lock_biometric">Use biometrics</string>
     <string name="settings_lock_set_pin">Set a PIN</string>
     <string name="settings_lock_confirm_pin">Confirm PIN</string>
@@ -316,7 +327,12 @@
 
     <!-- Privacy policy URL, localised: a French user must not land on the English page. Android
          picks values-fr/ automatically, so the choice needs no code. -->
-    <string name="about_privacy_policy_url" translatable="false">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/PRIVACY.md</string>
+    <!-- Audit — l'attribut translatable="false" a ete retire : il MENTAIT. La valeur EST surchargee
+     en values-fr (vers PRIVACY.fr.md), et c'est voulu. Android sert bien la surcharge, donc le
+     comportement etait correct ; mais un lint en mode correction automatique, ou tout outil qui purge les surcharges
+     declarees non traduisibles, aurait silencieusement renvoye les francophones vers la version
+     anglaise. Lint le signalait deja ([Untranslatable]). -->
+    <string name="about_privacy_policy_url">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/PRIVACY.md</string>
     <!-- %1$d = snooze minutes -->
     <string name="reminder_snooze">Snooze %1$d min</string>
     <!-- Restore offer, on an empty agenda (first run / new phone) -->

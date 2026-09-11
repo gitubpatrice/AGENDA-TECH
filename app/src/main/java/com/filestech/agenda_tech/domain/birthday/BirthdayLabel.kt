@@ -1,4 +1,4 @@
-package com.filestech.agenda_tech.ui.util
+package com.filestech.agenda_tech.domain.birthday
 
 import android.content.res.Resources
 import androidx.compose.runtime.Composable
@@ -18,6 +18,17 @@ import com.filestech.agenda_tech.R
  *
  * Takes [Resources] rather than being Composable-only because the Glance widget has a Context and no
  * `pluralStringResource`; [displayTitle] is the Compose-side wrapper over the same function.
+ *
+ * ## Pourquoi dans `domain/birthday` et non dans `ui/util` (audit — cycle de dependances)
+ *
+ * `widget/AgendaWidget` importait `ui.util.birthdayDisplayTitle` pendant que deux ViewModels de
+ * `ui/` importaient `widget.AgendaWidget` : les deux packages se tenaient mutuellement. Le
+ * widget tourne dans un processus qui n'a pas d'interface Compose ; faire dependre son rendu
+ * d'un package `ui` etait une inversion. La regle d'affichage — un anniversaire montre son age —
+ * appartient au domaine des anniversaires, sous les deux consommateurs.
+ *
+ * [displayTitle] reste Composable et reste donc le seul point qui touche Compose, mais il vit
+ * desormais a cote de la fonction qu'il enveloppe plutot qu'a cote de ses appelants.
  */
 fun birthdayDisplayTitle(resources: Resources, title: String, age: Int?): String =
     if (age == null) title else "$title · " + resources.getQuantityString(R.plurals.birthday_age, age, age)

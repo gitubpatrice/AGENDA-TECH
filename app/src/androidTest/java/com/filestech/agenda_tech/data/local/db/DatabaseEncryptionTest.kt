@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.data.local.db
 
 import android.content.Context
+import android.util.Log
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.filestech.agenda_tech.core.crypto.AeadCipher
@@ -145,7 +146,16 @@ class DatabaseEncryptionTest {
             true
         }
     } catch (t: Throwable) {
-        // A wrong key fails on the first read, which is the whole signal this helper reports.
+        // A wrong key fails on the first read, which is the whole signal this helper reports — the
+        // exception is the ANSWER here, not an error to propagate.
+        //
+        // Le TYPE est tout de meme journalise (audit, point E.2). Ce fichier etait hors de portee de
+        // detekt jusqu'au 2026-09-11 — les sources par defaut du plugin sont src/{main,test}, et
+        // src/androidTest n'y figurait pas. Des que la source a ete ajoutee, la regle a signale cet
+        // avalement : sans ce log, un test qui echoue pour une raison INATTENDUE (bibliotheque native
+        // absente, fichier verrouille) se presente exactement comme un test qui echoue pour la bonne
+        // raison — c'est le motif « controle negatif au rapport perime » du portefeuille.
+        Log.d("DatabaseEncryptionTest", "openDatabase refused: " + t.javaClass.simpleName)
         false
     }
 

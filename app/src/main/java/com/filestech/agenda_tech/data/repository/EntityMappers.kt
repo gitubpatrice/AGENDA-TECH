@@ -57,10 +57,25 @@ internal fun EventEntity.toDomain(): Event = Event(
             freq = freq,
             // Audit F1 — clamped on the way out of the DB too, so a row an affected build already
             // stored is healed on read instead of throwing in RecurrenceRule.init.
+            //
+            // Audit 2026-09-11 — `RecurrenceRule.init` leve sur TROIS conditions ; une seule etait
+            // amortie ici. Les deux autres (`count XOR until`, `count >= 1`) laissaient une ligne
+            // malformee remonter jusqu'au constructeur, et comme AUCUN Flow du depot ne porte de
+            // `.catch`, l'exception traversait `observeForExpansion` -> `combine` -> `stateIn` et
+            // tuait le processus : l'application plantait au lancement, sans moyen d'atteindre la
+            // ligne fautive pour la supprimer. C'est exactement le scenario que la KDoc de
+            // MAX_INTERVAL decrit, par deux portes qu'elle ne fermait pas.
+            //
+            // Inatteignable par une ligne ecrite par cette version — le domaine garantit les
+            // invariants avant `toEntity`. Reparer a la lecture coute trois lignes et ferme la
+            // question sans avoir a prouver qu'aucune version passee n'a pu ecrire ca.
             interval = rruleInterval.coerceIn(1, RecurrenceRule.MAX_INTERVAL),
             byWeekdays = parseWeekdays(rruleByWeekdays),
-            count = rruleCount,
-            untilUtcMillis = rruleUntilUtcMillis,
+            // `count` invalide (0 ou negatif) = pas de borne, plutot qu'une borne absurde.
+            count = rruleCount?.takeIf { it >= 1 },
+            // COUNT et UNTIL sont exclusifs : si les deux sont presents, COUNT gagne — meme ordre de
+            // priorite que les deux parseurs RRULE (IcsCodec et DeviceEventMapper).
+            untilUtcMillis = if (rruleCount?.takeIf { it >= 1 } != null) null else rruleUntilUtcMillis,
             exDatesUtcMillis = parseEpochList(rruleExDates),
         )
     },

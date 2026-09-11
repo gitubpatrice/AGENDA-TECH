@@ -2,7 +2,7 @@ package com.filestech.agenda_tech.security
 
 import android.os.SystemClock
 import androidx.annotation.VisibleForTesting
-import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.core.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

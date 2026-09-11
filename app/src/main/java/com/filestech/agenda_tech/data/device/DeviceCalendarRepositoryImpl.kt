@@ -3,7 +3,7 @@ package com.filestech.agenda_tech.data.device
 import android.content.Context
 import android.database.Cursor
 import android.provider.CalendarContract
-import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.domain.ImportLimits
 import com.filestech.agenda_tech.domain.device.DeviceEventMapper
 import com.filestech.agenda_tech.domain.model.DeviceCalendar

@@ -10,7 +10,7 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalContext
 import com.filestech.agenda_tech.domain.birthday.BirthdayAge
-import com.filestech.agenda_tech.ui.util.birthdayDisplayTitle
+import com.filestech.agenda_tech.domain.birthday.birthdayDisplayTitle
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.actionStartActivity

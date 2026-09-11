@@ -39,10 +39,24 @@ class AgendaViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()
-    val startDate: LocalDate = LocalDate.now(zone)
 
-    private val windowStart = startDate.minusDays(PAST_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
-    private val windowEnd = startDate.plusDays(FUTURE_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
+    /**
+     * Aujourd'hui, relu a CHAQUE acces (audit, gravite faible).
+     *
+     * C'etait un `val` fige a la construction. Les trois autres vues de l'application
+     * (MonthViewModel, DayViewModel, WeekViewModel) ont toutes un `onToday()` qui relit
+     * `LocalDate.now(zone)` ; celle-ci n'en avait pas, et l'ecran s'ancrait donc sur la VEILLE pour
+     * une application laissee ouverte par-dessus minuit.
+     *
+     * La fenetre de donnees, elle, reste calculee une fois : elle couvre un an de part et d'autre,
+     * donc un jour d'ecart n'y cache rien. Ce qui se voyait, c'est le positionnement initial.
+     */
+    val startDate: LocalDate get() = LocalDate.now(zone)
+
+    private val windowStart =
+        LocalDate.now(zone).minusDays(PAST_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
+    private val windowEnd =
+        LocalDate.now(zone).plusDays(FUTURE_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
 
     val uiState: StateFlow<AgendaUiState> = combine(
         observeOccurrences(windowStart, windowEnd),

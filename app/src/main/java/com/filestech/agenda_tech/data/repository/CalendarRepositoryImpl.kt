@@ -1,7 +1,7 @@
 package com.filestech.agenda_tech.data.repository
 
 import com.filestech.agenda_tech.data.local.db.dao.CalendarDao
-import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import kotlinx.coroutines.CoroutineDispatcher

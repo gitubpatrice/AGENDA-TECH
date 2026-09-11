@@ -6,7 +6,7 @@ import com.filestech.agenda_tech.core.result.AppError
 import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.core.result.map
 import com.filestech.agenda_tech.domain.backup.BackupCodec
-import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.domain.repository.BackupRepository
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository

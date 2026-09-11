@@ -93,8 +93,15 @@ class TimeZoneInvariantTest {
                 ),
                 calendarId = 1,
                 defaultZone = paris,
-            ) ?: return@forEach
-            assertThat(TimeZones.isCanonical(event.timeZoneId)).isTrue()
+            )
+            // Le `?: return@forEach` qui vivait ici sautait le cas EN SILENCE. Trente lignes plus
+            // haut, ce fichier explique pourquoi ce meme construit a ete retire de son jumeau
+            // `.ics` : « un test qui exerce silencieusement six cas sur sept est pire qu'un qui
+            // en exerce six ». Le jumeau a ete corrige, celui-ci non — un piege arme, pas encore
+            // declenche (`toEvent` ne rend null que sur titre vide ou fin < debut, deux cas que
+            // cette boucle ne produit pas). On asserte au lieu de sauter.
+            assertThat(event).isNotNull()
+            assertThat(TimeZones.isCanonical(event!!.timeZoneId)).isTrue()
         }
     }
 

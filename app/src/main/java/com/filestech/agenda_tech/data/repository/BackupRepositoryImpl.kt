@@ -5,7 +5,7 @@ import com.filestech.agenda_tech.data.local.db.AppDatabase
 import com.filestech.agenda_tech.data.local.db.dao.BackupDao
 import com.filestech.agenda_tech.data.local.db.dao.ReminderDao
 import com.filestech.agenda_tech.data.local.db.entity.ReminderEntity
-import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.repository.BackupRepository

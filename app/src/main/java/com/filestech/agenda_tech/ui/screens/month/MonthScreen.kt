@@ -66,7 +66,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.filestech.agenda_tech.ui.util.displayTitle
+import com.filestech.agenda_tech.domain.birthday.displayTitle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.domain.ImportLimits
@@ -120,8 +120,11 @@ fun MonthScreen(
     val resources = LocalResources.current
     LaunchedEffect(icsResult, resources) {
         val message = when (val result = icsResult) {
-            is IcsResult.Exported -> resources.getString(R.string.ics_export_ok, result.count)
-            is IcsResult.Imported -> resources.getString(R.string.ics_import_ok, result.count)
+            // <plurals> depuis l'audit : « 1 events » s'affichait dans le cas le plus courant.
+            is IcsResult.Exported ->
+                resources.getQuantityString(R.plurals.ics_export_ok, result.count, result.count)
+            is IcsResult.Imported ->
+                resources.getQuantityString(R.plurals.ics_import_ok, result.count, result.count)
             IcsResult.TooManyEvents ->
                 resources.getString(R.string.ics_import_too_many, ImportLimits.MAX_EVENTS)
             IcsResult.Failed -> resources.getString(R.string.ics_error)

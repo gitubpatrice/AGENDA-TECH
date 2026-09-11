@@ -5,7 +5,7 @@ import com.filestech.agenda_tech.core.crypto.wipe
 import com.filestech.agenda_tech.core.result.AppError
 import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.core.result.flatMap
-import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.domain.ImportLimits
 import com.filestech.agenda_tech.domain.backup.BackupCodec
 import com.filestech.agenda_tech.domain.backup.BackupCodec.toDomain

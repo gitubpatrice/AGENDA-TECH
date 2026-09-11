@@ -8,7 +8,7 @@ import com.filestech.agenda_tech.core.crypto.AeadCipher
 import com.filestech.agenda_tech.core.crypto.KeystoreManager
 import com.filestech.agenda_tech.core.crypto.wipe
 import com.filestech.agenda_tech.core.result.Outcome
-import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.domain.backup.AutoBackupSecret
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first

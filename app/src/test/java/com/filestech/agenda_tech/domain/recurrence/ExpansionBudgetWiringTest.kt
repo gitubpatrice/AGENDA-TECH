@@ -73,8 +73,13 @@ class ExpansionBudgetWiringTest {
         val event = dailyFrom(2026)
         val withBudget = expander.nextOccurrenceStart(event, millis(2026, 1, 5), budget = ExpansionBudget())
         val withoutBudget = expander.nextOccurrenceStart(event, millis(2026, 1, 5))
-        assertThat(withBudget).isEqualTo(withoutBudget)
-        assertThat(withBudget).isNotNull()
+        // `withBudget == withoutBudget` compare le code a lui-meme : les deux appels sont
+        // identiques a un parametre pres, et deux `null` satisferaient l'egalite. Seul
+        // `isNotNull()` empechait le test d'etre vide. On epingle donc la VALEUR attendue —
+        // la 5e occurrence d'une serie quotidienne demarree le 1er janvier 2026 — et l'egalite
+        // ne sert plus qu'a dire que le budget n'a rien change.
+        assertThat(withBudget).isEqualTo(millis(2026, 1, 5))
+        assertThat(withoutBudget).isEqualTo(withBudget)
     }
 
     /**

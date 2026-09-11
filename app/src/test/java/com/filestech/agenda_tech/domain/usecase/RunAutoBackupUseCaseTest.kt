@@ -1,5 +1,7 @@
 package com.filestech.agenda_tech.domain.usecase
 
+import com.filestech.agenda_tech.core.crypto.AeadCipher
+import com.filestech.agenda_tech.core.crypto.BackupEnvelope
 import com.filestech.agenda_tech.core.result.AppError
 import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.domain.backup.AutoBackupOutcome
@@ -174,6 +176,79 @@ class RunAutoBackupUseCaseTest {
         // Nothing recorded either: a failure line about a run the user themselves cancelled is noise.
         assertThat(settings.current().autoBackupLastOutcome).isEqualTo(AutoBackupOutcome.NEVER_RUN)
         assertThat(outcome).isEqualTo(AutoBackupOutcome.NEVER_RUN)
+    }
+
+    // --- Audit AG-16 : le fichier hebdomadaire s'ouvre-t-il vraiment ? ---------------------------
+    //
+    // Tous les tests ci-dessus pilotent un `ExportBackupUseCase` mocké qui rend 64 octets nuls. Ils
+    // prouvent que les ÉCHECS sont enregistrés — ce pour quoi ils ont été écrits — et rien du
+    // contenu. Or le mot de passe du chemin automatique ne vient pas d'où vient celui du chemin
+    // manuel : le manuel le reçoit du champ de saisie, l'automatique le relit depuis
+    // `AutoBackupSecret`, qui le déballe du Keystore et le reconstruit en `CharArray` par un
+    // aller-retour UTF-8. Rien ne scellait avec ce mot de passe-là puis ne rouvrait le résultat.
+    //
+    // Une régression dans cet aller-retour — un NUL final, un `wipe()` une ligne trop tôt — aurait
+    // donc laissé les 364 tests verts et TOUS les `.atbak` hebdomadaires illisibles. Découvert le
+    // jour où le téléphone n'est plus là, c'est-à-dire le seul jour où le fichier sert.
+
+    @Test
+    fun `the weekly file is sealed with the stored password and reopens with it`() = runTest(dispatcher) {
+        val envelope = BackupEnvelope(AeadCipher())
+        val realExport = ExportBackupUseCase(
+            calendarRepository = FakeCalendarRepository(),
+            eventRepository = FakeEventRepository(),
+            backupRepository = FakeBackupRepository(),
+            envelope = envelope,
+            io = dispatcher,
+        )
+        val useCase = RunAutoBackupUseCase(
+            settingsRepository = settings,
+            secret = secret,
+            target = target,
+            exportBackup = realExport,
+            io = dispatcher,
+        )
+
+        val outcome = useCase(now, zone)
+
+        assertThat(outcome).isEqualTo(AutoBackupOutcome.OK)
+        val written = target.contentOf("agenda-tech-auto-2026-08-31.atbak")
+        assertThat(written).isNotNull()
+
+        // Reconnu comme un .atbak AVANT toute dérivation de clé — donc l'en-tête est bien formé.
+        assertThat(envelope.recognise(written!!))
+            .isInstanceOf(BackupEnvelope.Recognition.Openable::class.java)
+
+        // Et il s'ouvre avec le mot de passe que le coffre a rendu — le vrai contrôle : le même que
+        // celui qu'un utilisateur taperait des mois plus tard, sur une autre machine.
+        val opened = envelope.open("motdepassefort".toCharArray(), written)
+        assertThat(opened).isInstanceOf(Outcome.Success::class.java)
+    }
+
+    @Test
+    fun `a wrong password cannot open the weekly file`() = runTest(dispatcher) {
+        val envelope = BackupEnvelope(AeadCipher())
+        val useCase = RunAutoBackupUseCase(
+            settingsRepository = settings,
+            secret = secret,
+            target = target,
+            exportBackup = ExportBackupUseCase(
+                calendarRepository = FakeCalendarRepository(),
+                eventRepository = FakeEventRepository(),
+                backupRepository = FakeBackupRepository(),
+                envelope = envelope,
+                io = dispatcher,
+            ),
+            io = dispatcher,
+        )
+
+        useCase(now, zone)
+        val written = target.contentOf("agenda-tech-auto-2026-08-31.atbak")!!
+
+        // Le contrôle négatif du test précédent : sans lui, un `open()` qui rendrait Success sur
+        // n'importe quoi le ferait passer aussi.
+        assertThat(envelope.open("motdepassefaux".toCharArray(), written))
+            .isInstanceOf(Outcome.Failure::class.java)
     }
 }
 

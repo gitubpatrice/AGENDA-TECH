@@ -43,6 +43,19 @@ jobs:
       - name: Gate
         run: ./gradlew --no-daemon :app:assembleDebug testDebugUnitTest :app:lintDebug detekt
 
+      # R8 n'etait exerce par AUCUN job (audit AG-13). Le gate ne construisait que le debug, le job
+      # zero-network s'arrete au manifeste fusionne, et les tests instrumentes tournent en debug :
+      # `isMinifyEnabled`/`isShrinkResources` ne s'executaient nulle part. Or proguard-rules.pro dit
+      # lui-meme que ce qui garantit le format .atbak est « un export/restauration reel sur l'APK
+      # release minifie » — et toute la sauvegarde automatique, ajoutee le 2026-08-31, n'etait
+      # jamais passee par R8 avant d'etre publiee.
+      #
+      # Sans keystore.properties (absent du depot, et c'est voulu), la signature est simplement
+      # sautee : l'APK sort non signe, ce qui suffit amplement — ce qu'on verifie ici c'est que R8
+      # ne supprime ni ne renomme ce dont le code a besoin par reflexion, pas la signature.
+      - name: Release build (exercises R8)
+        run: ./gradlew --no-daemon :app:assembleRelease
+
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4

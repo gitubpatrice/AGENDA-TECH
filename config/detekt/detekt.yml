@@ -28,8 +28,20 @@ comments:
 complexity:
   active: true
   # Compose composables routinely exceed the JVM-Kotlin "tasteful" thresholds because the
-  # UI tree is declarative and lambdas-for-everything is the idiom. The thresholds below are
-  # aligned with what Now-In-Android, Tivi, and the Material 3 sample apps tolerate.
+  # UI tree is declarative and lambdas-for-everything is the idiom.
+  #
+  # Audit 2026-09-11 — ces trois lignes disaient que les seuils etaient « alignes sur
+  # Now-In-Android, Tivi et les exemples Material 3 ». Affirmation NON VERIFIABLE, et
+  # probablement fausse au moins pour nowinandroid, qui n'utilise pas detekt (Spotless +
+  # ktlint + Android Lint). Une justification qu'on ne peut pas verifier ne justifie rien ;
+  # celle qui suit, elle, se mesure.
+  #
+  # Ces seuils valent 5x le defaut de detekt. Le dire franchement : ce n'est pas un reglage
+  # neutre, et « detekt a 0 sans baseline » ne veut donc PAS dire ce qu'un lecteur exterieur
+  # comprendra. La plus longue fonction du depot est `EventEditorContent` a 337 lignes, et le
+  # seuil de 300 est pose au ras de ce seul cas — ce qui reste une dette assumee, pas un
+  # certificat de bonne sante. Cf. le plan d'action de l'audit (extraction des sections
+  # restantes de cette fonction).
   LongMethod:
     active: true
     threshold: 300
