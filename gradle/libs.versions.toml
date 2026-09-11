@@ -46,7 +46,7 @@ timber = "5.0.1"
 # Tests
 junit5 = "5.11.3"
 mockk = "1.14.11"
-turbine = "1.2.0"
+turbine = "1.2.1"
 truth = "1.4.4"
 robolectric = "4.13"
 androidx-test-ext = "1.2.1"
