@@ -45,6 +45,17 @@ internal class FakeCalendarRepository : CalendarRepository {
     val stored = mutableListOf<Calendar>()
     private var nextId = 1L
 
+    /**
+     * Fait lever la PROCHAINE ecriture, puis se desarme.
+     *
+     * Le chemin d'exception d'un ViewModel ne se teste pas autrement, et c'est celui qui compte le
+     * plus : c'est lui qui, sans `catch`, laisse le drapeau anti-double-tap a `true` pour toujours.
+     * Se desarme apres un tir pour que le test puisse prouver, dans la foulee, que l'ecran accepte de
+     * nouveau une ecriture.
+     */
+    var failNextUpsert = false
+    var failNextDelete = false
+
     override fun observeAll(): Flow<List<Calendar>> = flowOf(stored.toList())
     override fun observeVisible(): Flow<List<Calendar>> = flowOf(stored.filter { it.isVisible })
     override suspend fun getById(id: Long): Calendar? = stored.firstOrNull { it.id == id }
@@ -52,7 +63,22 @@ internal class FakeCalendarRepository : CalendarRepository {
     override suspend fun count(): Int = stored.size
 
     override suspend fun upsert(calendar: Calendar): Long {
-        val id = if (calendar.id == 0L) nextId++ else calendar.id
+        if (failNextUpsert) {
+            failNextUpsert = false
+            error("upsert refused (test)")
+        }
+        // Le compteur saute les identifiants DEJA presents, comme le fait AUTOINCREMENT.
+        //
+        // Sans cette ligne, un calendrier neuf pose sur un depot ou l'on avait seme `id = 1` recevait
+        // ce meme 1 et **ecrasait** la ligne semee. Le double etait alors plus destructeur que la
+        // base, et un test qui compte les lignes mesurait cet artefact au lieu du produit — c'est
+        // ainsi que le test du double-tap a d'abord echoue pour la mauvaise raison.
+        val id = if (calendar.id == 0L) {
+            nextId = maxOf(nextId, (stored.maxOfOrNull { it.id } ?: 0L) + 1)
+            nextId++
+        } else {
+            calendar.id
+        }
         stored.removeAll { it.id == id }
         stored += calendar.copy(id = id)
         return id
@@ -62,6 +88,10 @@ internal class FakeCalendarRepository : CalendarRepository {
     override suspend fun delete(id: Long) { stored.removeAll { it.id == id } }
 
     override suspend fun promoteDefaultAndDelete(promoteId: Long?, deleteId: Long) {
+        if (failNextDelete) {
+            failNextDelete = false
+            error("delete refused (test)")
+        }
         promoteId?.let { id ->
             val i = stored.indexOfFirst { it.id == id }
             if (i >= 0) stored[i] = stored[i].copy(isDefault = true)

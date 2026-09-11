@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.ics
 
+import com.filestech.agenda_tech.core.time.DAY_MILLIS
 import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
@@ -48,7 +49,6 @@ object IcsCodec {
 
     /** Durée d'un VEVENT horodaté dépourvu de DTEND et de DURATION (audit AG-1). */
     private const val DEFAULT_DURATION_MILLIS = 60L * 60 * 1000
-    private const val DAY_MILLIS = 24L * 60 * 60 * 1000
 
     /**
      * Minuit local suivant [startUtcMillis], en arithmétique calendaire.

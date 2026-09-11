@@ -7,6 +7,7 @@ import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.filestech.agenda_tech.widget.AgendaWidget
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -52,7 +53,7 @@ import javax.inject.Singleton
  * les ViewModels sont construits sur le thread principal. C'est la règle posée par l'audit F2 pour
  * les receivers, et elle vaut ici pour la même raison.
  *
- * Chaque geste est isolé dans son propre `runCatching` : un widget qui refuse de se lier ne doit pas
+ * Chaque geste est isolé dans son propre garde : un widget qui refuse de se lier ne doit pas
  * emporter le ré-armement des alarmes avec lui.
  */
 @Singleton
@@ -87,12 +88,38 @@ class AgendaChangeNotifier @Inject constructor(
         appScope.launch {
             running.withLock {
                 if (rearmReminders) {
-                    runCatching { withContext(io) { reminderScheduler.get().rescheduleAll() } }
-                        .onFailure { Timber.w(it, "AgendaChangeNotifier: re-arming reminders failed") }
+                    guarded("re-arming reminders") {
+                        withContext(io) { reminderScheduler.get().rescheduleAll() }
+                    }
                 }
-                runCatching { AgendaWidget().updateAll(context) }
-                    .onFailure { Timber.w(it, "AgendaChangeNotifier: widget refresh failed") }
+                guarded("widget refresh") { AgendaWidget().updateAll(context) }
             }
+        }
+    }
+
+    /**
+     * Isole un geste : son échec est journalisé, il n'emporte pas le suivant — **mais une annulation
+     * passe**.
+     *
+     * `runCatching`, qui tenait cette place, attrape `Throwable`, donc aussi
+     * `CancellationException`. Deux conséquences, toutes deux mauvaises : une passe annulée se
+     * journalisait comme une panne du widget, indiscernable d'un vrai défaut dans le log ; et
+     * l'annulation avalée ici, le `withLock` rendait la main et le geste suivant démarrait dans une
+     * coroutine déjà morte.
+     *
+     * `SettingsViewModel.refreshWidget()` relançait déjà `CancellationException`, avec cette raison
+     * écrite à côté. Le notifier a été créé pour centraliser ce geste **sans reprendre ce
+     * durcissement** — le chemin jumeau, encore, et cette fois c'est la copie centrale qui était la
+     * plus faible. Relevé en revérifiant l'audit de cohérence du 2026-09-11, avant d'y migrer les
+     * deux derniers appelants.
+     */
+    private suspend fun guarded(what: String, block: suspend () -> Unit) {
+        try {
+            block()
+        } catch (c: CancellationException) {
+            throw c
+        } catch (t: Throwable) {
+            Timber.w(t, "AgendaChangeNotifier: %s failed", what)
         }
     }
 }

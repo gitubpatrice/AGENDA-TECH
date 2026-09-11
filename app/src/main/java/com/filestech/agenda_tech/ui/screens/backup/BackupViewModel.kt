@@ -2,7 +2,6 @@ package com.filestech.agenda_tech.ui.screens.backup
 
 import android.content.Context
 import android.net.Uri
-import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.core.crypto.BackupEnvelope
@@ -15,8 +14,8 @@ import com.filestech.agenda_tech.domain.repository.ReminderRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.ExportBackupUseCase
 import com.filestech.agenda_tech.domain.usecase.RestoreBackupUseCase
+import com.filestech.agenda_tech.system.AgendaChangeNotifier
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
-import com.filestech.agenda_tech.widget.AgendaWidget
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -83,6 +82,7 @@ class BackupViewModel @Inject constructor(
     private val restoreBackup: RestoreBackupUseCase,
     private val reminderRepository: ReminderRepository,
     private val reminderScheduler: ReminderScheduler,
+    private val agendaChanged: AgendaChangeNotifier,
     private val settingsRepository: SettingsRepository,
     private val autoBackupSecret: AutoBackupSecret,
     private val autoBackupTarget: AutoBackupTarget,
@@ -397,12 +397,25 @@ class BackupViewModel @Inject constructor(
 
         val message = when (val out = restoreBackup(password, file)) {
             is Outcome.Success -> {
+                // Le desarmement des alarmes PERIMEES reste ici, et lui seul : c'est le F7 propre a
+                // la restauration, celui que le notifier ne peut pas couvrir. `rescheduleAll()`
+                // n'itere que les rappels ENCORE en base — les lignes que la restauration vient de
+                // remplacer n'y figurent plus, exactement comme apres la cascade d'une suppression
+                // de calendrier (AG-9). Seule cette enumeration, faite AVANT l'ecriture, les atteint.
                 reminderScheduler.cancelReminders(staleReminderIds)
-                reminderScheduler.rescheduleAll()
-                // The widget renders a one-shot snapshot, so after replacing the whole agenda it
-                // would keep showing events that no longer exist until its next update cycle.
-                runCatching { AgendaWidget().updateAll(context) }
-                    .onFailure { Timber.w(it, "Backup restore: widget refresh failed") }
+                // Le reste — re-armer, redessiner le widget — passe par la couture commune.
+                //
+                // Audit de coherence C1 : ces deux gestes etaient refaits a la main ici, sur
+                // `viewModelScope`. `rescheduleAll()` relit tous les rappels et deplie leurs
+                // recurrences ; quitter l'ecran Sauvegarde avant la fin annulait la coroutine en vol,
+                // et il ne restait NI alarmes re-armees, NI widget redessine, NI trace. Il manquait
+                // aussi le `Mutex` du notifier : une restauration concurrente d'un import pouvait
+                // armer d'apres un etat perime.
+                //
+                // L'ironie du constat : la KDoc d'`AgendaChangeNotifier` cite la restauration comme
+                // l'un des deux seuls sites qui redessinaient le widget avant la consolidation. Le
+                // notifier a ete ecrit en citant ce site, et ce site n'avait pas ete migre.
+                agendaChanged.onAgendaChanged()
                 BackupMessage.Restored(out.value.calendars, out.value.events, out.value.reminders)
             }
             is Outcome.Failure -> {

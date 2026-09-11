@@ -1,5 +1,7 @@
 package com.filestech.agenda_tech.domain.ics
 
+import com.filestech.agenda_tech.core.time.DAY_MILLIS
+
 /**
  * RFC 5545 §3.3.6 durations (`P1D`, `PT1H30M`, `PT3600S`, `P2W`) → milliseconds.
  *
@@ -19,8 +21,6 @@ package com.filestech.agenda_tech.domain.ics
  * that can make it correctly.
  */
 internal object RfcDuration {
-
-    private const val DAY_MILLIS = 24L * 60 * 60 * 1000
 
     /** Per-component bound, applied *before* the cascade so a pathological `P999999999D` cannot overflow. */
     private const val MAX_DAYS = 3_650L // ~10 years

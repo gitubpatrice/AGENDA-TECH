@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.domain.device
 
 import com.filestech.agenda_tech.core.text.BidiSanitizer
+import com.filestech.agenda_tech.core.time.DAY_MILLIS
 import com.filestech.agenda_tech.core.time.TimeZones
 import com.filestech.agenda_tech.domain.ics.RfcDuration
 import com.filestech.agenda_tech.domain.model.CalendarColor
@@ -26,7 +27,6 @@ import java.time.format.DateTimeFormatter
  */
 object DeviceEventMapper {
 
-    private const val DAY_MILLIS = 24L * 60 * 60 * 1000
     private const val DEFAULT_DURATION_MILLIS = 60L * 60 * 1000 // 1h when nothing else is known
 
     // Les bornes des durées pathologiques (un agenda tiers peut en porter) vivent desormais dans

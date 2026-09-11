@@ -3,9 +3,11 @@ package com.filestech.agenda_tech.ui.screens.month
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +24,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -33,20 +34,21 @@ import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.SettingsBackupRestore
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -66,10 +68,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.filestech.agenda_tech.domain.birthday.displayTitle
 import com.filestech.agenda_tech.R
-import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.domain.ImportLimits
+import com.filestech.agenda_tech.domain.birthday.displayTitle
+import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.ui.ics.IcsResult
 import com.filestech.agenda_tech.ui.ics.IcsViewModel
 import com.filestech.agenda_tech.ui.navigation.CalendarView
@@ -79,11 +81,11 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.temporal.WeekFields
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
+import java.time.temporal.WeekFields
 import java.util.Locale
 
 // A large virtual page window centred on the anchor month lets the pager scroll ~100 years either way.
@@ -106,6 +108,7 @@ fun MonthScreen(
     val showRestorePrompt by viewModel.showRestorePrompt.collectAsStateWithLifecycle()
     val backupPrompt by viewModel.backupPrompt.collectAsStateWithLifecycle()
     val icsResult by icsViewModel.result.collectAsStateWithLifecycle()
+    val icsBusy by icsViewModel.busy.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -136,32 +139,52 @@ fun MonthScreen(
         }
     }
 
-    MonthScreenContent(
-        state = state,
-        onSelectView = onSelectView,
-        onPreviousMonth = viewModel::onPreviousMonth,
-        onNextMonth = viewModel::onNextMonth,
-        onToday = viewModel::onToday,
-        onShowMonth = viewModel::showMonth,
-        onSelectDate = viewModel::onSelectDate,
-        onAddEvent = onAddEvent,
-        onOccurrenceClick = onOccurrenceClick,
-        onExportIcs = { exportLauncher.launch("agenda-tech.ics") },
-        onImportIcs = { importLauncher.launch(arrayOf("text/calendar", "*/*")) },
-        onOpenSettings = onOpenSettings,
-        onOpenAbout = onOpenAbout,
-        onOpenSearch = onOpenSearch,
-        showRestorePrompt = showRestorePrompt,
-        onRestoreBackup = {
-            // Answered either way — restoring or declining. Don't ask again.
-            viewModel.dismissRestorePrompt()
-            onOpenBackup()
-        },
-        onDismissRestorePrompt = viewModel::dismissRestorePrompt,
-        backupPrompt = backupPrompt,
-        onBackupNow = onOpenBackup,
-        onSnoozeBackupPrompt = viewModel::snoozeBackupPrompt,
-    )
+    // Audit de coherence C4 — l'import lit, analyse puis ecrit jusqu'a 5 Mo de `.ics` sans qu'aucun
+    // signe ne parte a l'ecran : il restait parfaitement immobile jusqu'au message final, ce qui se
+    // lit comme « rien ne s'est passe ». Le voile capte aussi les tapes, ce qui evite d'ouvrir
+    // l'editeur sur un agenda en train d'etre remplace.
+    Box(modifier = Modifier.fillMaxSize()) {
+        MonthScreenContent(
+            state = state,
+            onSelectView = onSelectView,
+            onPreviousMonth = viewModel::onPreviousMonth,
+            onNextMonth = viewModel::onNextMonth,
+            onToday = viewModel::onToday,
+            onShowMonth = viewModel::showMonth,
+            onSelectDate = viewModel::onSelectDate,
+            onAddEvent = onAddEvent,
+            onOccurrenceClick = onOccurrenceClick,
+            onExportIcs = { exportLauncher.launch("agenda-tech.ics") },
+            onImportIcs = { importLauncher.launch(arrayOf("text/calendar", "*/*")) },
+            onOpenSettings = onOpenSettings,
+            onOpenAbout = onOpenAbout,
+            onOpenSearch = onOpenSearch,
+            showRestorePrompt = showRestorePrompt,
+            onRestoreBackup = {
+                // Answered either way — restoring or declining. Don't ask again.
+                viewModel.dismissRestorePrompt()
+                onOpenBackup()
+            },
+            onDismissRestorePrompt = viewModel::dismissRestorePrompt,
+            backupPrompt = backupPrompt,
+            onBackupNow = onOpenBackup,
+            onSnoozeBackupPrompt = viewModel::snoozeBackupPrompt,
+        )
+        if (icsBusy) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = SCRIM_ALPHA))
+                    // Absorbe les tapes : sans lui, le voile est purement decoratif et l'utilisateur
+                    // ouvre l'editeur sur des lignes que l'import est en train de remplacer.
+                    .clickable(enabled = true, onClick = {}, indication = null,
+                        interactionSource = remember { MutableInteractionSource() }),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+    }
 }
 
 @Composable
@@ -655,3 +678,7 @@ private fun PromptCard(
         }
     }
 }
+
+/** Opacite du voile pose pendant un import/export `.ics` : assez sombre pour dire « attendez »,
+ * assez clair pour que l'agenda reste reconnaissable derriere. */
+private const val SCRIM_ALPHA = 0.32f

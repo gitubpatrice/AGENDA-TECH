@@ -120,4 +120,110 @@ class CalendarsViewModelTest {
         coVerify(exactly = 0) { scheduler.cancelEvent(7) }
         assertThat(events.rows.keys).contains(7L)
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // Audit de cohérence C3 et C5 — le garde anti-double-tap, et l'échec qui se disait à personne.
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * **Le test qui manquait.** `Calendar.id` vaut `0L` pour un calendrier neuf et `CalendarDao.upsert`
+     * est un `@Upsert` : sur `id = 0` il **insère**. `CalendarsScreen` refermait le dialogue de façon
+     * synchrone dans le callback de « Enregistrer », mais la recomposition n'arrive qu'à l'image
+     * suivante — deux tapes dans la même image franchissaient toutes deux le callback.
+     *
+     * Les deux appels sont faits **sans avancer l'ordonnanceur entre eux**, parce que c'est
+     * exactement ce que fait la seconde tape : elle arrive avant que la première coroutine ait atteint
+     * son premier point de suspension. Un `advanceUntilIdle` intercalé testerait une séquence que
+     * l'utilisateur ne peut pas produire, et le test passerait même sans le garde.
+     */
+    @Test
+    fun `two taps on Save create one calendar, not two`() = runTest(dispatcher) {
+        calendars.stored += Calendar(id = 1, name = "Perso", isDefault = true)
+        val vm = viewModel()
+        backgroundScope.launch { vm.uiState.collect { } }
+        testScheduler.advanceUntilIdle()
+
+        vm.save(Calendar(name = "Travail"))
+        vm.save(Calendar(name = "Travail"))
+        testScheduler.advanceUntilIdle()
+
+        assertThat(calendars.stored.filter { it.name == "Travail" }).hasSize(1)
+        assertThat(calendars.stored).hasSize(2)
+    }
+
+    /** Le garde protège du double-tap, il ne doit pas condamner l'écran : la tape SUIVANTE passe. */
+    @Test
+    fun `the guard is released once the write is done`() = runTest(dispatcher) {
+        calendars.stored += Calendar(id = 1, name = "Perso", isDefault = true)
+        val vm = viewModel()
+        backgroundScope.launch { vm.uiState.collect { } }
+
+        vm.save(Calendar(name = "Travail"))
+        testScheduler.advanceUntilIdle()
+        vm.save(Calendar(name = "Sport"))
+        testScheduler.advanceUntilIdle()
+
+        assertThat(calendars.stored.map { it.name }).containsExactly("Perso", "Travail", "Sport")
+        assertThat(vm.uiState.value.busy).isFalse()
+    }
+
+    /**
+     * Audit C5 — `UpsertCalendarUseCase` documente rendre « a typed `AppError.Validation` the UI can
+     * surface directly ». Personne ne le remontait : le `Outcome.Failure` était journalisé et le
+     * dialogue se refermait comme si le calendrier avait été enregistré.
+     */
+    @Test
+    fun `a rejected name is reported, not swallowed`() = runTest(dispatcher) {
+        val vm = viewModel()
+        backgroundScope.launch { vm.uiState.collect { } }
+
+        vm.save(Calendar(name = "   "))
+        testScheduler.advanceUntilIdle()
+
+        assertThat(vm.uiState.value.error).isEqualTo(CalendarsError.SAVE_FAILED)
+        assertThat(calendars.stored).isEmpty()
+    }
+
+    /**
+     * Le chemin d'exception, et c'est le plus important des trois : `busy` doit être **relâché**.
+     *
+     * Sans le `catch`, la coroutine mourait avec le drapeau à `true` et plus aucune tape n'était
+     * acceptée jusqu'à la destruction du ViewModel — le garde posé contre le double-tap devenait un
+     * moyen de figer l'écran. C'est le défaut qu'`EventEditorViewModel.launchDeletion` documente pour
+     * l'avoir eu.
+     */
+    @Test
+    fun `a throwing repository reports the failure and frees the screen`() = runTest(dispatcher) {
+        val vm = viewModel()
+        backgroundScope.launch { vm.uiState.collect { } }
+
+        calendars.failNextUpsert = true
+        vm.save(Calendar(name = "Travail"))
+        testScheduler.advanceUntilIdle()
+
+        assertThat(vm.uiState.value.error).isEqualTo(CalendarsError.SAVE_FAILED)
+        assertThat(vm.uiState.value.busy).isFalse()
+
+        // La preuve que l'écran n'est pas condamné : la tentative suivante écrit.
+        vm.save(Calendar(name = "Travail"))
+        testScheduler.advanceUntilIdle()
+        assertThat(calendars.stored.map { it.name }).containsExactly("Travail")
+    }
+
+    /** Symétrique du précédent pour la suppression : elle ne doit pas échouer en silence. */
+    @Test
+    fun `a failing deletion is reported`() = runTest(dispatcher) {
+        seed()
+        val vm = viewModel()
+        backgroundScope.launch { vm.uiState.collect { } }
+        testScheduler.advanceUntilIdle()
+
+        calendars.failNextDelete = true
+        vm.delete(2)
+        testScheduler.advanceUntilIdle()
+
+        assertThat(vm.uiState.value.error).isEqualTo(CalendarsError.DELETE_FAILED)
+        assertThat(vm.uiState.value.busy).isFalse()
+        assertThat(calendars.stored.map { it.id }).contains(2L)
+    }
 }

@@ -26,11 +26,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +57,7 @@ fun CalendarsScreen(
     viewModel: CalendarsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
     var editing by remember { mutableStateOf<Calendar?>(null) }
     var showDialog by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf<Calendar?>(null) }
@@ -69,6 +73,7 @@ fun CalendarsScreen(
                 },
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = {
                 editing = null
@@ -96,10 +101,26 @@ fun CalendarsScreen(
         }
     }
 
+    // Audit de coherence C5 — l'echec d'ecriture etait journalise et rien de plus : le dialogue se
+    // refermait comme si le calendrier avait ete enregistre. Snackbar plutot que texte en place,
+    // c'est la convention des ecrans Sauvegarde et Reglages.
+    val saveFailed = stringResource(R.string.calendar_error_save_failed)
+    val deleteFailed = stringResource(R.string.calendar_error_delete_failed)
+    LaunchedEffect(state.error) {
+        val message = when (state.error) {
+            CalendarsError.SAVE_FAILED -> saveFailed
+            CalendarsError.DELETE_FAILED -> deleteFailed
+            null -> null
+        } ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message)
+        viewModel.consumeError()
+    }
+
     if (showDialog) {
         CalendarEditDialog(
             initial = editing,
             canDelete = state.canDelete && editing != null,
+            busy = state.busy,
             onSave = { name, color ->
                 val base = editing ?: Calendar(name = "")
                 viewModel.save(base.copy(name = name, color = color))
@@ -119,10 +140,16 @@ fun CalendarsScreen(
             title = { Text(stringResource(R.string.calendar_delete_confirm_title)) },
             text = { Text(stringResource(R.string.calendar_delete_confirm_body, target.name)) },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.delete(target.id)
-                    confirmDelete = null
-                }) {
+                // `enabled` double le garde du ViewModel, il ne le remplace pas : la recomposition
+                // n'arrive qu'a l'image suivante, donc deux tapes dans la meme image passent ici
+                // toutes les deux. Seul `CalendarsViewModel.delete` les arrete (audit C3).
+                TextButton(
+                    enabled = !state.busy,
+                    onClick = {
+                        viewModel.delete(target.id)
+                        confirmDelete = null
+                    },
+                ) {
                     Text(stringResource(R.string.action_delete), color = BrandDanger)
                 }
             },
@@ -162,6 +189,7 @@ private fun CalendarRow(
 private fun CalendarEditDialog(
     initial: Calendar?,
     canDelete: Boolean,
+    busy: Boolean,
     onSave: (String, CalendarColor) -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
@@ -224,7 +252,7 @@ private fun CalendarEditDialog(
         confirmButton = {
             TextButton(
                 onClick = { onSave(name.trim(), color) },
-                enabled = name.isNotBlank(),
+                enabled = name.isNotBlank() && !busy,
             ) {
                 Text(stringResource(R.string.action_save))
             }

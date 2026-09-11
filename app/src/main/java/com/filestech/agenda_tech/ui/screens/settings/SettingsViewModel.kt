@@ -1,7 +1,5 @@
 package com.filestech.agenda_tech.ui.screens.settings
 
-import android.content.Context
-import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.domain.model.CalendarColor
@@ -12,13 +10,9 @@ import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.domain.settings.WeekStart
 import com.filestech.agenda_tech.security.AppLockManager
 import com.filestech.agenda_tech.security.BiometricGate
-import com.filestech.agenda_tech.core.di.ApplicationScope
+import com.filestech.agenda_tech.system.AgendaChangeNotifier
 import com.filestech.agenda_tech.system.notifications.ReminderNotifier
-import com.filestech.agenda_tech.widget.AgendaWidget
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,7 +25,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import javax.inject.Inject
 import kotlin.math.ceil
 
@@ -42,13 +35,12 @@ data class LockUiState(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository,
     private val lockRepository: LockRepository,
     private val appLock: AppLockManager,
     private val reminderNotifier: ReminderNotifier,
     private val biometricGate: BiometricGate,
-    @ApplicationScope private val appScope: CoroutineScope,
+    private val agendaChanged: AgendaChangeNotifier,
 ) : ViewModel() {
 
     val settings: StateFlow<AppSettings> = settingsRepository.settings.stateIn(
@@ -92,6 +84,29 @@ class SettingsViewModel @Inject constructor(
             refreshWidget()
         }
     }
+
+    /**
+     * Redessine le widget maintenant, plutot qu'au prochain top de 30 minutes de la plateforme.
+     *
+     * Le cas critique pour la vie privee est l'activation du verrou : [AgendaWidget] masque de force
+     * les titres des qu'un PIN existe, mais cette decision ne vaut que pour le rendu SUIVANT. Sans
+     * un redessin immediat, les titres que le verrou vient d'etre active pour cacher restent
+     * lisibles sur l'ecran d'accueil pendant une demi-heure. C'est la garantie LOCK-3, et ce sont
+     * ces trois lignes qui la rendent vraie.
+     *
+     * [AgendaChangeNotifier.onAgendaChanged] avec `rearmReminders = false` : aucun de ces reglages ne
+     * peut deplacer un rappel — poser un PIN, retirer le verrou, masquer les titres ne changent ni
+     * quels evenements existent, ni quand ils ont lieu. Relire tous les rappels et deplier leurs
+     * recurrences ne servirait qu'a retarder le redessin.
+     *
+     * Audit de coherence C2 — cette fonction portait sa propre copie du geste : meme
+     * [ApplicationScope], meme traitement de l'echec, meme raison ecrite deux fois. Deux copies d'un
+     * meme geste, c'est deux occasions de durcir l'une sans l'autre, et c'est exactement ce qui
+     * s'etait produit : la copie d'ici relancait `CancellationException`, la couture commune
+     * l'avalait dans un `runCatching`. Durcie avant cette migration, sinon centraliser aurait fait
+     * PERDRE la garantie au site qui l'avait.
+     */
+    private fun refreshWidget() = agendaChanged.onAgendaChanged(rearmReminders = false)
 
     /** Seconds the user must wait before the next re-auth attempt (0 when not throttled). */
     private var tickerJob: Job? = null
@@ -184,46 +199,13 @@ class SettingsViewModel @Inject constructor(
      * `agenda_widget_info.xml` sets `updatePeriodMillis` to 30 minutes, so without this the user
      * turns on "hide titles in the widget" and their event titles stay legible on the home screen
      * for up to half an hour. [refreshWidget] makes the setting take effect when it is flipped,
-     * which is the only moment at which the user is looking for it to.
+     * which is the only moment at which the user is looking for it to — it delegates to
+     * [AgendaChangeNotifier], the single seam every agenda write goes through.
      */
     private fun updateThenRefreshWidget(transform: (AppSettings) -> AppSettings) {
         viewModelScope.launch {
             settingsRepository.update(transform)
             refreshWidget()
-        }
-    }
-
-    /**
-     * Redraws the home-screen widget now rather than at the platform's next 30-minute tick.
-     *
-     * Called after every change to what the widget is allowed to show. The privacy-critical one is
-     * enabling the lock: `AgendaWidget` force-hides titles whenever a PIN is set, and its own KDoc
-     * used to claim that "enabling the lock never leaves event titles readable on the home screen".
-     * Nothing enforced it — `updateAll` had exactly one caller in the whole app, after a restore —
-     * so the titles the lock was turned on to hide stayed on screen for up to 30 minutes.
-     *
-     * Failure is logged and swallowed on purpose: no widget on the home screen, or a host that
-     * refuses the update, must not make setting a PIN look like it failed.
-     */
-    private fun refreshWidget() {
-        // On the APPLICATION scope, not `viewModelScope` — found by internal review of this very fix.
-        // Leaving the settings screen destroys the ViewModel and cancels its scope, so the refresh was
-        // killed in flight by the gesture that most naturally follows switching the lock on: set the
-        // PIN, press back. The lock was set, the widget was not, and the titles it exists to hide
-        // stayed on the home screen for up to thirty minutes — the exact leak this was written to
-        // close, on its own nominal path.
-        appScope.launch {
-            try {
-                AgendaWidget().updateAll(context)
-            } catch (c: CancellationException) {
-                // Never swallowed as a failure: it is not one, and reporting it as one is how a
-                // cancelled refresh looks identical to a broken widget in the log.
-                throw c
-            } catch (t: Throwable) {
-                // No widget on the home screen, or a host that refuses: setting a PIN must not look
-                // like it failed.
-                Timber.w(t, "Settings: widget refresh failed")
-            }
         }
     }
 

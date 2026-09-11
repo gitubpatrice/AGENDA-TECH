@@ -52,7 +52,26 @@ class IcsViewModel @Inject constructor(
     private val _result = MutableStateFlow<IcsResult?>(null)
     val result: StateFlow<IcsResult?> = _result.asStateFlow()
 
-    fun export(uri: Uri) = viewModelScope.launch {
+    /**
+     * Vrai pendant un import ou un export (audit de coherence C4).
+     *
+     * Deux roles, d'inegale importance, et il vaut de les distinguer parce que le rapport d'audit
+     * initial les confondait :
+     *
+     * 1. **Dire que quelque chose se passe.** C'est le vrai manque. Le plafond d'import est de 5 Mo
+     *    et le fichier est lu, analyse, puis ecrit ligne par ligne : sur un gros agenda l'ecran
+     *    restait parfaitement immobile, sans aucun signe, jusqu'au message final.
+     * 2. **Empecher un second lancement.** Marginal ici, et le rapport le surestimait : on n'entre
+     *    dans [import] et [export] que par le selecteur de documents du systeme, qui est une autre
+     *    activite — le menu est deja referme quand il s'ouvre, et il ne rend qu'un `Uri` a la fois.
+     *    Les *donnees*, elles, sont deja protegees par le `Mutex` d'`ImportEventsUseCase`. Le garde
+     *    est pose quand meme, parce qu'un etat qui dit « occupe » et laisse passer une seconde
+     *    ecriture est pire qu'aucun etat : il se lit comme une garantie.
+     */
+    private val _busy = MutableStateFlow(false)
+    val busy: StateFlow<Boolean> = _busy.asStateFlow()
+
+    fun export(uri: Uri) = launchBusy {
         val outcome = withContext(io) {
             runCatching {
                 val exported = exportEvents(System.currentTimeMillis())
@@ -85,7 +104,7 @@ class IcsViewModel @Inject constructor(
      * refused — turning a legitimate file into "import failed". One correction covers all three,
      * because none of them is about the size: they are about who is asked.
      */
-    fun import(uri: Uri) = viewModelScope.launch {
+    fun import(uri: Uri) = launchBusy {
         val outcome = withContext(io) {
             runCatching {
                 val stream = context.contentResolver.openInputStream(uri) ?: error("no input stream")
@@ -108,6 +127,28 @@ class IcsViewModel @Inject constructor(
                 if (error is ImportEventsUseCase.TooManyEvents) IcsResult.TooManyEvents else IcsResult.Failed
             },
         )
+    }
+
+    /**
+     * Une seule enveloppe pour les deux chemins, plutot que deux `try/finally` jumeaux.
+     *
+     * C'est le motif de la journee pris a l'envers : deux copies du meme geste, c'est deux occasions
+     * d'en durcir une et d'oublier l'autre. Ici la copie oubliee aurait ete l'export.
+     *
+     * `finally` et non une ligne posee apres le corps : une annulation — l'utilisateur quitte l'ecran
+     * pendant l'import — laisserait sinon `busy` a `true` sur un ViewModel qui, lui, survit a la
+     * rotation, et plus rien ne s'importerait jusqu'a sa destruction. Meme lecon que
+     * `EventEditorViewModel.launchDeletion`, ou le drapeau pose contre le double-tap etait devenu un
+     * moyen de figer l'ecran pour de bon.
+     */
+    private fun launchBusy(block: suspend () -> Unit) = viewModelScope.launch {
+        if (_busy.value) return@launch
+        _busy.value = true
+        try {
+            block()
+        } finally {
+            _busy.value = false
+        }
     }
 
     fun consumeResult() {

@@ -25,6 +25,7 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import com.filestech.agenda_tech.core.time.DAY_MILLIS
 import com.filestech.agenda_tech.domain.birthday.BirthdayAge
 import java.time.ZoneId
 import java.time.temporal.WeekFields
@@ -151,7 +152,7 @@ class MonthViewModel @Inject constructor(
             // Exported before: only speak up if there is something new to lose, and enough time has
             // passed that saying so is worth the interruption.
             stats.lastChangeAtUtcMillis > settings.lastBackupAtUtcMillis &&
-                now - settings.lastBackupAtUtcMillis > STALE_BACKUP_DAYS * MILLIS_PER_DAY ->
+                now - settings.lastBackupAtUtcMillis > STALE_BACKUP_DAYS * DAY_MILLIS ->
                 BackupPromptReason.STALE
             else -> null
         }
@@ -169,7 +170,7 @@ class MonthViewModel @Inject constructor(
 
     /** "Later" on the backup reminder — quiet for [SNOOZE_DAYS] days, then it may ask again. */
     fun snoozeBackupPrompt() = viewModelScope.launch {
-        val until = nowUtcMillis() + SNOOZE_DAYS * MILLIS_PER_DAY
+        val until = nowUtcMillis() + SNOOZE_DAYS * DAY_MILLIS
         settingsRepository.update { it.copy(backupPromptSnoozedUntilUtcMillis = until) }
     }
 
@@ -284,8 +285,6 @@ class MonthViewModel @Inject constructor(
 
         /** How long "later" buys. Long enough not to nag, short enough to still matter. */
         const val SNOOZE_DAYS = 14L
-
-        const val MILLIS_PER_DAY = 24 * 60 * 60 * 1000L
 
         const val STOP_TIMEOUT_MS = 5_000L
         const val MAX_DOTS = 4

@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.ui.screens.month
 
 import app.cash.turbine.test
+import com.filestech.agenda_tech.core.time.DAY_MILLIS
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
 import com.filestech.agenda_tech.domain.settings.AppSettings
@@ -176,7 +177,7 @@ class BackupPromptTest {
         vm.snoozeBackupPrompt()
         testScheduler.advanceUntilIdle()
 
-        val expected = now + MonthViewModel.SNOOZE_DAYS * MonthViewModel.MILLIS_PER_DAY
+        val expected = now + MonthViewModel.SNOOZE_DAYS * DAY_MILLIS
         assertThat(settings.current().backupPromptSnoozedUntilUtcMillis).isEqualTo(expected)
     }
 }
