@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Zone BASSE du widget agenda : le rouge du damier, arrondi en bas seulement. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:bottomLeftRadius="13dp" android:bottomRightRadius="13dp" />
+    <solid android:color="@color/widget_events_background" />
+</shape>

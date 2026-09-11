@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Zone HAUTE du widget agenda : le bleu du damier, arrondi en haut seulement.
+
+  Deux drawables plutot qu'un `cornerRadius` sur chaque zone : `GlanceModifier.cornerRadius` n'est
+  applique qu'a partir d'Android 12 et reste sans effet en dessous, alors que le minSdk vaut 26. Sans
+  ces formes, les angles seraient carres sur un Android 10 — c'est-a-dire sur l'appareil de recette.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:topLeftRadius="13dp" android:topRightRadius="13dp" />
+    <solid android:color="@color/widget_background" />
+</shape>

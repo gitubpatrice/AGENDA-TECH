@@ -3,32 +3,31 @@ package com.filestech.agenda_tech.widget
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
-import com.filestech.agenda_tech.domain.birthday.BirthdayAge
-import com.filestech.agenda_tech.domain.birthday.birthdayDisplayTitle
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
-import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.height
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import com.filestech.agenda_tech.MainActivity
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.domain.birthday.BirthdayAge
+import com.filestech.agenda_tech.domain.birthday.birthdayDisplayTitle
 import com.filestech.agenda_tech.domain.repository.LockRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
@@ -36,19 +35,19 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.flow.first
-import timber.log.Timber
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import kotlinx.coroutines.flow.first
+import timber.log.Timber
 
 /**
  * Home-screen widget: shows today's date and the next few events, and opens the app when tapped.
  * Data is fetched through a Hilt [WidgetEntryPoint] (widgets run outside the Activity graph).
- * Colours are a fixed brand card (see [WidgetBackground]) rather than theme-following: a widget is
+ * Colours are a fixed brand card (see [WidgetPalette]) rather than theme-following: a widget is
  * drawn over the user's wallpaper, which the app neither controls nor can measure, so following the
  * light/dark theme would still leave it unreadable over a busy photo.
  */
@@ -104,8 +103,11 @@ class AgendaWidget : GlanceAppWidget() {
         // to redraw the widget at that moment, and nothing did: `updateAll` had a single caller in the
         // whole app, after a restore. `agenda_widget_info.xml` asks the platform for a 30-minute
         // period, so the titles the lock was turned on to hide stayed on the home screen for up to
-        // half an hour. `SettingsViewModel.refreshWidget()` is what makes the sentence true; if it is
-        // ever removed, this line silently goes back to being a 30-minute promise.
+        // half an hour. `SettingsViewModel.refreshWidget()` is what makes the sentence true; it now
+        // delegates to `AgendaChangeNotifier.onAgendaChanged(rearmReminders = false)`, the seam every
+        // agenda write goes through. If that call is ever dropped from the lock path, this line
+        // silently goes back to being a 30-minute promise. `SettingsViewModelWidgetRefreshTest`
+        // fails if it is.
         val hideTitles = entryPoint.settingsRepository().current().widgetHideTitles ||
             entryPoint.lockRepository().isLockEnabled()
         val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale)
@@ -158,47 +160,89 @@ private data class WidgetData(
 private data class WidgetRow(val time: String, val title: String)
 
 // Fixed brand look (indigo card, light text) so the widget reads well on any launcher wallpaper.
-private val WidgetBackground = ColorProvider(Color(0xFF262660))
-private val WidgetPrimary = ColorProvider(Color(0xFFA9C7FF))
-private val WidgetOnBackground = ColorProvider(Color(0xFFFFFFFF))
+/**
+ * Le fond de la carte, en ressource plutot qu'en couleur inline.
+ *
+ * Un `shape` porte les angles arrondis de 10dp : `GlanceModifier.cornerRadius` n'est applique qu'a
+ * partir d'Android 12 et reste **sans effet** en dessous, alors que le minSdk est 26 et que
+ * l'appareil de recette tourne en Android 10. Le drawable, lui, arrondit partout. `cornerRadius` est
+ * pose en plus pour qu'Android 12+ rogne aussi le CONTENU et non le seul fond.
+ *
+ * La couleur vit dans `colors.xml` : elle etait ecrite en dur ici ET dans `AgendaIconWidget`, et le
+ * drawable en aurait fait une troisieme copie.
+ */
+private const val WIDGET_CORNER_RADIUS_DP = 13
 
+/**
+ * Les deux couleurs du damier du logo, reparties comme lui : **la date sur le bleu, les evenements
+ * sur le rouge**.
+ *
+ * ## Pourquoi la zone rouge prend toute la hauteur restante
+ *
+ * `defaultWeight()` et non une hauteur fixe : sans lui, un jour a un seul rendez-vous laisserait le
+ * bas de la carte transparent, et l'angle arrondi du bas se dessinerait au milieu du widget, sur le
+ * fond d'ecran. La zone doit descendre jusqu'en bas quel que soit le nombre de lignes.
+ *
+ * ## Pourquoi tous les textes sont blancs
+ *
+ * Mesure, pas gout : le blanc rend 6,01:1 sur le bleu `#0B60C5` et 5,24:1 sur le rouge `#CA331F`,
+ * donc au-dessus du seuil de 4,5:1 des deux cotes, y compris pour les libelles de 12 sp. Le bleu
+ * clair `#A9C7FF` qui servait d'accent sur l'ancien fond indigo n'y arrivait pas : 3,52:1 sur le
+ * bleu, 3,07:1 sur le rouge — lisible en 30 sp gras, **sous le seuil** pour l'heure d'un rendez-vous.
+ * La hierarchie passe donc par la taille et la graisse, pas par la teinte.
+ */
 @Composable
 private fun WidgetContent(data: WidgetData) {
     val context = LocalContext.current
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(WidgetBackground)
-            .padding(12.dp)
+            // Rogne le CONTENU sur Android 12+. En dessous il est sans effet, et ce sont les formes
+            // des deux zones qui portent les angles — d'ou leurs coins arrondis separes.
+            .cornerRadius(WIDGET_CORNER_RADIUS_DP.dp)
             .clickable(actionStartActivity(Intent(context, MainActivity::class.java))),
     ) {
-        Text(
-            text = data.dayNumber,
-            style = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Bold, color = WidgetPrimary),
-        )
-        Text(
-            text = data.subtitle,
-            style = TextStyle(fontSize = 13.sp, color = WidgetOnBackground),
-        )
-        Spacer(GlanceModifier.height(8.dp))
-        if (data.rows.isEmpty()) {
+        Column(
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .background(ImageProvider(R.drawable.widget_zone_blue))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
             Text(
-                text = data.emptyLabel,
-                style = TextStyle(fontSize = 13.sp, color = WidgetOnBackground),
+                text = data.dayNumber,
+                style = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Bold, color = WidgetPalette.OnCard),
             )
-        } else {
-            data.rows.forEach { row ->
-                Row(modifier = GlanceModifier.padding(vertical = 2.dp)) {
-                    Text(
-                        text = row.time,
-                        style = TextStyle(fontSize = 12.sp, color = WidgetPrimary),
-                        modifier = GlanceModifier.width(58.dp),
-                    )
-                    Text(
-                        text = row.title,
-                        maxLines = 1,
-                        style = TextStyle(fontSize = 13.sp, color = WidgetOnBackground),
-                    )
+            Text(
+                text = data.subtitle,
+                style = TextStyle(fontSize = 13.sp, color = WidgetPalette.OnCard),
+            )
+        }
+        Column(
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .defaultWeight()
+                .background(ImageProvider(R.drawable.widget_zone_red))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            if (data.rows.isEmpty()) {
+                Text(
+                    text = data.emptyLabel,
+                    style = TextStyle(fontSize = 13.sp, color = WidgetPalette.OnCard),
+                )
+            } else {
+                data.rows.forEach { row ->
+                    Row(modifier = GlanceModifier.padding(vertical = 2.dp)) {
+                        Text(
+                            text = row.time,
+                            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, color = WidgetPalette.OnCard),
+                            modifier = GlanceModifier.width(58.dp),
+                        )
+                        Text(
+                            text = row.title,
+                            maxLines = 1,
+                            style = TextStyle(fontSize = 13.sp, color = WidgetPalette.OnCard),
+                        )
+                    }
                 }
             }
         }

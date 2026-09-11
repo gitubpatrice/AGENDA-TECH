@@ -5,4 +5,12 @@
     <!-- White behind the logo (a dark-toned mark) for the adaptive icon and splash. -->
     <color name="ic_launcher_background">#FF14142B</color>
     <color name="splash_background">#FFFFFFFF</color>
+    <!-- Fond des deux widgets : le BLEU DU DAMIER du logo, preleve au pixel sur
+         drawable-nodpi/app_logo.png (les carres bleus valent #0B60C5, les rouges #CA331F).
+         Definie ICI et nulle part ailleurs : la teinte precedente etait ecrite en dur dans
+         AgendaWidget.kt ET dans AgendaIconWidget.kt, et le fond arrondi en aurait fait une
+         troisieme copie. -->
+    <color name="widget_background">#FF0B60C5</color>
+    <!-- Le ROUGE du damier, preleve au meme endroit. Il porte la zone des evenements. -->
+    <color name="widget_events_background">#FFCA331F</color>
 </resources>

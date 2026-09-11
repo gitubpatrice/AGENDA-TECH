@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fond du petit widget (date seule) : le MEME bleu du damier que le grand, angles de 8dp.
+
+  Le bleu vient de `@color/widget_background`, la meme ressource que la zone haute du grand widget :
+  les deux ne peuvent pas diverger. Seul le rayon differe, et c'est voulu — une pastille de la taille
+  d'une icone parait plus arrondie qu'une grande carte a rayon egal.
+
+  Un `shape` plutot que le seul `GlanceModifier.cornerRadius` : celui-ci n'est applique qu'a partir
+  d'Android 12 et reste sans effet en dessous, alors que le minSdk vaut 26 et que l'appareil de
+  recette tourne en Android 10 — c'est-a-dire que sans cette forme, les angles seraient carres
+  precisement la ou on les regarde.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="8dp" />
+    <solid android:color="@color/widget_background" />
+</shape>
