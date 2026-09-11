@@ -48,8 +48,8 @@ fails any build whose merged manifest departs from this list
 |---|---|---|---|
 | `USE_BIOMETRIC` | `androidx.biometric` | Unlock the app with a fingerprint or face, if you enable the app lock. | No |
 | `USE_FINGERPRINT` | `androidx.biometric` | The same, on Android 9 and earlier, where the modern biometric API does not exist. | No |
-| `WAKE_LOCK` | `androidx.work`, pulled in by Glance (the widgets) | Held for a moment while a home-screen widget is redrawn. Glance runs that redraw as a WorkManager job, and WorkManager takes a partial wake lock to run any job. The app's own code schedules nothing. | No |
-| `FOREGROUND_SERVICE` | `androidx.work`, pulled in by Glance (the widgets) | **Nothing.** Declared by `androidx.work`, which would need it only to run an expedited job — none is ever scheduled. | No |
+| `WAKE_LOCK` | `androidx.work`, pulled in by Glance (the widgets) | Held for a moment while a background job runs. There are two: redrawing a home-screen widget, which Glance runs as a WorkManager job, and — if you turn it on — the weekly automatic backup, which the app schedules itself. WorkManager takes a partial wake lock to run any job. | No |
+| `FOREGROUND_SERVICE` | `androidx.work`, pulled in by Glance (the widgets) | **Nothing.** Declared by `androidx.work`, which would need it only to run an expedited job — neither the widget redraw nor the automatic backup is one. | No |
 | `com.filestech.agenda_tech.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | `androidx.core` | A **self-granted**, signature-level permission: only an app signed with our key can hold it. It stops other apps from reaching our internal receivers. | No |
 
 Corrected on 26 August 2026. This paragraph used to say that both permissions covered nothing the app

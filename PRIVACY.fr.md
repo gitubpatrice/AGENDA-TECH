@@ -48,8 +48,8 @@ cette liste (`tools/check-manifest-permissions.py`, exécuté à chaque intégra
 |---|---|---|---|
 | `USE_BIOMETRIC` | `androidx.biometric` | Déverrouiller l'application par empreinte ou visage, si vous activez le verrou. | Non |
 | `USE_FINGERPRINT` | `androidx.biometric` | Même chose sur Android 9 et antérieurs, où l'API biométrique moderne n'existe pas. | Non |
-| `WAKE_LOCK` | `androidx.work`, tirée par Glance (les widgets) | Prise un instant pendant qu'un widget de l'écran d'accueil se redessine. Glance confie ce redessin à WorkManager, qui prend un verrou de réveil partiel pour exécuter n'importe quelle tâche. Le code de l'application, lui, n'en planifie aucune. | Non |
-| `FOREGROUND_SERVICE` | `androidx.work`, tirée par Glance (les widgets) | **Rien.** Déclarée par `androidx.work`, qui n'en aurait besoin que pour une tâche « expedited » — il n'en est jamais planifié. | Non |
+| `WAKE_LOCK` | `androidx.work`, tirée par Glance (les widgets) | Prise un instant pendant qu'une tâche de fond s'exécute. Il y en a deux : le redessin d'un widget de l'écran d'accueil, que Glance confie à WorkManager, et — si vous l'activez — la sauvegarde automatique hebdomadaire, que l'application planifie elle-même. WorkManager prend un verrou de réveil partiel pour exécuter n'importe quelle tâche. | Non |
+| `FOREGROUND_SERVICE` | `androidx.work`, tirée par Glance (les widgets) | **Rien.** Déclarée par `androidx.work`, qui n'en aurait besoin que pour une tâche « expedited » — ni le redessin des widgets ni la sauvegarde automatique n'en est une. | Non |
 | `com.filestech.agenda_tech.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | `androidx.core` | Permission **auto-attribuée**, de niveau « signature » : seule une application signée avec notre clé peut l'obtenir. Elle empêche les autres applications d'atteindre nos récepteurs internes. | Non |
 
 Corrigé le 26 août 2026. Ce paragraphe affirmait que ces deux permissions ne couvraient aucun usage

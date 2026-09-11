@@ -218,15 +218,25 @@ le plafond de longueur s'y appliquent désormais comme aux deux autres.
   à l'importer en entier — tandis que l'agenda **de l'appareil**, qui est un fournisseur vivant sans
   fichier à rendre, reste tronqué.
 
-  ⚠️ Cette troncature n'est **pas encore signalée à l'utilisateur** (audit SEC-6). Elle est journalisée,
-  mais le journal est inerte sur une version publiée (`NoOpReleaseTree`), exactement la conclusion que
-  l'audit D3 avait tirée pour la migration sans la reporter ici. Le dire correctement suppose de
-  remonter le fait jusqu'à l'écran d'import plutôt que de le journaliser ; c'est consigné comme
-  travail restant, pas présenté comme fait.
+  ✅ Cette troncature **est signalée à l'utilisateur** (audit SEC-6, livré). Le fait est *retourné*
+  par `DeviceCalendarRepositoryImpl.readEvents()` (`DeviceRead(rows, truncated)`) et non journalisé —
+  le journal serait inerte sur une version publiée (`NoOpReleaseTree`). `ImportDeviceEventsUseCase`
+  le propage jusqu'à `DeviceImportScreen`, qui affiche `device_import_truncated` (présente en FR et
+  en EN), distincte du message de succès et de celui d'échec partiel : une troncature n'est ni l'un
+  ni l'autre, et les confondre, c'est la taire.
 
-  Le plafond s'applique par **fichier** et, pour l'agenda de l'appareil, par **calendrier source** :
-  sélectionner dix calendriers en une fois peut donc dépasser le nombre annoncé. Là encore, dit plutôt
-  que sous-entendu.
+  Le plafond s'applique par **import**, pas par calendrier (audit DR-9) : `ImportDeviceEventsUseCase`
+  tient **une seule allocation** (`var remaining = ImportLimits.MAX_EVENTS`) dépensée au fil des
+  calendriers sélectionnés. Sélectionner dix calendriers en une fois ne peut donc plus dépasser le
+  nombre annoncé — les calendriers laissés de côté faute d'allocation sont comptés comme *tronqués*,
+  jamais comme *en échec*, parce que rien n'a mal tourné.
+
+  > Ces deux paragraphes affirmaient l'inverse jusqu'au 2026-09-11 : ils décrivaient une troncature
+  > muette et un plafond par calendrier, tous deux corrigés depuis. C'est le même motif que la revue
+  > F-Droid du 26/08 avait relevé pour le mot de passe de sauvegarde — une surface de documentation
+  > qui se périme en silence — mais dans l'autre sens : le document décrivait l'application comme
+  > **moins** sûre qu'elle ne l'est. Relire ces quatre surfaces (ce fichier, les deux `PRIVACY`, le
+  > manifeste) à chaque fonction touchant au stockage, aux permissions ou au réseau.
 
 - **`INTERVAL` borné (audit F1/F5/F7, v0.5.3).** Un intervalle absurde faisait lever une
   `DateTimeException` non rattrapée dans `RecurrenceExpander` : toutes les vues et le widget

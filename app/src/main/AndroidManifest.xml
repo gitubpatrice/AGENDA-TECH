@@ -22,15 +22,27 @@
       Pourquoi le retrait est sûr : WorkManager ne consulte l'état du réseau que pour honorer une
       contrainte NetworkType, et aucun travail n'en pose ici.
 
-      ATTENTION à la formulation, corrigée le 2026-08-26 : ce commentaire affirmait que « l'app
-      n'enfile AUCUN travail WorkManager ». C'est vrai du CODE de l'app (aucune référence à
-      WorkManager/Constraints/NetworkType dans app/src/main) et FAUX du binaire — Glance en enfile
-      un pour son compte. Mesuré sur l'APK release 1.0.3 : androidx.glance.session.SessionWorker
-      est présent dans app/build/outputs/mapping/release/mapping.txt, et WorkManager
-      .enqueueUniqueWork y survit à R8. Le raccourci « pas de WorkManager » était donc une
-      justification qui ne tenait pas ; la bonne est plus étroite et, elle, exacte : ce worker est
-      enfilé SANS CONTRAINTE. NetworkStateTracker n'est sollicité que lorsqu'une WorkSpec porte une
+      ATTENTION à la formulation, corrigée deux fois.
+
+      2026-08-26 : ce commentaire affirmait que « l'app n'enfile AUCUN travail WorkManager ». C'était
+      vrai du CODE de l'app et FAUX du binaire — Glance en enfile un pour son compte. Mesuré sur
+      l'APK release 1.0.3 : androidx.glance.session.SessionWorker est présent dans
+      app/build/outputs/mapping/release/mapping.txt, et WorkManager.enqueueUniqueWork y survit à R8.
+
+      2026-09-11 : la version corrigée disait encore « aucune référence à WorkManager/Constraints/
+      NetworkType dans app/src/main ». C'est faux depuis la sauvegarde automatique (2026-08-31) :
+      system/backup/AutoBackupScheduler.kt importe WorkManager et PeriodicWorkRequestBuilder, et
+      enfile AutoBackupWorker toutes les semaines. Le défaut est le même que celui du 08-26 — une
+      preuve qui se périme pendant que la conclusion reste vraie — et c'est le motif que le
+      CLAUDE.md demande de surveiller sur les quatre surfaces (SECURITY, les deux PRIVACY, ici).
+
+      La justification exacte, aujourd'hui, ne porte donc plus sur l'ABSENCE de travail mais sur sa
+      FORME : les deux workers enfilés — SessionWorker par Glance, AutoBackupWorker par nous — le
+      sont SANS CONTRAINTE (AutoBackupScheduler n'appelle jamais setConstraints, délibérément, cf.
+      la KDoc de la classe). NetworkStateTracker n'est sollicité que lorsqu'une WorkSpec porte une
       contrainte réseau, donc rien ne lit jamais ConnectivityManager.
+      ⚠️ Ajouter un jour une contrainte à un worker — quelle qu'elle soit, NetworkType compris —
+      invaliderait ce retrait. C'est la seule chose à vérifier avant d'en enfiler un nouveau.
 
       Vérifié sur appareil (S24, 15/07/2026) : les deux widgets posés sur l'écran d'accueil se
       lient et s'affichent, sans SecurityException. Si un jour du travail contraint par le réseau
@@ -46,8 +58,11 @@
       les a relevées comme « sans usage visible » et proposait un tools:node="remove" à condition
       que Glance n'enfile aucun Worker.
 
-      La condition n'est pas remplie : Glance ENFILE bien un Worker (SessionWorker, cf. le bloc
-      ACCESS_NETWORK_STATE ci-dessus). Or WorkManager prend un WakeLock partiel pour exécuter
+      La condition n'est pas remplie, et elle l'est deux fois moins depuis le 2026-08-31 : Glance
+      ENFILE un Worker (SessionWorker), et l'application en enfile désormais un ELLE-MÊME
+      (AutoBackupWorker, hebdomadaire, cf. le bloc ACCESS_NETWORK_STATE ci-dessus). Retirer ces
+      permissions n'était déjà pas envisageable ; ça l'est encore moins maintenant qu'un travail de
+      fond nous appartient. Or WorkManager prend un WakeLock partiel pour exécuter
       n'importe quel worker — androidx.work.impl.utils.WakeLocks.newWakeLock survit à R8 dans
       l'APK release, tout comme ForceStopRunnable, qui s'exécute à CHAQUE initialisation de
       WorkManager via WorkManagerInitializer (présent dans le manifeste fusionné). Retirer
@@ -56,7 +71,8 @@
       Piège de vérification : ce défaut serait INVISIBLE en debug sur un widget non posé. Il ne se
       manifeste qu'avec un widget réellement sur l'écran d'accueil, en release.
 
-      FOREGROUND_SERVICE serait techniquement retirable (SessionWorker n'appelle pas setForeground),
+      FOREGROUND_SERVICE serait techniquement retirable (ni SessionWorker ni AutoBackupWorker
+      n'appelle setForeground — le nôtre est un CoroutineWorker ordinaire, jamais expedited),
       mais la retirer seule laisserait androidx.work à moitié amputé : le jour où une version de
       Glance passe en expedited work, la panne serait silencieuse. Les deux restent, documentées.
       L'allowlist de tools/check-manifest-permissions.py les autorise nommément — une troisième
@@ -134,6 +150,9 @@
             android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <!-- Audit AG-4 — une mise a jour de l'app peut annuler les alarmes selon la version
+                     d'Android. Diffusion protegee par la plateforme, comme BOOT_COMPLETED. -->
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 
