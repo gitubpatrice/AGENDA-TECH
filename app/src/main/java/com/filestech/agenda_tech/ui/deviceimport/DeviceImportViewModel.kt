@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.domain.usecase.ImportDeviceEventsUseCase
 import com.filestech.agenda_tech.system.AgendaChangeNotifier
+import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +17,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DeviceImportViewModel @Inject constructor(
     private val importDeviceEvents: ImportDeviceEventsUseCase,
+    private val reminderScheduler: ReminderScheduler,
     private val agendaChanged: AgendaChangeNotifier,
 ) : ViewModel() {
 
@@ -87,10 +89,12 @@ class DeviceImportViewModel @Inject constructor(
         if (_importing.value) return
         _importing.value = true
         viewModelScope.launch {
+            // Audit AG-9 — desarmer AVANT la cascade : apres, les rappels n'existent plus en base
+            // et `rescheduleAll()`, qui ne parcourt que ce qui existe, ne peut plus rien annuler.
+            // (La premiere version de ce correctif appelait seulement `onAgendaChanged()`, ce qui
+            // ne fermait pas la porte — plongee securite du 2026-09-11.)
+            importDeviceEvents.importedEventIds().forEach { reminderScheduler.cancelEvent(it) }
             importDeviceEvents.clearImported()
-            // Audit AG-9 — clearImported() supprime des calendriers, donc leurs evenements et
-            // leurs rappels par cascade de cle etrangere. Rien ne desarmait les alarmes
-            // correspondantes.
             agendaChanged.onAgendaChanged()
             _importing.value = false
             _cleared.value = true

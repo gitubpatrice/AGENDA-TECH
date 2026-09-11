@@ -7,6 +7,7 @@ import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.DeviceCalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
@@ -64,6 +65,23 @@ class ImportDeviceEventsUseCase @Inject constructor(
      * user made by hand are never touched (see [CalendarRepository.deleteImported]).
      */
     suspend fun clearImported() = mutex.withLock { calendarRepository.deleteImported() }
+
+    /**
+     * Les identifiants des evenements que [clearImported] va effacer, lus AVANT de l'appeler.
+     *
+     * Audit AG-9 — `deleteImported()` supprime des calendriers, donc leurs evenements et leurs
+     * rappels par cascade de cle etrangere. Les alarmes correspondantes, elles, restent armees :
+     * `rescheduleAll()` n'itere que les rappels ENCORE en base et ne peut donc rien desarmer une
+     * fois la cascade passee. Apres, les lignes n'existent plus et l'alarme est hors d'atteinte
+     * pour de bon — cette fenetre-ci est la seule.
+     *
+     * Rendu au ViewModel plutot que traite ici : annuler une alarme est un geste systeme
+     * (`AlarmManager`), et ce use case appartient au domaine, qui ne connait pas Android.
+     */
+    suspend fun importedEventIds(): List<Long> =
+        calendarRepository.observeAll().first()
+            .filter { !it.isDefault && it.sourceId != null }
+            .flatMap { calendar -> eventRepository.observeByCalendar(calendar.id).first().map { it.id } }
 
     /**
      * Threading is the repositories' job (they each dispatch to IO), as in every other use case.

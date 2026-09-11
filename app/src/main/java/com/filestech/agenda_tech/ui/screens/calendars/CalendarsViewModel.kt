@@ -5,10 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
+import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.usecase.UpsertCalendarUseCase
 import com.filestech.agenda_tech.system.AgendaChangeNotifier
+import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -25,6 +28,8 @@ data class CalendarsUiState(
 class CalendarsViewModel @Inject constructor(
     private val calendarRepository: CalendarRepository,
     private val upsertCalendar: UpsertCalendarUseCase,
+    private val eventRepository: EventRepository,
+    private val reminderScheduler: ReminderScheduler,
     private val agendaChanged: AgendaChangeNotifier,
 ) : ViewModel() {
 
@@ -61,13 +66,28 @@ class CalendarsViewModel @Inject constructor(
             } else {
                 null
             }
+            // Audit AG-9 — desarmer AVANT la cascade, et c'est tout l'enjeu.
+            //
+            // La suppression d'un calendrier efface ses evenements puis leurs rappels par cascade de
+            // cle etrangere, sans qu'aucune alarme soit annulee. Isolees, ces orphelines sont
+            // benignes (identifiants AUTOINCREMENT, donc getById rend null et rien n'est poste) —
+            // mais une restauration reinsere les identifiants VERBATIM depuis le fichier, et
+            // l'orpheline retrouve alors un AUTRE evenement portant son numero. Scenario F7.
+            //
+            // ⚠️ La premiere version de ce correctif se contentait d'appeler `onAgendaChanged()`.
+            // Elle ne pouvait PAS fermer cette porte : `rescheduleAll()` itere
+            // `reminderRepository.getAll()`, c'est-a-dire les rappels ENCORE EN BASE. Une ligne que
+            // la cascade vient d'effacer n'y figure plus, donc rien ne la desarme — jamais, ni
+            // plus tard. Le commentaire decrivait le scenario et l'appel ne le traitait pas.
+            // Signale par la plongee securite du 2026-09-11.
+            //
+            // Enumerer AVANT la suppression est la seule fenetre ou c'est possible : apres,
+            // `getForEvent` ne rend plus rien et l'alarme est hors d'atteinte pour de bon. Meme
+            // patron que `EventEditorViewModel.deleteSeries`.
+            eventRepository.observeByCalendar(id).first().forEach { event ->
+                reminderScheduler.cancelEvent(event.id)
+            }
             calendarRepository.promoteDefaultAndDelete(promoteId, id)
-            // Audit AG-9 — la suppression efface les evenements du calendrier PUIS leurs rappels
-            // par cascade de cle etrangere, sans qu'aucune alarme soit annulee. Isolees, ces
-            // orphelines sont benignes (les identifiants sont AUTOINCREMENT, donc getById rend
-            // null et rien n'est poste) — mais une restauration reinsere les identifiants
-            // VERBATIM depuis le fichier, et l'orpheline retrouve alors un AUTRE evenement
-            // portant son numero. C'est le scenario F7, par une porte que F7 ne fermait pas.
             agendaChanged.onAgendaChanged()
         }
     }
