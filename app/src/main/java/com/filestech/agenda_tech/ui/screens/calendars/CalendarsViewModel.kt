@@ -6,6 +6,7 @@ import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.usecase.UpsertCalendarUseCase
+import com.filestech.agenda_tech.system.AgendaChangeNotifier
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +25,7 @@ data class CalendarsUiState(
 class CalendarsViewModel @Inject constructor(
     private val calendarRepository: CalendarRepository,
     private val upsertCalendar: UpsertCalendarUseCase,
+    private val agendaChanged: AgendaChangeNotifier,
 ) : ViewModel() {
 
     val uiState: StateFlow<CalendarsUiState> = calendarRepository.observeAll()
@@ -31,7 +33,11 @@ class CalendarsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CalendarsUiState())
 
     fun setVisibility(id: Long, visible: Boolean) {
-        viewModelScope.launch { calendarRepository.setVisibility(id, visible) }
+        viewModelScope.launch {
+            calendarRepository.setVisibility(id, visible)
+            // Le widget filtre sur la visibilite ; les rappels, non.
+            agendaChanged.onAgendaChanged(rearmReminders = false)
+        }
     }
 
     fun save(calendar: Calendar) {
@@ -56,6 +62,13 @@ class CalendarsViewModel @Inject constructor(
                 null
             }
             calendarRepository.promoteDefaultAndDelete(promoteId, id)
+            // Audit AG-9 — la suppression efface les evenements du calendrier PUIS leurs rappels
+            // par cascade de cle etrangere, sans qu'aucune alarme soit annulee. Isolees, ces
+            // orphelines sont benignes (les identifiants sont AUTOINCREMENT, donc getById rend
+            // null et rien n'est poste) — mais une restauration reinsere les identifiants
+            // VERBATIM depuis le fichier, et l'orpheline retrouve alors un AUTRE evenement
+            // portant son numero. C'est le scenario F7, par une porte que F7 ne fermait pas.
+            agendaChanged.onAgendaChanged()
         }
     }
 

@@ -56,6 +56,32 @@ class ReminderScheduler @Inject constructor(
     @VisibleForTesting
     internal var firstRoundIterations: Int = FIRST_ROUND_ITERATIONS
 
+    /**
+     * Peut-on poser une alarme EXACTE ? Couture de test (audit AG-11).
+     *
+     * ## Pourquoi une couture, alors que la fonction etait deja testable en apparence
+     *
+     * `canScheduleExact()` s'ecrit `SDK_INT < S || alarmManager.canScheduleExactAlarms()`. En
+     * test JVM, `isReturnDefaultValues = true` fait rendre **0** a `Build.VERSION.SDK_INT`, et
+     * `VERSION_CODES.S` est une constante compilee a 31 : `0 < 31` est vrai, le `||`
+     * court-circuite, et `canScheduleExactAlarms()` **n'est jamais appele**. Les trois
+     * assertions `setExactAndAllowWhileIdle` des tests de budget ne passaient que grace a ca —
+     * le mock etant `relaxed`, l'appel reel aurait rendu `false` et le code serait parti sur
+     * `setAndAllowWhileIdle`.
+     *
+     * Autrement dit : la branche INEXACTE — celle de tout utilisateur d'Android 12+ qui n'a pas
+     * accorde l'alarme exacte — n'etait exercee par aucun test, alors que les regressions
+     * F5/F5-bis/ter/quater reposent sur ces memes tests. Un test vert ne dit rien d'un chemin
+     * que personne n'emprunte.
+     *
+     * La couture rend les deux branches atteignables sans emulateur, sur le meme patron que
+     * `newPassBudget` juste au-dessus.
+     */
+    @VisibleForTesting
+    internal var canScheduleExactAlarms: () -> Boolean = {
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+    }
+
     /** (Re)schedule every reminder of one event — call after creating/editing it. */
     suspend fun rescheduleEvent(eventId: Long) {
         val event = eventRepository.getById(eventId) ?: return
@@ -198,7 +224,11 @@ class ReminderScheduler @Inject constructor(
         schedule(
             reminder,
             event,
-            ReminderScheduling.nextEarliestStart(firedOccurrenceStartUtcMillis),
+            ReminderScheduling.nextEarliestStart(
+                firedOccurrenceStartUtcMillis = firedOccurrenceStartUtcMillis,
+                nowUtcMillis = System.currentTimeMillis(),
+                minutesBefore = reminder.minutesBefore,
+            ),
             excludedStartsFor(event),
         )
     }
@@ -335,8 +365,7 @@ class ReminderScheduler @Inject constructor(
         pendingIntent.cancel()
     }
 
-    private fun canScheduleExact(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+    private fun canScheduleExact(): Boolean = canScheduleExactAlarms()
 
     private fun buildPendingIntent(
         reminderId: Long,

@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.withResumed
 import com.filestech.agenda_tech.data.local.db.AppDatabase
+import com.filestech.agenda_tech.core.di.ApplicationScope
 import com.filestech.agenda_tech.core.prefs.OneShotFlag
 import com.filestech.agenda_tech.data.local.db.DatabaseFactory
 import com.filestech.agenda_tech.domain.repository.LockRepository
@@ -31,11 +32,13 @@ import com.filestech.agenda_tech.security.AppLockManager
 import com.filestech.agenda_tech.security.BiometricGate
 import com.filestech.agenda_tech.security.LockState
 import com.filestech.agenda_tech.security.StrongBiometrics
+import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.filestech.agenda_tech.ui.AppRoot
 import com.filestech.agenda_tech.ui.StartupFailureScreen
 import com.filestech.agenda_tech.ui.lock.LockScreen
 import com.filestech.agenda_tech.ui.theme.AgendaTechTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,6 +59,12 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var appLock: AppLockManager
     @Inject lateinit var biometricGate: BiometricGate
 
+    /** Cf. [rearmRemindersOnce] — la passe doit survivre au cycle de vie de l'Activity. */
+    @Inject @ApplicationScope lateinit var appScope: CoroutineScope
+
+    /** Provider : le resoudre ouvrirait la base chiffree sur le thread principal. */
+    @Inject lateinit var reminderScheduler: Provider<ReminderScheduler>
+
     // ROB-NEW-1 — the DB must be built before consumeResetFlag() is read, so a reset is reported on
     // THIS launch and not the next one. A Provider (not a direct field) keeps that ordering without
     // paying for it on the Main thread: building it opens the Keystore (IPC, slow on StrongBox),
@@ -64,6 +73,15 @@ class MainActivity : FragmentActivity() {
 
     /** Guards against two overlapping biometric prompts — see [showBiometricPrompt]. Main thread only. */
     private var biometricPromptInFlight = false
+
+    private companion object {
+        /**
+         * Portée PROCESSUS, pas Activity (audit AG-4) : une rotation hors de `configChanges`, ou
+         * « ne pas conserver les activités », recrée l'Activity et relancerait la passe. Une seule
+         * suffit — les alarmes ne s'évaporent pas pendant que l'application est ouverte.
+         */
+        val remindersRearmed = java.util.concurrent.atomic.AtomicBoolean(false)
+    }
 
     /**
      * The latest value of [LockRepository.lockEnabled], readable **without suspending**.
@@ -179,6 +197,8 @@ class MainActivity : FragmentActivity() {
             // nothing is as short as the splash — see the field's KDoc.
             lockConfigured = enabled
             if (enabled) appLock.lock() else appLock.unlock()
+
+            rearmRemindersOnce()
         }
 
         // Kept up to date for [onStop], which cannot wait for a suspend read. Collected on
@@ -286,6 +306,42 @@ class MainActivity : FragmentActivity() {
         // locks, because locking without a PIN to type is a dead end. See [lockConfigured].
         if (lockConfigured != false) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         if (lockConfigured == true) appLock.lock()
+    }
+
+    /**
+     * Ré-arme toutes les alarmes de rappel, une fois par processus (audit AG-4).
+     *
+     * ## Pourquoi c'était nécessaire
+     *
+     * `rescheduleAll()` n'était atteignable que depuis `BOOT_COMPLETED`, depuis le receiver d'alarme
+     * exacte (API 31-32 seulement) et depuis une restauration. Or **« Forcer l'arrêt »** — quelques
+     * tapes dans les réglages, ou une veille agressive constructeur — annule toutes les alarmes de
+     * l'application et la met à l'état *stopped*. Rien ne les réarmait ensuite : ni au lancement
+     * suivant, ni jamais, jusqu'au prochain redémarrage du téléphone. Les rappels disparaissaient en
+     * silence, ce qui est la seule panne qu'un agenda ne peut pas se permettre.
+     *
+     * L'asymétrie était frappante : la sauvegarde automatique, elle, EST ré-armée au lancement
+     * (`MainApplication.onCreate`), avec un commentaire expliquant que le réglage peut survivre à la
+     * base de WorkManager. Le raisonnement vaut mot pour mot pour les alarmes, qui sont plus fragiles.
+     *
+     * ## Pourquoi ici, et pas dans `MainApplication`
+     *
+     * `Application.onCreate` s'exécute à **tout** démarrage de processus — y compris celui que le
+     * système déclenche pour redessiner un widget, soit toutes les demi-heures. `rescheduleAll()`
+     * relit tous les rappels et déplie leurs récurrences : ce n'est pas une passe à payer si souvent.
+     * Une ouverture réelle de l'application est à la fois plus rare et exactement le moment où
+     * l'utilisateur revient après le « forcer l'arrêt » qu'il vient de faire.
+     *
+     * Sur [ApplicationScope] et non `lifecycleScope` : la passe doit survivre à une rotation ou à un
+     * départ immédiat de l'écran. Idempotente par construction — `setExactAndAllowWhileIdle` remplace
+     * l'alarme de même `requestCode` — donc la relancer ne duplique rien.
+     */
+    private fun rearmRemindersOnce() {
+        if (remindersRearmed.getAndSet(true)) return
+        appScope.launch {
+            runCatching { withContext(Dispatchers.IO) { reminderScheduler.get().rescheduleAll() } }
+                .onFailure { Timber.w(it, "Reminder re-arm on launch failed") }
+        }
     }
 
     private fun showBiometricPrompt() {

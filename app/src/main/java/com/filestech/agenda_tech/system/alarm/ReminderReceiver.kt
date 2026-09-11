@@ -3,7 +3,7 @@ package com.filestech.agenda_tech.system.alarm
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.filestech.agenda_tech.di.ApplicationScope
+import com.filestech.agenda_tech.core.di.ApplicationScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch

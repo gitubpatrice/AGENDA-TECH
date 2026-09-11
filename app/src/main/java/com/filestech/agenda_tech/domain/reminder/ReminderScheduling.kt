@@ -28,9 +28,37 @@ object ReminderScheduling {
     fun initialEarliestStart(nowUtcMillis: Long, minutesBefore: Int): Long =
         nowUtcMillis + minutesBefore * MS_PER_MINUTE
 
-    /** Earliest occurrence start to consider when rescheduling after a fire — strictly after it. */
-    fun nextEarliestStart(firedOccurrenceStartUtcMillis: Long): Long =
-        firedOccurrenceStartUtcMillis + 1
+    /**
+     * Earliest occurrence start to consider when rescheduling after a fire — strictly after it, and
+     * never in the past.
+     *
+     * ## Le plancher manquait (audit AG-17)
+     *
+     * Cette fonction rendait `fired + 1` et rien d'autre, alors que son jumeau
+     * [initialEarliestStart], quatre lignes plus haut, plafonne sur « maintenant » depuis toujours.
+     * L'asymétrie mordait quand une alarme était délivrée très en retard — veille prolongée, mise en
+     * sommeil agressive d'un constructeur : la reprogrammation visait l'occurrence suivante, déjà
+     * passée. `setExactAndAllowWhileIdle` sur un instant passé tire IMMÉDIATEMENT, ce qui
+     * reprogrammait l'occurrence d'après, qui tirait immédiatement, et ainsi de suite — une rafale de
+     * notifications qui s'empilent (leur identifiant diffère par occurrence, donc elles ne se
+     * remplacent pas). La séquence terminait, bornée par le nombre d'occurrences manquées ; ce n'est
+     * pas pour autant ce qu'on attend d'un rappel.
+     *
+     * Le comportement voulu est de **sauter** au prochain tir futur : une occurrence manquée est
+     * manquée, la rejouer trois jours plus tard n'informe de rien.
+     *
+     * [nowUtcMillis] et [minutesBefore] servent à replacer le plancher là où [initialEarliestStart]
+     * le met — sur le *début d'occurrence* dont le rappel tomberait maintenant — et non sur l'instant
+     * courant, sans quoi on sauterait une occurrence dont le rappel est encore à venir.
+     */
+    fun nextEarliestStart(
+        firedOccurrenceStartUtcMillis: Long,
+        nowUtcMillis: Long,
+        minutesBefore: Int,
+    ): Long = maxOf(
+        firedOccurrenceStartUtcMillis + 1,
+        initialEarliestStart(nowUtcMillis, minutesBefore),
+    )
 
     /**
      * The next fire for [event]'s reminder of [minutesBefore], considering occurrences starting at

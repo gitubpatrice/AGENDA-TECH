@@ -18,11 +18,13 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.filestech.agenda_tech.MainActivity
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.domain.birthday.BirthdayAge
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.settings.AppSettings
 import com.filestech.agenda_tech.system.alarm.ReminderReceiver
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
+import com.filestech.agenda_tech.domain.birthday.birthdayDisplayTitle
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -189,7 +191,18 @@ class ReminderNotifier @Inject constructor(
 
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(event.title)
+            // Audit AG-18 — septieme surface, et la derniere a ne pas afficher l'age. Un rappel
+            // d'anniversaire disait « Paul » la ou tout le reste de l'application dit
+            // « Paul · 42 ans » — or c'est precisement le moment ou l'information sert.
+            // `birthdayDisplayTitle` (et non son enveloppe Composable) parce qu'on est hors
+            // Compose, ici comme dans le widget.
+            .setContentTitle(
+                birthdayDisplayTitle(
+                    resources = context.resources,
+                    title = event.title,
+                    age = BirthdayAge.of(event, occurrenceStartUtcMillis, ZoneId.systemDefault()),
+                ),
+            )
             .setContentText(contentText(event, occurrenceStartUtcMillis))
             .setWhen(occurrenceStartUtcMillis)
             .setShowWhen(true)

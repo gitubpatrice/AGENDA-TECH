@@ -55,7 +55,11 @@ class ReminderSchedulingTest {
             expander = expander,
             event = event,
             minutesBefore = 10,
-            earliestOccurrenceStartUtcMillis = ReminderScheduling.nextEarliestStart(firedOccurrence),
+            earliestOccurrenceStartUtcMillis = ReminderScheduling.nextEarliestStart(
+                firedOccurrenceStartUtcMillis = firedOccurrence,
+                nowUtcMillis = firedOccurrence,
+                minutesBefore = 10,
+            ),
         )
 
         assertThat(fire!!.occurrenceStartUtcMillis).isEqualTo(ms(LocalDateTime.of(2025, 6, 5, 9, 0)))

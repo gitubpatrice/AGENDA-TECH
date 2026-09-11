@@ -245,6 +245,46 @@ class ReminderSchedulerBudgetTest {
         verify(atLeast = 1) { alarmManager.cancel(any<PendingIntent>()) }
     }
 
+    // --- Audit AG-11 : les deux branches de l'alarme exacte --------------------------------------
+    //
+    // Ces tests existent parce que les trois assertions `setExactAndAllowWhileIdle` de ce fichier ne
+    // passaient QUE par accident : `isReturnDefaultValues = true` fait rendre 0 à `SDK_INT`, donc
+    // `0 < 31` court-circuitait le `||` et `canScheduleExactAlarms()` n'était jamais consulté. La
+    // branche inexacte — celle de tout utilisateur d'Android 12+ sans permission d'alarme exacte —
+    // n'était exercée par personne. C'est le motif « test vert sur chemin mort », dans le fichier
+    // même qui porte les non-régressions F5.
+
+    @Test
+    fun `with exact alarms granted, the reminder is armed as an EXACT alarm`() = runTest {
+        scheduler.canScheduleExactAlarms = { true }
+
+        scheduler.rescheduleAll()
+
+        verify(atLeast = 1) {
+            alarmManager.setExactAndAllowWhileIdle(any(), any(), any<PendingIntent>())
+        }
+        verify(exactly = 0) {
+            alarmManager.setAndAllowWhileIdle(any(), any(), any<PendingIntent>())
+        }
+    }
+
+    @Test
+    fun `with exact alarms refused, the reminder is still armed — inexactly, never dropped`() = runTest {
+        scheduler.canScheduleExactAlarms = { false }
+
+        scheduler.rescheduleAll()
+
+        // Le point qui compte : la dégradation est PROPRE. Un rappel approximatif vaut infiniment
+        // mieux qu'un rappel absent, et c'est ce que la ligne du manifeste promet à l'utilisateur
+        // (« le planificateur dégrade proprement en alarme inexacte si l'exact est refusé »).
+        verify(atLeast = 1) {
+            alarmManager.setAndAllowWhileIdle(any(), any(), any<PendingIntent>())
+        }
+        verify(exactly = 0) {
+            alarmManager.setExactAndAllowWhileIdle(any(), any(), any<PendingIntent>())
+        }
+    }
+
     private companion object {
         const val HOMOGENEOUS_COUNT = 10
         const val HEAVY_COUNT = 12

@@ -3,7 +3,7 @@ package com.filestech.agenda_tech.system.alarm
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.filestech.agenda_tech.di.ApplicationScope
+import com.filestech.agenda_tech.core.di.ApplicationScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
@@ -41,7 +41,19 @@ class BootReceiver : BroadcastReceiver() {
     @Inject @ApplicationScope lateinit var scope: CoroutineScope
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
-        rescheduleRemindersAsync(scope, scheduler, reason = "boot completed")
+        // MY_PACKAGE_REPLACED s'ajoute a BOOT_COMPLETED (audit AG-4, point E.4).
+        //
+        // Une mise a jour de l'application (`adb install -r`, ou une mise a jour F-Droid) peut
+        // annuler les alarmes selon la version d'Android : le comportement d'AlarmManagerService
+        // sur EXTRA_REPLACING a change plusieurs fois, et l'application ne peut pas le mesurer de
+        // l'interieur. Le filet coute une ligne de manifeste et un `||` ici ; l'absence de filet
+        // coute des rappels qui ne sonnent plus, en silence, apres chaque mise a jour.
+        //
+        // Les deux diffusions sont PROTEGEES par la plateforme (seul le systeme peut les emettre),
+        // donc exporter ce receiver n'ouvre toujours rien — contrairement au cas mesure faux pour
+        // ExactAlarmPermissionReceiver, ou l'action n'etait protegee qu'a partir d'API 31.
+        val action = intent.action
+        if (action != Intent.ACTION_BOOT_COMPLETED && action != Intent.ACTION_MY_PACKAGE_REPLACED) return
+        rescheduleRemindersAsync(scope, scheduler, reason = action)
     }
 }

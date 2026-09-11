@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.domain.usecase.ImportDeviceEventsUseCase
+import com.filestech.agenda_tech.system.AgendaChangeNotifier
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DeviceImportViewModel @Inject constructor(
     private val importDeviceEvents: ImportDeviceEventsUseCase,
+    private val agendaChanged: AgendaChangeNotifier,
 ) : ViewModel() {
 
     sealed interface UiState {
@@ -69,6 +71,9 @@ class DeviceImportViewModel @Inject constructor(
         _importing.value = true
         viewModelScope.launch {
             _result.value = importDeviceEvents(ids, fallbackCalendarName)
+            // Audit AG-8 — meme raison que l'import .ics : un evenement deplace dans l'agenda
+            // source puis re-importe gardait son alarme a l'ancienne heure.
+            agendaChanged.onAgendaChanged()
             _importing.value = false
         }
     }
@@ -83,6 +88,10 @@ class DeviceImportViewModel @Inject constructor(
         _importing.value = true
         viewModelScope.launch {
             importDeviceEvents.clearImported()
+            // Audit AG-9 — clearImported() supprime des calendriers, donc leurs evenements et
+            // leurs rappels par cascade de cle etrangere. Rien ne desarmait les alarmes
+            // correspondantes.
+            agendaChanged.onAgendaChanged()
             _importing.value = false
             _cleared.value = true
         }
