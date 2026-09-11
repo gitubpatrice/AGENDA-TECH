@@ -260,17 +260,24 @@ private fun EventEditorContent(
                         // nothing written. Shown only while editing: there is nothing to copy from a
                         // form that has never been saved.
                         val copyTitle = stringResource(R.string.editor_duplicate_title, state.title)
-                        IconButton(onClick = { onDuplicate(copyTitle) }) {
+                        IconButton(
+                            onClick = { onDuplicate(copyTitle) },
+                            // Audit AG-3 — meme garde que le bouton Enregistrer ci-dessous.
+                            enabled = !state.busy,
+                        ) {
                             Icon(
                                 imageVector = Icons.Filled.ContentCopy,
                                 contentDescription = stringResource(R.string.editor_duplicate),
                             )
                         }
-                        IconButton(onClick = {
-                            // A recurring occurrence opens the scope dialog (this/series) — a deliberate
-                            // choice, no extra confirm. A plain event gets an anti-mistap confirmation.
-                            if (state.deleteNeedsScope) onDelete() else confirmDelete = true
-                        }) {
+                        IconButton(
+                            onClick = {
+                                // A recurring occurrence opens the scope dialog (this/series) — a deliberate
+                                // choice, no extra confirm. A plain event gets an anti-mistap confirmation.
+                                if (state.deleteNeedsScope) onDelete() else confirmDelete = true
+                            },
+                            enabled = !state.busy,
+                        ) {
                             // Red: deleting is destructive and must read as such at a glance.
                             Icon(
                                 imageVector = Icons.Filled.Delete,
@@ -283,6 +290,10 @@ private fun EventEditorContent(
                     // doubt about the action, and the solid green marks it as THE primary button.
                     Button(
                         onClick = onSave,
+                        // Audit AG-3 — sans ce garde, deux tapes rapides lancaient deux ecritures
+                        // et un evenement neuf (id = 0) partait en DEUX INSERT. Le jumeau
+                        // BackupScreen conditionne chacun de ses boutons de la meme facon.
+                        enabled = !state.busy,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = BrandSuccess,
                             contentColor = Color.White,
@@ -476,9 +487,17 @@ private fun EventEditorContent(
                 label = state.location.ifBlank { state.title },
             )
 
-            if (state.error == EditorError.SAVE_FAILED) {
+            // DELETE_FAILED partage cette surface : les deux disent « l'ecriture n'a pas eu lieu »,
+            // au meme endroit, et une suppression qui echoue en silence laisse croire qu'elle a eu
+            // lieu — c'est la moitie manquante du garde `busy` (relecture gpt-5.2 du 2026-09-11).
+            val errorText = when (state.error) {
+                EditorError.SAVE_FAILED -> stringResource(R.string.editor_error_save_failed)
+                EditorError.DELETE_FAILED -> stringResource(R.string.editor_error_delete_failed)
+                else -> null
+            }
+            if (errorText != null) {
                 Text(
-                    text = stringResource(R.string.editor_error_save_failed),
+                    text = errorText,
                     color = androidx.compose.material3.MaterialTheme.colorScheme.error,
                     style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
                 )

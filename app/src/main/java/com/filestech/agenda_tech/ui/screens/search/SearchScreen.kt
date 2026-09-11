@@ -1,5 +1,7 @@
 package com.filestech.agenda_tech.ui.screens.search
 
+import com.filestech.agenda_tech.domain.birthday.BirthdayAge
+import com.filestech.agenda_tech.domain.birthday.displayTitle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -173,7 +175,14 @@ private fun SearchRow(
     onOccurrenceClick: (Long, Long) -> Unit,
 ) {
     EventRow(
-        title = hit.event.title,
+        // Audit AG-18 — l'age d'anniversaire etait cable sur cinq surfaces (grille et liste du
+        // mois, timeline jour/semaine, bande journee entiere, liste agenda, widget) et absent
+        // de celle-ci. La KDoc de BirthdayLabel enumere ses appelants : la recherche n'y
+        // figurait pas, ce qui signale un oubli et non un choix.
+        title = displayTitle(
+            hit.event.title,
+            BirthdayAge.of(hit.event, hit.occurrenceStartUtcMillis, zone),
+        ),
         colorArgb = (hit.event.colorOverride ?: hit.calendar.color).argb,
         onClick = { onOccurrenceClick(hit.event.id, hit.occurrenceStartUtcMillis) },
     ) {

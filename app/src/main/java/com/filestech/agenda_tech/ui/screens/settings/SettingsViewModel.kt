@@ -12,7 +12,7 @@ import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.domain.settings.WeekStart
 import com.filestech.agenda_tech.security.AppLockManager
 import com.filestech.agenda_tech.security.BiometricGate
-import com.filestech.agenda_tech.di.ApplicationScope
+import com.filestech.agenda_tech.core.di.ApplicationScope
 import com.filestech.agenda_tech.system.notifications.ReminderNotifier
 import com.filestech.agenda_tech.widget.AgendaWidget
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,7 +22,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -61,9 +64,24 @@ class SettingsViewModel @Inject constructor(
         LockUiState(lockEnabled = enabled, biometricEnabled = biometric)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LockUiState())
 
+    /**
+     * Emis quand l'enregistrement du PIN a echoue (audit AG-10).
+     *
+     * Un Keystore indisponible faisait sortir `setPin` en silence : la boite se refermait
+     * normalement et, selon le cas, le verrou n'etait pas active ou l'ANCIEN PIN restait le bon.
+     * L'interrupteur reflete `lockEnabled`, donc l'echec finissait par se voir — sans jamais
+     * etre explique. Un canal a part, et non un champ d'etat, parce que c'est un evenement a
+     * consommer une fois et non une condition qui dure.
+     */
+    private val _pinSaveFailed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val pinSaveFailed: SharedFlow<Unit> = _pinSaveFailed.asSharedFlow()
+
     fun setPin(pin: String) {
         viewModelScope.launch {
-            lockRepository.setPin(pin)
+            if (!lockRepository.setPin(pin)) {
+                _pinSaveFailed.tryEmit(Unit)
+                return@launch
+            }
             refreshWidget()
         }
     }

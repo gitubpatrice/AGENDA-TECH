@@ -14,6 +14,7 @@ import com.filestech.agenda_tech.domain.usecase.FakeEventRepository
 import com.filestech.agenda_tech.domain.usecase.FakeReminderRepository
 import com.filestech.agenda_tech.domain.usecase.FakeSettingsRepository
 import com.filestech.agenda_tech.domain.usecase.UpsertEventUseCase
+import com.filestech.agenda_tech.system.AgendaChangeNotifier
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.filestech.agenda_tech.ui.navigation.Routes
 import com.google.common.truth.Truth.assertThat
@@ -61,6 +62,9 @@ class EventEditorViewModelTest {
      */
     private val scheduler: ReminderScheduler = mockk(relaxed = true)
 
+    /** Audit AG-2 — la couture qui rafraichit le widget apres chaque ecriture. */
+    private val agendaChanged: AgendaChangeNotifier = mockk(relaxed = true)
+
     private val dispatcher = StandardTestDispatcher()
 
     @BeforeEach
@@ -88,6 +92,7 @@ class EventEditorViewModelTest {
             calendarRepository = calendarRepo,
             reminderRepository = reminderRepo,
             reminderScheduler = scheduler,
+            agendaChanged = agendaChanged,
             settingsRepository = settingsRepo,
             savedStateHandle = SavedStateHandle(args),
         )
@@ -108,6 +113,69 @@ class EventEditorViewModelTest {
         recurrence = recurrence,
         sourceUid = sourceUid,
     ).also { eventRepo.rows[id] = it }
+
+    // --- Audit AG-3 : double-tap sur Enregistrer ----------------------------
+
+    @Test
+    fun `tapping save twice before the write lands creates ONE event, not two`() = runTest(dispatcher) {
+        val vm = viewModel()
+        vm.onTitleChange("Dentiste")
+
+        // Les deux tapes AVANT `advanceUntilIdle` : c'est exactement la fenêtre réelle — la
+        // navigation de retour n'intervient qu'à `isSaved`, après l'aller-retour base, et le bouton
+        // n'était conditionné par rien.
+        vm.onSave()
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(eventRepo.rows.values).hasSize(1)
+    }
+
+    @Test
+    fun `a second save is refused while the first is still running, reminders included`() = runTest(dispatcher) {
+        val vm = viewModel()
+        vm.onTitleChange("Dentiste")
+        vm.onAddReminder(10)
+
+        vm.onSave()
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        // Sur un événement neuf le doublon se voyait à la ligne en trop ; sur les rappels il se
+        // voyait à deux lignes de même `minutesBefore`, puis à deux alarmes armées.
+        assertThat(eventRepo.rows.values).hasSize(1)
+        assertThat(reminderRepo.rows.values).hasSize(1)
+    }
+
+    @Test
+    fun `a deletion that throws releases the guard instead of freezing the screen`() = runTest(dispatcher) {
+        // Relecture gpt-5.2 du 2026-09-11 : `busy` était posé à l'entrée des chemins de suppression
+        // et ne retombait sur AUCUN d'eux si la base levait. L'écran ne naviguait pas (pas de
+        // `isDeleted`) et plus aucun bouton ne répondait — le garde anti-double-tap devenait un
+        // moyen de bloquer l'éditeur.
+        seedEvent(id = 10)
+        val vm = viewModel(eventId = 10)
+        testScheduler.advanceUntilIdle()
+        eventRepo.deleteThrows = true
+
+        // Evenement simple : onDelete descend directement sur deleteDirect, sans dialogue.
+        vm.onDelete()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(vm.state.value.busy).isFalse()
+        assertThat(vm.state.value.error).isEqualTo(EditorError.DELETE_FAILED)
+        assertThat(vm.state.value.isDeleted).isFalse()
+    }
+
+    @Test
+    fun `a failed save releases the guard so the user can retry`() = runTest(dispatcher) {
+        val vm = viewModel()
+        // Titre vide : refusé par onSave lui-même, donc `busy` ne doit même pas avoir été posé.
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(vm.state.value.busy).isFalse()
+    }
 
     // --- Enregistrement d'un nouvel événement -------------------------------
 
@@ -412,6 +480,7 @@ class EventEditorViewModelTest {
             calendarRepository = calendarRepo,
             reminderRepository = reminderRepo,
             reminderScheduler = scheduler,
+            agendaChanged = agendaChanged,
             settingsRepository = settings,
             savedStateHandle = SavedStateHandle(emptyMap()),
         )

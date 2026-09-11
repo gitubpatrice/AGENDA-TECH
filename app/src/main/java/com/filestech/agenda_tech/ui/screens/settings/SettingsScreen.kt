@@ -50,6 +50,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import android.widget.Toast
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -263,6 +265,16 @@ fun SettingsScreen(
 
             HorizontalDivider()
             ClickRow(title = stringResource(R.string.settings_about), onClick = onOpenAbout)
+        }
+    }
+
+    // Audit AG-10 — l'echec d'enregistrement du PIN etait muet. Toast plutot que Snackbar :
+    // cet ecran n'a pas de Scaffold porteur de SnackbarHost, et les trois autres avis de cette
+    // application (base reinitialisee, reglages reinitialises, rappels incomplets) sont des
+    // Toasts pour la meme raison.
+    LaunchedEffect(Unit) {
+        viewModel.pinSaveFailed.collect {
+            Toast.makeText(context, R.string.settings_lock_pin_save_failed, Toast.LENGTH_LONG).show()
         }
     }
 

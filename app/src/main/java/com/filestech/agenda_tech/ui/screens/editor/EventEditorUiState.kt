@@ -9,7 +9,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 /** Typed validation errors, mapped to localized strings by the screen. */
-enum class EditorError { BLANK_TITLE, END_BEFORE_START, SAVE_FAILED }
+enum class EditorError { BLANK_TITLE, END_BEFORE_START, SAVE_FAILED, DELETE_FAILED }
 
 /** How a recurrence terminates. */
 enum class RecurrenceEnd { NEVER, AFTER_COUNT, ON_DATE }
@@ -75,6 +75,22 @@ data class EventEditorUiState(
     val deleteNeedsScope: Boolean = false,
     val isSaved: Boolean = false,
     val isDeleted: Boolean = false,
+    /**
+     * True pendant qu'une écriture est en cours (audit AG-3).
+     *
+     * `onSave` n'avait aucun garde et le bouton « Enregistrer » aucun `enabled` : deux tapes rapides
+     * lançaient deux `persist`, et un événement neuf est construit avec `id = 0L`, donc **deux
+     * INSERT** — deux événements identiques. Sur un événement existant, les deux séquences
+     * `cancelEvent / deleteForEvent / upsert×N / rescheduleEvent` s'entrelaçaient et laissaient des
+     * rappels dupliqués. La navigation de retour n'intervenant qu'à `isSaved`, après l'aller-retour
+     * base, la fenêtre est largement ouverte.
+     *
+     * Le jumeau faisait déjà bien, et des deux côtés : `BackupScreen` conditionne chaque bouton par
+     * `enabled = state.busy == null`, **et** `BackupViewModel` repose un garde dans le ViewModel avec
+     * le commentaire qui explique ce risque précis. Les deux sont recopiés ici : l'un évite la tape,
+     * l'autre la rattrape si elle passe quand même (un appel programmatique, un test).
+     */
+    val busy: Boolean = false,
 ) {
     val selectedCalendar: Calendar?
         get() = calendars.firstOrNull { it.id == selectedCalendarId }

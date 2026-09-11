@@ -10,7 +10,7 @@ import com.filestech.agenda_tech.core.crypto.wipe
 import com.filestech.agenda_tech.core.result.AppError
 import com.filestech.agenda_tech.core.io.BoundedRead
 import com.filestech.agenda_tech.core.result.Outcome
-import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.domain.repository.ReminderRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.ExportBackupUseCase
@@ -248,7 +248,7 @@ class BackupViewModel @Inject constructor(
             // twin does in the same situation.
             password == null -> {
                 Timber.w("Backup export: the password did not survive the picker — nothing was written")
-                _state.value = BackupUiState(message = BackupMessage.Failed)
+                _state.update { it.copy(busy = null, message = BackupMessage.Failed) }
             }
             else -> export(uri, password)
         }
@@ -292,7 +292,14 @@ class BackupViewModel @Inject constructor(
                 if (out.error is AppError.Validation) BackupMessage.PasswordTooShort else BackupMessage.Failed
             }
         }
-        _state.value = BackupUiState(busy = null, message = message)
+        // Audit AG-12 — `_state.value = BackupUiState(...)` remettait AUSSI la section
+        // « sauvegarde automatique » a ses valeurs par defaut (interrupteur off, dossier nul,
+        // dernier resultat NEVER_RUN). Or son seul repeupleur est le collecteur de reglages, et
+        // `dataStore.data` ne reemet QUE sur ecriture : la section disparaissait donc de l'ecran
+        // — en emportant `autoBackupLastOutcome`, le seul avertissement que l'utilisateur recoit
+        // quand une sauvegarde hebdomadaire echoue — alors que le travail restait planifie.
+        // `update { copy }` ne touche que ce que cette operation concerne.
+        _state.update { it.copy(busy = null, message = message) }
     }
 
     /**
@@ -354,7 +361,14 @@ class BackupViewModel @Inject constructor(
         if (file == null) {
             // No file in hand (process death between the pick and the password): nothing to restore.
             password.wipe()
-            _state.value = BackupUiState(message = BackupMessage.Failed)
+            // `awaitingRestorePassword` est remis à false EXPLICITEMENT : ce chemin est le seul des
+            // cinq d'AG-12 à s'exécuter alors que le dialogue de mot de passe est encore affiché, et
+            // c'est le remplacement intégral de l'état qui le refermait jusqu'ici. Le `copy` ne
+            // referme que ce qu'on lui nomme — l'oublier laisserait l'utilisateur devant un dialogue
+            // qui ne mène plus nulle part.
+            _state.update {
+                it.copy(busy = null, awaitingRestorePassword = false, message = BackupMessage.Failed)
+            }
             return@launch
         }
         pendingRestoreFile = null
@@ -376,7 +390,7 @@ class BackupViewModel @Inject constructor(
         val staleReminderIds = runCatching { reminderRepository.getAll().map { it.id } }
             .getOrElse { error ->
                 Timber.w(error, "Backup restore: cannot enumerate the alarms to disarm — refusing")
-                _state.value = BackupUiState(busy = null, message = BackupMessage.Failed)
+                _state.update { it.copy(busy = null, message = BackupMessage.Failed) }
                 password.wipe()
                 return@launch
             }
@@ -401,20 +415,71 @@ class BackupViewModel @Inject constructor(
                 }
             }
         }
-        _state.value = BackupUiState(busy = null, message = message)
+        _state.update { it.copy(busy = null, message = message) }
     }
 
     fun consumeMessage() = _state.update { it.copy(message = null) }
 
+    /**
+     * Écrit la sauvegarde à l'emplacement choisi, **sans détruire celle qui s'y trouvait** si
+     * l'écriture échoue (audit AG-6).
+     *
+     * ## Ce que le mode `"wt"` coûtait
+     *
+     * `"wt"` tronque le fichier AVANT d'écrire, et le commentaire d'origine disait déjà pourquoi il
+     * est nécessaire : `CreateDocument` rend le fichier EXISTANT quand l'utilisateur écrase, et sans
+     * troncature une sauvegarde plus courte laisserait la queue de l'ancienne collée à sa suite.
+     *
+     * Le prix n'était pas dit : entre la troncature et la fin de l'écriture, l'ancienne sauvegarde
+     * n'existe plus et la nouvelle n'existe pas encore. Une carte retirée, une autorisation révoquée,
+     * un fournisseur en erreur à cet instant, et l'utilisateur n'a **plus rien** — avec
+     * `allowBackup="false"`, sur ce qui est possiblement sa seule copie. L'échec lui était bien
+     * signalé, ce qui rend le défaut moins grave qu'une perte silencieuse, mais pas moins définitif.
+     *
+     * Le jumeau automatique n'a pas ce problème : [com.filestech.agenda_tech.data.backup.SafAutoBackupTarget]
+     * écrit dans un `tmp-…` puis bascule, correctif posé le 2026-08-31 et jamais reporté ici.
+     *
+     * ## Pourquoi pas le même correctif
+     *
+     * Il n'est pas transposable : le jumeau détient une URI d'ARBORESCENCE, donc il peut créer un
+     * fichier voisin. Ici on ne tient qu'une URI de DOCUMENT — le sélecteur ne donne aucun droit sur
+     * le dossier qui le contient, et rien ne permet d'y déposer un temporaire.
+     *
+     * Ce qui reste faisable, et qui est fait : relire l'ancien contenu avant de tronquer, et le
+     * réécrire si l'écriture échoue. Ça couvre les pannes de fournisseur, les révocations et les
+     * erreurs de flux — pas un disque plein, où la réécriture échouera aussi. C'est une amélioration
+     * franche, pas une garantie, et la différence est dite plutôt que sous-entendue.
+     */
     private suspend fun writeFile(uri: Uri, bytes: ByteArray, events: Int): BackupMessage = withContext(io) {
+        // Lu AVANT la troncature, et borné par le même plafond que la restauration : un fournisseur
+        // hostile ne doit pas pouvoir faire tenir un fichier arbitraire en mémoire.
+        val previous = runCatching {
+            context.contentResolver.openInputStream(uri)?.use { BoundedRead.readAtMost(it, MAX_FILE_BYTES) }
+        }.getOrNull()
+
+        // Vrai UNIQUEMENT si les octets sont tous partis. Un DocumentProvider peut accepter chaque
+        // `write()` puis lever au `close()` : sans ce drapeau, le filet se declenchait alors que le
+        // NOUVEAU fichier etait deja correctement ecrit, et le remplacait par l'ancien — il detruisait
+        // la sauvegarde qu'il etait cense proteger. Signale par la relecture gpt-5.2 du 2026-09-11.
+        var bytesFullyWritten = false
         try {
-            // "wt" truncates: SAF hands back the existing file when the user overwrites one, and
-            // without truncation a shorter backup would keep the old file's tail glued to its end.
-            context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(bytes) }
-                ?: return@withContext BackupMessage.Failed
+            context.contentResolver.openOutputStream(uri, "wt")?.use {
+                it.write(bytes)
+                it.flush()
+                bytesFullyWritten = true
+            } ?: return@withContext BackupMessage.Failed
             BackupMessage.Exported(events = events)
         } catch (t: Throwable) {
             Timber.w(t, "Backup export: cannot write to %s", uri)
+            if (previous != null && !bytesFullyWritten) {
+                // Best-effort, et journalisé des deux côtés : savoir qu'une remise en place a échoué
+                // vaut mieux que de croire l'ancienne sauvegarde intacte.
+                runCatching {
+                    context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(previous) }
+                }
+                    .onSuccess { Timber.i("Backup export: previous file restored after a failed write") }
+                    .onFailure { Timber.w(it, "Backup export: could NOT restore the previous file") }
+            }
             BackupMessage.Failed
         }
     }

@@ -10,7 +10,7 @@ import com.filestech.agenda_tech.core.crypto.KeystoreManager
 import com.filestech.agenda_tech.core.crypto.PinHasher
 import com.filestech.agenda_tech.core.crypto.wipe
 import com.filestech.agenda_tech.core.result.Outcome
-import com.filestech.agenda_tech.di.IoDispatcher
+import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.domain.repository.LockRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -44,7 +44,7 @@ class LockRepositoryImpl @Inject constructor(
 
     override suspend fun isLockEnabled(): Boolean = lockEnabled.first()
 
-    override suspend fun setPin(pin: String) = withContext(io) {
+    override suspend fun setPin(pin: String): Boolean = withContext(io) {
         val salt = PinHasher.newSalt()
         val pinChars = pin.toCharArray()
         val hash = PinHasher.hash(pinChars, salt) // hash() wipes pinChars in its finally
@@ -52,12 +52,13 @@ class LockRepositoryImpl @Inject constructor(
         val wrapped = wrap(blob)
         blob.wipe()
         hash.wipe()
-        if (wrapped == null) return@withContext
+        // Audit AG-10 — le verdict remonte desormais a l'appelant au lieu d'etre avale.
+        if (wrapped == null) return@withContext false
         dataStore.edit { prefs ->
             prefs[Keys.PIN_WRAP] = Base64.getEncoder().encodeToString(wrapped)
             prefs[Keys.LOCK_ENABLED] = true
         }
-        Unit
+        true
     }
 
     override suspend fun verifyPin(pin: String): Boolean = withContext(io) {

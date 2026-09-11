@@ -19,6 +19,7 @@ import com.filestech.agenda_tech.domain.repository.ReminderRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.DeleteEventUseCase
 import com.filestech.agenda_tech.domain.usecase.UpsertEventUseCase
+import com.filestech.agenda_tech.system.AgendaChangeNotifier
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.filestech.agenda_tech.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -42,6 +44,7 @@ class EventEditorViewModel @Inject constructor(
     private val calendarRepository: CalendarRepository,
     private val reminderRepository: ReminderRepository,
     private val reminderScheduler: ReminderScheduler,
+    private val agendaChanged: AgendaChangeNotifier,
     private val settingsRepository: SettingsRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -330,6 +333,9 @@ class EventEditorViewModel @Inject constructor(
 
     fun onSave() {
         val current = _state.value
+        // Audit AG-3 — lecture simple suffisante : viewModelScope depeche sur Main.immediate,
+        // et `busy` est pose dans persist() avant le premier point de suspension.
+        if (current.busy) return
         if (current.title.isBlank()) {
             _state.update { it.copy(error = EditorError.BLANK_TITLE) }
             return
@@ -347,7 +353,11 @@ class EventEditorViewModel @Inject constructor(
     }
 
     fun onDelete() {
-        if (eventId <= 0L) return
+        // Audit AG-3 — `busy` joint aux gardes existants plutot qu'ajoute a cote : les trois
+        // disent la meme chose (cet ecran n'est pas en etat d'accepter une suppression) et un
+        // `return` de plus faisait franchir a cette fonction le seuil ReturnCount de detekt,
+        // ce qui etait le signal correct.
+        if (eventId <= 0L || _state.value.busy) return
         // Same window as [onDuplicate]: before the row is read, `loadedRecurrence` is still null, so
         // `isMasterOccurrence()` says "plain event" about a series and this would delete the master
         // outright instead of asking. The screen already hides the button until then; the guard is
@@ -372,7 +382,7 @@ class EventEditorViewModel @Inject constructor(
      * reappear on that day, so "delete" would silently behave as "revert".
      */
     private fun deleteOverrideAndExclude(parentId: Long, originalStart: Long) {
-        viewModelScope.launch {
+        launchDeletion {
             reminderScheduler.cancelEvent(eventId)
             val master = eventRepository.getById(parentId)
             val rule = master?.recurrence
@@ -384,6 +394,7 @@ class EventEditorViewModel @Inject constructor(
             } else {
                 deleteEvent(eventId)
             }
+            agendaChanged.onAgendaChanged(rearmReminders = false)
             _state.update { it.copy(isDeleted = true) }
         }
     }
@@ -429,7 +440,7 @@ class EventEditorViewModel @Inject constructor(
         // still null, so the "copy" would be an empty form that later inherits the original's
         // identity when `loadEvent` finishes and repopulates them.
         val current = _state.value
-        if (!current.isEditing || !current.isLoaded) return
+        if (!current.isEditing || !current.isLoaded || current.busy) return
         eventId = NEW
         loadedRecurrence = null
         loadedParentId = null
@@ -454,6 +465,7 @@ class EventEditorViewModel @Inject constructor(
     }
 
     private fun persist(asOverride: Boolean) {
+        _state.update { it.copy(busy = true) }
         val current = _state.value
         val (startMillis, endMillis) = current.toInstants()
         val event = Event(
@@ -555,40 +567,86 @@ class EventEditorViewModel @Inject constructor(
                         // concern, not a database one.
                         reminderScheduler.rescheduleEvent(eventId)
                     }
+                    agendaChanged.onAgendaChanged(rearmReminders = false)
                     _state.update { it.copy(isSaved = true) }
                 }
-                is Outcome.Failure -> _state.update { it.copy(error = EditorError.SAVE_FAILED) }
+                // `busy` relache : l'ecran reste, l'utilisateur doit pouvoir retenter.
+                is Outcome.Failure -> _state.update { it.copy(error = EditorError.SAVE_FAILED, busy = false) }
+            }
+        }
+    }
+
+    /**
+     * Enveloppe commune aux quatre chemins de suppression (relecture gpt-5.2 du 2026-09-11).
+     *
+     * `busy` est pose a l'entree ; si la base leve — SQLCipher momentanement indisponible, ligne
+     * corrompue — la coroutine s'arrete avant `isDeleted`, l'ecran ne navigue pas, et `busy` restait
+     * a `true` POUR TOUJOURS : plus aucun bouton ne repondait. Le drapeau ajoute pour empecher le
+     * double-tap devenait ainsi un moyen de bloquer l'ecran.
+     *
+     * L'echec est dit, pas seulement relache : une suppression qui ne se produit pas et ne dit rien
+     * laisse croire qu'elle a eu lieu.
+     */
+    private fun launchDeletion(block: suspend () -> Unit) {
+        _state.update { it.copy(busy = true) }
+        viewModelScope.launch {
+            try {
+                block()
+            } catch (t: Throwable) {
+                Timber.w(t, "Event deletion failed")
+                _state.update { it.copy(error = EditorError.DELETE_FAILED, busy = false) }
             }
         }
     }
 
     private fun deleteDirect() {
-        viewModelScope.launch {
+        launchDeletion {
             reminderScheduler.cancelEvent(eventId)
             deleteEvent(eventId)
+            agendaChanged.onAgendaChanged(rearmReminders = false)
             _state.update { it.copy(isDeleted = true) }
         }
     }
 
     private fun deleteSeries() {
-        viewModelScope.launch {
+        launchDeletion {
             reminderScheduler.cancelEvent(eventId)
+            // Audit AG-9 — `deleteSeriesAtomic` supprime le maître ET ses dérogations, alors que
+            // `cancelEvent` au-dessus ne désarme que celles du maître. Or une dérogation est un
+            // événement à part entière, qui porte ses propres rappels (`persist(asOverride = true)`
+            // écrit bien des lignes `Reminder` et les arme). Leurs alarmes survivaient donc à la
+            // suppression de la série.
+            //
+            // Isolées, elles sont bénignes : les identifiants sont AUTOINCREMENT, donc l'alarme tire,
+            // `getById` rend null et rien n'est posté. Le danger est en chaîne — une restauration
+            // réinsère les identifiants VERBATIM depuis le fichier, et l'orpheline retrouve alors un
+            // AUTRE événement portant son numéro. C'est exactement le scénario F7, par une porte que
+            // F7 ne fermait pas.
+            //
+            // Énumérées AVANT la suppression : après, plus rien ne permet de les retrouver.
+            eventRepository.observeOverrides().first()
+                .filter { it.recurrenceParentId == eventId }
+                .forEach { reminderScheduler.cancelEvent(it.id) }
             eventRepository.deleteSeriesAtomic(eventId) // ROB-NEW-2 — master + overrides in one transaction
+            agendaChanged.onAgendaChanged(rearmReminders = false)
             _state.update { it.copy(isDeleted = true) }
         }
     }
 
     /** Exclude just the tapped occurrence: add its start to the master's EXDATE. */
     private fun deleteThisOccurrence() {
-        viewModelScope.launch {
+        launchDeletion {
             val master = eventRepository.getById(eventId)
             val rule = master?.recurrence
             if (master == null || rule == null) {
+                // `deleteDirect` repose `busy` et relance sa propre enveloppe : c'est voulu,
+                // il porte le chemin complet (annulation d'alarme incluse).
                 deleteDirect()
-                return@launch
+                return@launchDeletion
             }
             eventRepository.upsert(master.copy(recurrence = rule.excluding(occurrenceStart)))
             reminderScheduler.rescheduleEvent(eventId)
+            agendaChanged.onAgendaChanged(rearmReminders = false)
             _state.update { it.copy(isDeleted = true) }
         }
     }
