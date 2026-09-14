@@ -6,7 +6,7 @@ agp = "9.4.0"
 # Kotlin reste en 2.3.20 : CodeQL 2.27 refuse de compiler au-delà (« Kotlin version 2.4.20 is too
 # recent. CodeQL currently supports versions below 2.4.20 », mesuré sur la PR #14). Ignoré dans
 # .github/dependabot.yml jusqu'à ce que CodeQL le supporte.
-kotlin = "2.3.20"
+kotlin = "2.4.10"
 ksp = "2.3.12"
 java = "17"
 
@@ -18,7 +18,7 @@ lifecycle = "2.11.0"
 navigation-compose = "2.10.1"
 room = "2.8.5"
 # Alignee sur kotlinx-serialization-core deja resolu transitivement (lifecycle) : evite un conflit.
-kotlinxSerialization = "1.7.3"
+kotlinxSerialization = "1.11.0"
 datastore = "1.1.1"
 biometric = "1.1.0"
 splashscreen = "1.2.0"
