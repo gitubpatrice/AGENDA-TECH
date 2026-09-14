@@ -34,6 +34,11 @@ updates:
           - "org.jetbrains.kotlin*"
           - "com.google.dagger*"
           - "io.gitlab.arturbosch.detekt*"
+      # Jupiter et le lanceur JUnit Platform doivent monter ENSEMBLE : proposés séparément (PR #17 et
+      # #19, 2026-09-14), chacun cassait le démarrage des tests en désaccordant l'autre.
+      junit:
+        patterns:
+          - "org.junit*"
     ignore:
       # Cf. l'avertissement en tête de fichier. À retirer une fois !42991 fusionnée.
       - dependency-name: "androidx.work:*"
@@ -44,6 +49,10 @@ updates:
       # `-Xannotation-default-target` dans app/build.gradle.kts, redondant en 2.4.
       - dependency-name: "org.jetbrains.kotlin*"
         versions: [">= 2.4.20"]
+      # kotlinx-serialization reste en 1.7.3 : c'est lui qui écrit le fichier .atbak (tout l'agenda de
+      # l'utilisateur), format vérifié contre une implémentation Python indépendante. La raison complète
+      # est en commentaire dans app/build.gradle.kts, près de `kspAndroidTest`. PR #16 fermée pour ça.
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-serialization*"
 
   - package-ecosystem: github-actions
     directory: "/"
