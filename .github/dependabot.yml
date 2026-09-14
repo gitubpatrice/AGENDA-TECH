@@ -38,6 +38,12 @@ updates:
       # Cf. l'avertissement en tête de fichier. À retirer une fois !42991 fusionnée.
       - dependency-name: "androidx.work:*"
       - dependency-name: "androidx.documentfile:*"
+      # Kotlin 2.4.20+ : CodeQL 2.27 refuse de compiler (« currently supports versions below
+      # 2.4.20 », mesuré sur la PR #14). Une PR de montée échouerait à chaque passage. À retirer
+      # dès qu'une version de CodeQL le supporte — et retirer alors aussi
+      # `-Xannotation-default-target` dans app/build.gradle.kts, redondant en 2.4.
+      - dependency-name: "org.jetbrains.kotlin*"
+        versions: [">= 2.4.20"]
 
   - package-ecosystem: github-actions
     directory: "/"

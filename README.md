@@ -70,7 +70,7 @@ Details: [SECURITY.md](SECURITY.md) · [PRIVACY.md](PRIVACY.md).
 Kotlin · Jetpack Compose (Material 3) · Hilt · Room + SQLCipher · Coroutines/Flow · typed
 `Outcome`/`AppError` · Timber · JUnit5 + Truth + MockK tests.
 
-`applicationId`: `com.filestech.agenda_tech` — `minSdk 26` (native java.time) / `compileSdk 36`.
+`applicationId`: `com.filestech.agenda_tech` — `minSdk 26` (native java.time) / `compileSdk 37`.
 
 ### Architecture (layers)
 

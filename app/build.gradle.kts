@@ -3,7 +3,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
@@ -33,9 +32,9 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "com.filestech.agenda_tech"
-    // compileSdk 36 requis par les androidx récents. targetSdk reste 35 : on compile
-    // contre l'API 36 sans opter dans les changements de comportement Android 16.
-    compileSdk = 36
+    // compileSdk 37 requis par les androidx récents (compose 1.12, core 1.19). targetSdk reste 35 :
+    // on compile contre l'API 37 sans opter dans les changements de comportement des versions suivantes.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.filestech.agenda_tech"
@@ -72,7 +71,7 @@ android {
     // 7 schémas sont bel et bien exportés. (Le compte disait « 4 » et « 5 » : périmé de deux crans.)
     sourceSets {
         getByName("androidTest") {
-            assets.srcDir("$projectDir/schemas")
+            assets.directories.add("$projectDir/schemas")
         }
     }
 
@@ -185,7 +184,8 @@ kotlin {
             "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
             // Kotlin 2.x: apply annotations (Hilt qualifiers, @ApplicationContext) to both the
             // constructor parameter AND the backing property — the recommended opt-in that
-            // silences the KT-73255 forward-compat warning.
+            // silences the KT-73255 forward-compat warning. Redundant from Kotlin 2.4 (the default
+            // there), which CodeQL does not support yet: remove it together with that bump.
             "-Xannotation-default-target=param-property",
         )
     }
@@ -254,6 +254,7 @@ dependencies {
     // Unit tests
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
