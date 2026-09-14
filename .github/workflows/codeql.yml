@@ -48,8 +48,12 @@ jobs:
       # `version.properties` lu au moment du build. `autobuild` devine, et ce qu'il devine mal, il
       # l'analyse en moins — une analyse partielle qui se présente comme complète est pire que pas
       # d'analyse du tout.
+      #
+      # `--no-build-cache --rerun-tasks` : CodeQL n'extrait que ce qu'il VOIT compiler. Le cache
+      # restauré par `setup-gradle` rendait `compileDebugKotlin` FROM-CACHE, et l'analyse du
+      # 2026-09-14 a échoué sur « could not process any of it » alors que le build était vert.
       - name: Build
-        run: ./gradlew --no-daemon :app:assembleDebug
+        run: ./gradlew --no-daemon --no-build-cache --rerun-tasks :app:assembleDebug
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
