@@ -3,7 +3,10 @@
 # Migré le 2026-09-14 : compose 1.12, core 1.19, lifecycle 2.11, navigation 2.10 et
 # hilt-navigation-compose 1.4 exigent AGP 9.1+ et compileSdk 37 (mesuré sur la CI des PR Dependabot).
 agp = "9.4.0"
-kotlin = "2.4.20"
+# Kotlin reste en 2.3.20 : CodeQL 2.27 refuse de compiler au-delà (« Kotlin version 2.4.20 is too
+# recent. CodeQL currently supports versions below 2.4.20 », mesuré sur la PR #14). Ignoré dans
+# .github/dependabot.yml jusqu'à ce que CodeQL le supporte.
+kotlin = "2.3.20"
 ksp = "2.3.12"
 java = "17"
 

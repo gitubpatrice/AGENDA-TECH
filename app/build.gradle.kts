@@ -182,8 +182,11 @@ kotlin {
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
             "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
-            // `-Xannotation-default-target=param-property` retiré avec Kotlin 2.4 : c'est désormais le
-            // comportement par défaut (KT-73255), et le compilateur signale l'argument comme redondant.
+            // Kotlin 2.x: apply annotations (Hilt qualifiers, @ApplicationContext) to both the
+            // constructor parameter AND the backing property — the recommended opt-in that
+            // silences the KT-73255 forward-compat warning. Redundant from Kotlin 2.4 (the default
+            // there), which CodeQL does not support yet: remove it together with that bump.
+            "-Xannotation-default-target=param-property",
         )
     }
 }
