@@ -6,7 +6,7 @@ agp = "9.4.0"
 # Kotlin reste en 2.3.20 : CodeQL 2.27 refuse de compiler au-delà (« Kotlin version 2.4.20 is too
 # recent. CodeQL currently supports versions below 2.4.20 », mesuré sur la PR #14). Ignoré dans
 # .github/dependabot.yml jusqu'à ce que CodeQL le supporte.
-kotlin = "2.3.20"
+kotlin = "2.4.10"
 ksp = "2.3.12"
 java = "17"
 
