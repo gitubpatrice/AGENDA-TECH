@@ -15,7 +15,8 @@ external code review; both were checked against the code and on a device before 
   never appeared. The app no longer asks for the PIN after a file picker it opened itself, and
   unlocking always returns to the screen you left — an event being typed survives a phone call.
   The lock still applies when you leave the app, when the screen turns off while a picker is open,
-  and when you come back more than 3 minutes later.
+  when you come back through a notification, the widget or the app icon, and when you come back more
+  than 3 minutes later.
 - **Android 8 to 11: a key store that briefly stopped responding could erase the agenda.** On those
   versions the system reports a key it cannot reach as missing. The app then created a new key,
   which destroyed the real one: the agenda was reset, or the PIN could never be verified again. A
@@ -33,8 +34,8 @@ external code review; both were checked against the code and on a device before 
   sélecteur de fichier verrouillait l'application, et le déverrouillage ramenait sur le mois : la
   fenêtre du mot de passe ne s'ouvrait jamais. L'application ne redemande plus le code après un
   sélecteur qu'elle a ouvert, et le déverrouillage ramène toujours à l'écran quitté. Le verrou
-  s'applique toujours en quittant l'application, si l'écran s'éteint pendant un sélecteur, et au
-  retour après plus de 3 minutes.
+  s'applique toujours en quittant l'application, si l'écran s'éteint pendant un sélecteur, au retour
+  par une notification, le widget ou l'icône, et au retour après plus de 3 minutes.
 - **Android 8 à 11 : un stockage de clés muet un instant pouvait effacer l'agenda.** La clé est
   désormais toujours relue, jamais recréée : l'application refuse d'ouvrir sans rien effacer et
   invite à redémarrer le téléphone.

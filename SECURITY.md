@@ -151,10 +151,14 @@ quoi qu'il arrive) : c'est un **gate UI**, il ne modifie pas la posture crypto d
   trou relevé en relecture externe (Gemini Pro) : demande de permission, Accueil dans les 3 s, et
   l'application se rouvrait déverrouillée depuis les Récents.
 
+  Revenir dans l'application **par une notification, le widget ou l'icône** pendant qu'un sélecteur est
+  ouvert verrouille aussi : c'est entrer de l'extérieur (`onNewIntent`, relevé par l'audit pré-tag de
+  la v1.1.1 — l'activité `singleTask` reprenait sans nouvel `onStop`).
+
   ⚠️ **Limite connue, assumée par Patrice.** Une fois le sélecteur à l'écran, l'application ne voit plus
-  rien : elle ne distingue pas « fichier choisi » de « Accueil, puis retour par les Récents ». Quelqu'un
-  qui quitte le sélecteur et tend le téléphone **écran allumé** retrouve l'agenda déverrouillé s'il y
-  revient dans les 3 minutes. Aller dans une autre application (navigateur,
+  rien : un retour **par les Récents** ne transporte aucune intention, et ne se distingue pas du
+  sélecteur qui rend son résultat. Quelqu'un qui quitte le sélecteur et revient par les Récents
+  **écran allumé** retrouve l'agenda déverrouillé s'il le fait dans les 3 minutes. Aller dans une autre application (navigateur,
   réglages système, carte), appuyer sur Accueil ou ouvrir une notification **verrouille toujours**.
 - **Le déverrouillage rend l'écran quitté.** L'écran de verrouillage **remplace** l'interface — rien
   n'en est dessiné, touchable ni lu par l'accessibilité, ses dialogues compris — mais la navigation

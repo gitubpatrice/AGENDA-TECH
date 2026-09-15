@@ -84,6 +84,42 @@ class PickerRelockPolicyTest {
     }
 
     @Test
+    fun `a notification or widget tap while the picker is open locks, whatever the callback order`() {
+        // onNewIntent before onStart.
+        policy.onExternalActivityLaunched()
+        clock += 400
+        policy.sparesLockOnStop()
+        clock += 30_000
+        assertThat(policy.onExternalIntent()).isTrue()
+        assertThat(policy.locksOnReturn()).isFalse()
+
+        // onStart first (return in time), then onNewIntent before onResume.
+        policy.onExternalActivityLaunched()
+        clock += 400
+        policy.sparesLockOnStop()
+        clock += 30_000
+        assertThat(policy.locksOnReturn()).isFalse()
+        assertThat(policy.onExternalIntent()).isTrue()
+    }
+
+    @Test
+    fun `the picker handing back its result does not lock`() {
+        // No intent: onStart, then onResume. A later intent, once resumed, is an ordinary in-app one.
+        policy.onExternalActivityLaunched()
+        clock += 400
+        policy.sparesLockOnStop()
+        clock += 30_000
+        assertThat(policy.locksOnReturn()).isFalse()
+        policy.onResumed()
+        assertThat(policy.onExternalIntent()).isFalse()
+    }
+
+    @Test
+    fun `an intent with no picker involved does not lock`() {
+        assertThat(policy.onExternalIntent()).isFalse()
+    }
+
+    @Test
     fun `a launch that only paused the app expires on resume`() {
         // A translucent permission dialog pauses without stopping; the pass must not survive it.
         policy.onExternalActivityLaunched()
