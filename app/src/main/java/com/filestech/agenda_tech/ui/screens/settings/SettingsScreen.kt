@@ -6,7 +6,7 @@ import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
 import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
+import com.filestech.agenda_tech.ui.util.rememberAppResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.IntentCompat
 import androidx.core.net.toUri
@@ -99,7 +99,7 @@ fun SettingsScreen(
     }
 
     // System ringtone picker: returns the picked URI (null = "Silent"/none → keep the system default).
-    val ringtonePicker = rememberLauncherForActivityResult(
+    val ringtonePicker = rememberAppResultLauncher(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {

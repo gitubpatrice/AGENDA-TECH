@@ -1,5 +1,9 @@
 package com.filestech.agenda_tech
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.view.WindowManager
 import android.widget.Toast
@@ -33,9 +37,14 @@ import com.filestech.agenda_tech.security.BiometricGate
 import com.filestech.agenda_tech.security.LockState
 import com.filestech.agenda_tech.security.StrongBiometrics
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
+import com.filestech.agenda_tech.security.PickerRelockPolicy
 import com.filestech.agenda_tech.ui.AppRoot
+import com.filestech.agenda_tech.ui.LockedAppHost
 import com.filestech.agenda_tech.ui.StartupFailureScreen
 import com.filestech.agenda_tech.ui.lock.LockScreen
+import com.filestech.agenda_tech.ui.util.ExternalActivityGuard
+import com.filestech.agenda_tech.ui.util.LocalExternalActivityGuard
+import androidx.compose.runtime.CompositionLocalProvider
 import com.filestech.agenda_tech.ui.theme.AgendaTechTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -131,6 +140,28 @@ class MainActivity : FragmentActivity() {
      */
     @Volatile
     private var blockScreenshots = false
+
+    /**
+     * Spares the re-lock when the app leaves the foreground for a picker it opened itself — "no PIN
+     * again while the user is inside the app". Read at [onStart], [onResume] and [onStop]; every
+     * screen reports its launches through [externalActivityGuard]. Main thread only.
+     */
+    private val pickerRelock = PickerRelockPolicy()
+
+    /** One instance for the activity's life: a new one per recomposition would invalidate every screen. */
+    private val externalActivityGuard = ExternalActivityGuard { pickerRelock.onExternalActivityLaunched() }
+
+    /**
+     * Registered only while [pickerRelock] spares a stop: the screen turning off with a picker open
+     * locks the app at once (Patrice, 2026-09-15). Without it, a phone put down on an open picker would
+     * reopen unlocked for up to [PickerRelockPolicy.RETURN_GRACE_MS]. Delivered on the Main thread.
+     */
+    private val screenOffReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (pickerRelock.onScreenOff() && lockConfigured == true) appLock.lock()
+        }
+    }
+    private var screenOffReceiverRegistered = false
 
     /**
      * True when the database refused to open, so the UI shows an explanation instead of nothing.
@@ -237,13 +268,18 @@ class MainActivity : FragmentActivity() {
             }
 
             AgendaTechTheme(useDarkTheme = useDarkTheme) {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    when {
-                        startupFailure -> StartupFailureScreen()
-                        lockState == LockState.UNKNOWN -> Unit // splash keeps covering until resolved
-                        lockState == LockState.LOCKED ->
-                            LockScreen(onRequestBiometric = ::showBiometricPrompt)
-                        else -> AppRoot()
+                // Every activity-for-result the screens open reports here first, so the picker it
+                // opens does not lock the app behind the user (see PickerRelockPolicy).
+                CompositionLocalProvider(LocalExternalActivityGuard provides externalActivityGuard) {
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        when {
+                            startupFailure -> StartupFailureScreen()
+                            lockState == LockState.UNKNOWN -> Unit // splash keeps covering until resolved
+                            else -> LockedAppHost(
+                                locked = lockState == LockState.LOCKED,
+                                lockScreen = { LockScreen(onRequestBiometric = ::showBiometricPrompt) },
+                            ) { navController -> AppRoot(navController) }
+                        }
                     }
                 }
             }
@@ -284,9 +320,23 @@ class MainActivity : FragmentActivity() {
      */
     override fun onResume() {
         super.onResume()
+        // A launch that only paused the activity (a translucent permission dialog, a picker that
+        // failed to open) must not leave a pass for a later press on Home.
+        pickerRelock.onResumed()
         if (!blockScreenshots && appLock.state.value == LockState.UNLOCKED) {
             window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
+    }
+
+    /**
+     * Back from a picker the app opened: locks after all when the user took longer than
+     * [PickerRelockPolicy.RETURN_GRACE_MS], so a phone left on an open picker does not reopen an
+     * unlocked agenda. `locksOnReturn()` is evaluated first so the pending stop is always consumed.
+     */
+    override fun onStart() {
+        super.onStart()
+        unregisterScreenOffReceiver()
+        if (pickerRelock.locksOnReturn() && lockConfigured == true) appLock.lock()
     }
 
     override fun onStop() {
@@ -305,7 +355,35 @@ class MainActivity : FragmentActivity() {
         // "unknown" protects the snapshot, because that is free and reversible; only a firm "yes"
         // locks, because locking without a PIN to type is a dead end. See [lockConfigured].
         if (lockConfigured != false) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        if (lockConfigured == true) appLock.lock()
+        // "No PIN again while the user is inside the app": a picker the app opened itself does not
+        // lock it (PickerRelockPolicy). Consumed on every stop, before the lock decision, so a launch
+        // made while no lock was configured cannot leave a pass for a later stop.
+        val sparedForPicker = pickerRelock.sparesLockOnStop()
+        if (lockConfigured == true && !sparedForPicker) appLock.lock()
+        if (sparedForPicker) registerScreenOffReceiver()
+    }
+
+    override fun onDestroy() {
+        unregisterScreenOffReceiver()
+        super.onDestroy()
+    }
+
+    /** Idempotent. `ACTION_SCREEN_OFF` is a protected system broadcast: `RECEIVER_NOT_EXPORTED` still gets it. */
+    private fun registerScreenOffReceiver() {
+        if (screenOffReceiverRegistered) return
+        ContextCompat.registerReceiver(
+            this,
+            screenOffReceiver,
+            IntentFilter(Intent.ACTION_SCREEN_OFF),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+        screenOffReceiverRegistered = true
+    }
+
+    private fun unregisterScreenOffReceiver() {
+        if (!screenOffReceiverRegistered) return
+        unregisterReceiver(screenOffReceiver)
+        screenOffReceiverRegistered = false
     }
 
     /**

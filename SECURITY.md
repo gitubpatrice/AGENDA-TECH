@@ -137,6 +137,26 @@ quoi qu'il arrive) : c'est un **gate UI**, il ne modifie pas la posture crypto d
   que l'instantané de tâche est capturé par le système autour de cette même transition. Lever le
   drapeau plus tôt donne au traversal le temps d'arriver.
 
+- **Sélecteurs ouverts par l'application : pas de nouveau PIN (2026-09-15).** Règle de Patrice :
+  tant que l'utilisateur reste dans l'application, le PIN n'est pas redemandé. Un sélecteur de
+  fichier, le sélecteur de sonnerie ou une demande de permission ouverts **par l'application** ne
+  déclenchent donc plus le re-verrouillage de `onStop` (`PickerRelockPolicy`, passage obligé
+  `rememberAppResultLauncher`, garanti par un test sur le source). Trois bornes : l'exemption ne vaut
+  que si l'arrêt suit l'ouverture de **3 s** au plus ; **l'écran qui s'éteint** pendant que le
+  sélecteur est ouvert verrouille aussitôt ; un retour **plus de 3 min** après verrouille quand même.
+  `FLAG_SECURE` est levé comme avant.
+
+  ⚠️ **Limite connue, assumée par Patrice.** Une fois le sélecteur à l'écran, l'application ne voit plus
+  rien : elle ne distingue pas « fichier choisi » de « Accueil, puis retour par les Récents ». Quelqu'un
+  qui quitte le sélecteur et tend le téléphone **écran allumé** retrouve l'agenda déverrouillé s'il y
+  revient dans les 3 minutes. Aller dans une autre application (navigateur,
+  réglages système, carte), appuyer sur Accueil ou ouvrir une notification **verrouille toujours**.
+- **Le déverrouillage rend l'écran quitté.** L'écran de verrouillage **remplace** l'interface — rien
+  n'en est dessiné, touchable ni lu par l'accessibilité, ses dialogues compris — mais la navigation
+  et l'état des écrans sont conservés au-dessus du verrou (`LockedAppHost`). Auparavant, déverrouiller
+  ramenait sur le mois : une restauration en attente de son mot de passe disparaissait, une saisie
+  interrompue par un appel était perdue.
+
   ⚠️ Ce paragraphe affirmait auparavant que l'aperçu Récents « ne peut jamais fuiter ». Une garantie
   absolue posée sur une course non mesurée n'en est pas une (audit S5). Ce qui est vrai et vérifiable
   aujourd'hui : le drapeau est levé au **premier** point du cycle de vie que l'application contrôle
