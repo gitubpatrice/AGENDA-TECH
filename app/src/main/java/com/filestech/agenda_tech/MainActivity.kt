@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
+import android.os.PowerManager
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.setContent
@@ -358,9 +359,21 @@ class MainActivity : FragmentActivity() {
         // "No PIN again while the user is inside the app": a picker the app opened itself does not
         // lock it (PickerRelockPolicy). Consumed on every stop, before the lock decision, so a launch
         // made while no lock was configured cannot leave a pass for a later stop.
-        val sparedForPicker = pickerRelock.sparesLockOnStop()
+        var sparedForPicker = pickerRelock.sparesLockOnStop()
+        if (sparedForPicker) {
+            // Registered BEFORE the screen check (Gemini Pro review, 2026-09-15): the screen can turn
+            // off while the picker is opening, i.e. before this onStop, and that broadcast would be
+            // missed by a receiver registered afterwards. Both run on the Main thread, so nothing can
+            // slip between the registration and the check: a screen already off is seen here, a later
+            // one reaches the receiver.
+            registerScreenOffReceiver()
+            if (!getSystemService(PowerManager::class.java).isInteractive) {
+                unregisterScreenOffReceiver()
+                pickerRelock.onScreenOff()
+                sparedForPicker = false
+            }
+        }
         if (lockConfigured == true && !sparedForPicker) appLock.lock()
-        if (sparedForPicker) registerScreenOffReceiver()
     }
 
     override fun onDestroy() {

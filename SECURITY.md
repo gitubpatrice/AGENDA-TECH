@@ -139,12 +139,17 @@ quoi qu'il arrive) : c'est un **gate UI**, il ne modifie pas la posture crypto d
 
 - **Sélecteurs ouverts par l'application : pas de nouveau PIN (2026-09-15).** Règle de Patrice :
   tant que l'utilisateur reste dans l'application, le PIN n'est pas redemandé. Un sélecteur de
-  fichier, le sélecteur de sonnerie ou une demande de permission ouverts **par l'application** ne
-  déclenchent donc plus le re-verrouillage de `onStop` (`PickerRelockPolicy`, passage obligé
-  `rememberAppResultLauncher`, garanti par un test sur le source). Trois bornes : l'exemption ne vaut
-  que si l'arrêt suit l'ouverture de **3 s** au plus ; **l'écran qui s'éteint** pendant que le
-  sélecteur est ouvert verrouille aussitôt ; un retour **plus de 3 min** après verrouille quand même.
-  `FLAG_SECURE` est levé comme avant.
+  fichier ou le sélecteur de sonnerie ouverts **par l'application** ne déclenchent donc plus le
+  re-verrouillage de `onStop` (`PickerRelockPolicy`, passage obligé `rememberAppResultLauncher`,
+  garanti par un test sur le source). Trois bornes : l'exemption ne vaut que si l'arrêt suit
+  l'ouverture de **3 s** au plus ; **l'écran éteint** verrouille aussitôt, qu'il s'éteigne pendant le
+  sélecteur ou qu'il le soit déjà au moment de l'arrêt ; un retour **plus de 3 min** après verrouille
+  quand même. `FLAG_SECURE` est levé comme avant.
+
+  Les **demandes de permission** n'ont aucune exemption : leur dialogue translucide met l'activité en
+  pause sans l'arrêter, elles ne verrouillaient donc déjà pas. Leur accorder une exemption ouvrait un
+  trou relevé en relecture externe (Gemini Pro) : demande de permission, Accueil dans les 3 s, et
+  l'application se rouvrait déverrouillée depuis les Récents.
 
   ⚠️ **Limite connue, assumée par Patrice.** Une fois le sélecteur à l'écran, l'application ne voit plus
   rien : elle ne distingue pas « fichier choisi » de « Accueil, puis retour par les Récents ». Quelqu'un
