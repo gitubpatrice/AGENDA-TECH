@@ -1,7 +1,6 @@
 package com.filestech.agenda_tech.data.local.db
 
 import android.content.Context
-import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.UserNotAuthenticatedException
 import com.filestech.agenda_tech.core.crypto.AeadCipher
 import com.filestech.agenda_tech.core.crypto.KeystoreManager
@@ -28,11 +27,11 @@ import javax.inject.Singleton
  * File layout: `<files>/db/master.key` — version(1) || nonce(12) || ct+tag(N)
  *
  * On first run a 32-byte random key is generated, encrypted under [KeystoreManager.ALIAS_DB_MASTER],
- * and persisted. Subsequent runs decrypt it to recover the passphrase.
+ * and persisted. Subsequent runs decrypt it to recover the passphrase — with the key **already** under
+ * that alias, never a freshly created one (cf. [KeystoreManager.loadExistingKey]).
  *
- * Distinguishing genuine Keystore invalidation (lock-screen credential change, Knox OTA reset)
- * from a transient decrypt failure avoids silent data loss: the caller receives a typed [Failure]
- * and surfaces a recovery flow instead of auto-wiping the key.
+ * Distinguishing a key that is conclusively gone from a transient failure avoids silent data loss:
+ * the caller receives a typed [Failure] and erases only when [Failure.dataIsUnrecoverable] says so.
  *
  * Security posture (documented in SECURITY.md): the DB key is NOT gated behind user authentication
  * (`setUserAuthenticationRequired = false`), matching the SMS Tech baseline — at-rest protection
@@ -70,19 +69,29 @@ class DatabaseKeyManager @Inject constructor(
          */
         abstract val dataIsUnrecoverable: Boolean
 
-        /** The Keystore alias is gone or invalidated. The existing wrapped key cannot be recovered. */
+        /**
+         * The Keystore alias conclusively does not exist, while `master.key` does: nothing can decrypt
+         * the blob again.
+         *
+         * Raised only where the platform can prove absence — API 31+, where `KeyStore.getKey` returns
+         * null solely on `KEY_NOT_FOUND` ([KeystoreManager.KeyGoneException]). On API 26–30 the same
+         * null is ambiguous and becomes [KeystoreUnavailable].
+         *
+         * It used to be raised on `KeyPermanentlyInvalidatedException`, a path that never ran:
+         * `AndroidKeyStoreSpi.engineGetKey` converts that exception into `UnrecoverableKeyException`
+         * before it reaches the app (AOSP `android10-release` and `android12-release`).
+         */
         class KeystoreInvalidated(cause: Throwable? = null) :
-            Failure("AndroidKeyStore alias was invalidated; existing data unrecoverable", cause) {
-            // The OS itself says the key no longer exists. Nothing can decrypt the database again.
+            Failure("AndroidKeyStore alias does not exist; existing data unrecoverable", cause) {
             override val dataIsUnrecoverable = true
         }
 
         /**
-         * AEAD decryption failed **while the Keystore was healthy enough to hand back a key** — so the
-         * blob on disk is what is wrong, not the attempt. The passphrase it held is unrecoverable.
+         * AEAD decryption failed **while the Keystore handed back the key stored under the alias** — so
+         * the blob on disk is what is wrong, not the attempt. The passphrase it held is unrecoverable.
          *
-         * Distinct from [KeystoreUnavailable] on purpose: getting here means `getOrCreateKey` returned
-         * normally and only `aead.decrypt` refused.
+         * Distinct from [KeystoreUnavailable] on purpose: getting here means the existing key was
+         * returned normally and only `aead.decrypt` refused.
          */
         class WrapCorrupted(cause: Throwable? = null) :
             Failure("wrapped DB key is corrupted on disk", cause) {
@@ -99,8 +108,9 @@ class DatabaseKeyManager @Inject constructor(
 
         /**
          * The AndroidKeyStore could not be reached, or refused to hand back the key for a reason that
-         * is not invalidation — `KeyStoreException`, `UnrecoverableKeyException`, `ProviderException`,
-         * or the plain `RuntimeException`s some OEM implementations raise.
+         * does not prove it is gone — `KeyStoreException`, `UnrecoverableKeyException`,
+         * `ProviderException`, the plain `RuntimeException`s some OEM implementations raise, or, on
+         * API 26–30, no key at all ([KeystoreManager.KeyUnreachableException]).
          *
          * This is the class the CRITICAL of audit F1 turned on: these used to reach `DatabaseFactory`
          * as bare exceptions, outside the [Failure] hierarchy entirely, and its `catch (e: Exception)`
@@ -123,31 +133,43 @@ class DatabaseKeyManager @Inject constructor(
     }
 
     /**
-     * The AndroidKeyStore key that wraps the passphrase, with **every** way it can fail mapped onto the
-     * [Failure] hierarchy.
+     * The key that seals a **new** passphrase: the one under the alias, or a new one if there is none.
+     * Only [generateAndWrap] uses it — `master.key` does not exist yet, so no existing blob can be
+     * orphaned by a key created here.
      *
-     * Audit F1 — this mapping is the fix. `getOrCreateKey` declares no checked exception and wraps
-     * nothing, so a `KeyStoreException` from the keystore2 daemon, an `UnrecoverableKeyException`, a
-     * `ProviderException`, or an OEM `RuntimeException` used to travel up as-is, past a hierarchy built
-     * precisely to classify them, into a `catch (e: Exception)` that deleted the agenda. Anything not
-     * recognised as genuine invalidation is now typed [Failure.KeystoreUnavailable], i.e. transient,
-     * i.e. **not** a reason to erase anything.
+     * Audit F1 — every way it can fail is mapped onto [Failure.KeystoreUnavailable]. `getOrCreateKey`
+     * declares no checked exception and wraps nothing, so a `KeyStoreException` from the keystore2
+     * daemon, a `ProviderException`, or an OEM `RuntimeException` used to travel up as-is into a
+     * `catch (e: Exception)` that deleted the agenda.
      */
-    private fun wrappingKey(): SecretKey = try {
+    private fun sealingKey(): SecretKey = try {
         keystore.getOrCreateKey(KeystoreManager.ALIAS_DB_MASTER, allowUserIv = true)
-    } catch (e: KeyPermanentlyInvalidatedException) {
-        Timber.e("Keystore key invalidated (likely credential change on this device)")
-        throw Failure.KeystoreInvalidated(e)
     } catch (e: UserNotAuthenticatedException) {
         // Transient, and reclassified from KeystoreInvalidated after two reviewers flagged the mapping.
         //
         // This key is created with `setUserAuthenticationRequired(false)`, so per Android's contract this
         // exception cannot be raised for it — both reviewers confirmed the path is unreachable. But its
         // meaning, when it IS raised, is literally "authenticate and retry": it never says the key is
-        // gone. Classifying unreachable-but-transient as destructive is a bet with no upside — if the
-        // path stays dead the choice never matters, and if some OEM firmware raises it anyway the old
-        // mapping erased an agenda that was perfectly recoverable.
+        // gone. Classifying unreachable-but-transient as destructive is a bet with no upside.
         throw Failure.KeystoreUnavailable(e)
+    } catch (e: Throwable) {
+        throw Failure.KeystoreUnavailable(e)
+    }
+
+    /**
+     * The key that opened `master.key` last time — **never** a new one.
+     *
+     * This used to be `getOrCreateKey`, shared with [sealingKey]. On API 26–30 an unreachable keystore
+     * daemon makes `getKey` return null; a key was then generated under the same alias, destroying the
+     * real one, the GCM tag failed, [classifyCryptoFailure] said [Failure.WrapCorrupted], and
+     * `DatabaseFactory` erased the agenda — the exact outcome audit F1 set out to remove, reached from a
+     * `BootReceiver` with no screen shown. See [KeystoreManager.loadExistingKey].
+     */
+    private fun openingKey(): SecretKey = try {
+        keystore.loadExistingKey(KeystoreManager.ALIAS_DB_MASTER)
+    } catch (e: KeystoreManager.KeyGoneException) {
+        Timber.e("Keystore alias of the database key does not exist (KEY_NOT_FOUND)")
+        throw Failure.KeystoreInvalidated(e)
     } catch (e: Throwable) {
         throw Failure.KeystoreUnavailable(e)
     }
@@ -155,7 +177,7 @@ class DatabaseKeyManager @Inject constructor(
     private fun generateAndWrap(): ByteArray {
         val raw = ByteArray(AeadCipher.KEY_BYTES).also(secureRandom::nextBytes)
         val secretKey = try {
-            wrappingKey()
+            sealingKey()
         } catch (e: Failure) {
             raw.wipe()
             throw e
@@ -194,7 +216,7 @@ class DatabaseKeyManager @Inject constructor(
             throw Failure.Io(e)
         }
         val secretKey = try {
-            wrappingKey()
+            openingKey()
         } catch (e: Failure) {
             wrapped.wipe()
             throw e
@@ -219,13 +241,13 @@ class DatabaseKeyManager @Inject constructor(
          * Classifies an AEAD failure by its **cause**, instead of assuming a bad blob.
          *
          * Found independently by both external reviewers of the F1 fix, and it was the dangerous half of
-         * it: `getOrCreateKey` returning a usable `SecretKey` handle does **not** mean the Keystore can
-         * then run the GCM operation. `Cipher.init` / `doFinal` on an AndroidKeyStore key can fail
-         * transiently — a `ProviderException`, a `KeyStoreException`, an OEM `RuntimeException`, keystore2
-         * busy during a boot storm — and [AeadCipher] wraps every one of those into the same
-         * `AppError.Crypto`. Mapping all of them to [Failure.WrapCorrupted], which is classified
-         * unrecoverable, meant a **transient crypto error erased the agenda**: the very defect F1 set out
-         * to remove, reintroduced one layer further down, and reached with no retry at all.
+         * it: obtaining a usable `SecretKey` handle does **not** mean the Keystore can then run the GCM
+         * operation. `Cipher.init` / `doFinal` on an AndroidKeyStore key can fail transiently — a
+         * `ProviderException`, a `KeyStoreException`, an OEM `RuntimeException`, keystore2 busy during a
+         * boot storm — and [AeadCipher] wraps every one of those into the same `AppError.Crypto`. Mapping
+         * all of them to [Failure.WrapCorrupted], which is classified unrecoverable, meant a **transient
+         * crypto error erased the agenda**: the very defect F1 set out to remove, reintroduced one layer
+         * further down, and reached with no retry at all.
          *
          * Only causes that say "these bytes are not what we wrote" count as corruption. Everything else,
          * including anything unrecognised, is transient — the safe side.
@@ -235,9 +257,9 @@ class DatabaseKeyManager @Inject constructor(
          * being separated from `ReminderScheduler`.
          */
         internal fun classifyCryptoFailure(cause: Throwable?): Failure = when (cause) {
-            // The GCM tag did not verify: the blob was tampered with or truncated, or it was wrapped
-            // under a key that no longer exists (alias deleted, then silently regenerated by
-            // getOrCreateKey). Both mean the passphrase it held is gone for good.
+            // The GCM tag did not verify against the key that IS stored under the alias: the blob was
+            // tampered with or truncated, or it was sealed under an earlier key that no longer exists.
+            // Both mean the passphrase it held is gone for good.
             is AEADBadTagException,
             is BadPaddingException,
             is IllegalBlockSizeException,

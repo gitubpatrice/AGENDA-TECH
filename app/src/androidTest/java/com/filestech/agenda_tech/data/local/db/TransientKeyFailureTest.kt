@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.data.local.db
 
 import android.content.Context
+import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.filestech.agenda_tech.core.crypto.AeadCipher
@@ -108,13 +109,18 @@ class TransientKeyFailureTest {
     /**
      * The reset path still works — the fix must not brick a device whose key is genuinely gone.
      *
-     * Deleting the Keystore alias while `master.key` still holds a blob wrapped under the old key means
-     * `getOrCreateKey` mints a **new** key and the AEAD then refuses the old blob: that is
-     * [DatabaseKeyManager.Failure.WrapCorrupted], classified unrecoverable. The database must be reset
-     * and the flag raised so the user is told, rather than the app failing to launch forever.
+     * A byte of the GCM tag in `master.key` is flipped while the Keystore key stays intact: the AEAD
+     * refuses the blob with `AEADBadTagException`, that is [DatabaseKeyManager.Failure.WrapCorrupted],
+     * classified unrecoverable. The database must be reset and the flag raised so the user is told,
+     * rather than the app failing to launch forever.
+     *
+     * This test used to delete the Keystore alias instead, relying on `getOrCreateKey` minting a new key
+     * that the old blob then failed against. That regeneration was the defect fixed alongside this
+     * rewrite (see [aMissingKeystoreKeyIsNeverReplacedWhileItsDatabaseExists]), so corruption is now
+     * provoked where it really lives: in the bytes.
      */
     @Test
-    fun anUnrecoverableKeyStillResetsTheDatabaseAndFlagsIt() {
+    fun aCorruptedWrapStillResetsTheDatabaseAndFlagsIt() {
         factory.build(context).apply {
             openHelper.writableDatabase.execSQL(INSERT_CALENDAR)
             close()
@@ -122,7 +128,10 @@ class TransientKeyFailureTest {
         // Drain any flag left by an earlier run so the assertion below is about this one.
         DatabaseFactory.consumeResetFlag(context)
 
-        KeystoreManager().deleteKey(KeystoreManager.ALIAS_DB_MASTER)
+        // The last byte belongs to the 128-bit GCM tag (AeadCipher: version | iv(12) | ct | tag).
+        val blob = keyFile().readBytes()
+        blob[blob.lastIndex] = (blob[blob.lastIndex].toInt() xor 0x01).toByte()
+        keyFile().writeBytes(blob)
 
         // Must not throw: a truly dead key is the one case where resetting is the right answer.
         factory.build(context).apply {
@@ -134,6 +143,46 @@ class TransientKeyFailureTest {
         }
         // The user has to be told their data was reset — silence here is what the flag exists to prevent.
         assertThat(DatabaseFactory.consumeResetFlag(context)).isTrue()
+    }
+
+    /**
+     * A Keystore that returns no key for an existing database must never get a **new** key minted under
+     * the same alias.
+     *
+     * On API 26–30 that null is also what an unreachable keystore daemon produces. The old code generated
+     * a key there, the real one was destroyed, and the database was reset as unrecoverable. Deleting the
+     * alias is the observable stand-in for the unreachable daemon: the test asserts nothing was erased
+     * and **no key was created** — the assertion the old code fails, since `getOrCreateKey` recreated it.
+     *
+     * From API 31 a null is conclusive (`KEY_NOT_FOUND`), and the reset is the right answer. That branch
+     * is written out here but **executed by no test run today**: CI and the S9 are API 29. The decision
+     * between the two is covered for every API level by `KeystoreManagerMissingKeyTest` on the JVM.
+     */
+    @Test
+    fun aMissingKeystoreKeyIsNeverReplacedWhileItsDatabaseExists() {
+        factory.build(context).apply {
+            openHelper.writableDatabase.execSQL(INSERT_CALENDAR)
+            close()
+        }
+        DatabaseFactory.consumeResetFlag(context)
+        val dbFile = context.getDatabasePath(AppDatabase.DATABASE_NAME)
+        val sizeBefore = dbFile.length()
+
+        KeystoreManager().deleteKey(KeystoreManager.ALIAS_DB_MASTER)
+
+        val outcome = runCatching { factory.build(context) }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            outcome.getOrThrow().close()
+            assertThat(DatabaseFactory.consumeResetFlag(context)).isTrue()
+        } else {
+            val failure = outcome.exceptionOrNull()
+            assertThat(failure).isInstanceOf(DatabaseKeyManager.Failure::class.java)
+            assertThat((failure as DatabaseKeyManager.Failure).dataIsUnrecoverable).isFalse()
+            assertThat(dbFile.exists()).isTrue()
+            assertThat(dbFile.length()).isEqualTo(sizeBefore)
+            assertThat(KeystoreManager().containsAlias(KeystoreManager.ALIAS_DB_MASTER)).isFalse()
+            assertThat(DatabaseFactory.consumeResetFlag(context)).isFalse()
+        }
     }
 
     private fun keyFile(): File = File(File(context.filesDir, "db"), "master.key")
