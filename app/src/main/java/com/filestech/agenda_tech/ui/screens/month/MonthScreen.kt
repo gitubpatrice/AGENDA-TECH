@@ -1,7 +1,7 @@
 package com.filestech.agenda_tech.ui.screens.month
 
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
+import com.filestech.agenda_tech.ui.util.rememberAppResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -111,10 +111,10 @@ fun MonthScreen(
     val icsBusy by icsViewModel.busy.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val exportLauncher = rememberLauncherForActivityResult(
+    val exportLauncher = rememberAppResultLauncher(
         ActivityResultContracts.CreateDocument("text/calendar"),
     ) { uri -> uri?.let(icsViewModel::export) }
-    val importLauncher = rememberLauncherForActivityResult(
+    val importLauncher = rememberAppResultLauncher(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let(icsViewModel::import) }
 

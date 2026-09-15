@@ -1,6 +1,6 @@
 package com.filestech.agenda_tech.ui.screens.backup
 
-import androidx.activity.compose.rememberLauncherForActivityResult
+import com.filestech.agenda_tech.ui.util.rememberAppResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -93,17 +93,17 @@ fun BackupScreen(
     // recreated behind it. See BackupViewModel.pendingExportPassword.
     var showExportPasswordDialog by rememberSaveable { mutableStateOf(false) }
 
-    val createFile = rememberLauncherForActivityResult(
+    val createFile = rememberAppResultLauncher(
         ActivityResultContracts.CreateDocument(ExportBackupUseCase.MIME_TYPE),
     ) { uri -> viewModel.onExportTargetPicked(uri) }
 
     // The system folder picker. Its result is handed straight to the ViewModel, which persists the
     // grant before storing the URI — see onAutoBackupFolderPicked.
-    val pickFolder = rememberLauncherForActivityResult(
+    val pickFolder = rememberAppResultLauncher(
         ActivityResultContracts.OpenDocumentTree(),
     ) { uri -> viewModel.onAutoBackupFolderPicked(uri) }
 
-    val openFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val openFile = rememberAppResultLauncher(ActivityResultContracts.OpenDocument()) { uri ->
         // Hands the file straight to the ViewModel, which rejects a wrong pick on its magic bytes
         // before the password dialog is ever shown.
         if (uri != null) viewModel.onRestoreFilePicked(uri)

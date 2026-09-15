@@ -5,7 +5,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.filestech.agenda_tech.ui.navigation.CalendarView
 import com.filestech.agenda_tech.ui.navigation.Routes
@@ -22,14 +21,15 @@ import com.filestech.agenda_tech.ui.screens.timeline.DayScreen
 import com.filestech.agenda_tech.ui.screens.timeline.WeekScreen
 
 /**
- * Root of the Compose tree: owns the [NavHost]. The three calendar views (Month/Week/Day) are
+ * Root of the app's screens: owns the [NavHost]. The three calendar views (Month/Week/Day) are
  * siblings switched via the bottom navigation; the editor is pushed on top of whichever view is
  * active.
+ *
+ * The [navController] is handed in by [LockedAppHost], not created here: it has to outlive the app lock,
+ * which removes this composable while the lock screen is shown.
  */
 @Composable
-fun AppRoot() {
-    val navController = rememberNavController()
-
+fun AppRoot(navController: NavHostController) {
     val onAddEvent: (java.time.LocalDate) -> Unit = { date ->
         navController.navigate(Routes.editorForNew(date.toEpochDay()))
     }

@@ -3,7 +3,7 @@ package com.filestech.agenda_tech.ui.deviceimport
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
+import com.filestech.agenda_tech.ui.util.rememberAppResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Box
@@ -78,7 +78,7 @@ fun DeviceImportScreen(
     // calendar that reports neither display name nor account is handed to it.
     val fallbackCalendarName = stringResource(R.string.device_import_fallback_name)
 
-    val permissionLauncher = rememberLauncherForActivityResult(
+    val permissionLauncher = rememberAppResultLauncher(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> if (granted) viewModel.onPermissionGranted() else viewModel.onPermissionDenied() }
 

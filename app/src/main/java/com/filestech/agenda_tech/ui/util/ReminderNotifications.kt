@@ -7,7 +7,6 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.LocalActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
@@ -92,7 +91,7 @@ fun rememberReminderNotifications(): ReminderNotifications {
     // has already told us twice they do not want.
     var dialogExhausted by rememberSaveable { mutableStateOf(false) }
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+    val launcher = rememberAppResultLauncher(ActivityResultContracts.RequestPermission()) { granted ->
         enabled = notificationsEnabled(context)
         if (!granted) {
             dialogExhausted = activity == null ||
