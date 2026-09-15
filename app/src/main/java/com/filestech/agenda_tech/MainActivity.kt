@@ -340,6 +340,20 @@ class MainActivity : FragmentActivity() {
         if (pickerRelock.locksOnReturn() && lockConfigured == true) appLock.lock()
     }
 
+    /**
+     * Brought back by an intent — a reminder notification, the widget, the launcher icon — while a
+     * picker the app opened was on top. `singleTask` destroys the picker and resumes this activity
+     * without another `onStop`, so without this the only check left was the 3-minute bound (pre-tag
+     * audit of v1.1.1). Entering the app from outside locks, as `SECURITY.md` states.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (pickerRelock.onExternalIntent()) {
+            unregisterScreenOffReceiver()
+            if (lockConfigured == true) appLock.lock()
+        }
+    }
+
     override fun onStop() {
         super.onStop()
         // Audit F13 — re-lock when the app leaves the foreground, synchronously.
