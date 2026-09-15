@@ -95,11 +95,21 @@ class AutoBackupSecretStore @Inject constructor(
         }
     }
 
-    /** Null when the key is gone or invalidated — a wiped Keystore, or a restored file from elsewhere. */
+    /**
+     * Null when the key cannot be obtained or does not decrypt — a wiped Keystore, a restored file from
+     * elsewhere, or a keystore daemon unreachable for a moment.
+     *
+     * [KeystoreManager.loadExistingKey], never `getOrCreateKey`: creating a key here, on the API 26–30
+     * null that does not prove absence, replaced the key the password was sealed with, and a transient
+     * refusal became a password lost for good.
+     */
     private fun unwrap(wrapped: ByteArray): ByteArray? {
         val key = runCatching {
-            keystore.getOrCreateKey(KeystoreManager.ALIAS_AUTOBACKUP_PW, allowUserIv = true)
-        }.getOrNull() ?: return null
+            keystore.loadExistingKey(KeystoreManager.ALIAS_AUTOBACKUP_PW)
+        }.getOrElse {
+            Timber.w(it, "AutoBackupSecret: password wrap key unavailable")
+            return null
+        }
         return when (val r = aead.decrypt(key, wrapped)) {
             is Outcome.Success -> r.value
             is Outcome.Failure -> null

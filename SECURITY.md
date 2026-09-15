@@ -21,9 +21,18 @@ données **au repos** et sur l'**exposition à l'écran**.
   transmise à SQLCipher vit pour la durée de vie du processus ; celle détenue par l'app est
   effacée (`wipe`) dès la construction terminée. C'est une contrainte de la bibliothèque, pas un
   choix — un effacement plus précoce casserait les connexions suivantes.
-- **Robustesse** : l'invalidation réelle du Keystore (changement du verrou d'écran, reset Knox)
-  est distinguée d'une corruption transitoire ; aucun effacement silencieux (pas de perte de
-  données furtive) — l'échec est typé et remonté pour un futur flux de récupération.
+- **Robustesse** : la base n'est réinitialisée que si la clé est **prouvée perdue** — blob
+  `master.key` refusé par la clé Keystore toujours présente, ou alias absent sur Android 12 et plus
+  (`KEY_NOT_FOUND`). Tout autre échec (Keystore injoignable, erreur d'E/S, exception inconnue) laisse
+  la base intacte : un nouvel essai, puis refus d'ouvrir.
+- **Une clé n'est jamais créée en relisant** (correctif du 2026-09-15). Sur Android 8 à 11,
+  `KeyStore.getKey` renvoie aussi `null` quand le démon Keystore est momentanément injoignable (lu
+  dans le source AOSP). L'ancien code générait alors une nouvelle clé sous le même alias, ce qui
+  détruisait la vraie : l'agenda était réinitialisé comme « irrécupérable », ou le PIN ne pouvait plus
+  jamais être vérifié. Les trois relectures (clé de base, PIN, mot de passe de sauvegarde) passent
+  désormais par `KeystoreManager.loadExistingKey`. **Contrepartie assumée** : sur Android 8 à 11, une
+  clé réellement disparue laisse l'application sur l'écran d'échec de démarrage au lieu de repartir à
+  vide — ces données étaient de toute façon perdues.
 
 ### Posture connue (assumée, à revisiter selon le besoin)
 

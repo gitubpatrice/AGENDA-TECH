@@ -114,11 +114,21 @@ class LockRepositoryImpl @Inject constructor(
         }
     }
 
-    /** Decrypts a stored wrapped blob; null if the Keystore key is gone/invalidated or decryption fails. */
+    /**
+     * Decrypts a stored wrapped blob; null if the Keystore key cannot be obtained or decryption fails.
+     *
+     * [KeystoreManager.loadExistingKey], never `getOrCreateKey`: on API 26–30 an unreachable keystore
+     * daemon returns no key, and creating one here replaced the key this blob was sealed with — the PIN
+     * could then never be verified again, and the lock screen offers no way around it. Returning null
+     * leaves the real key in place, so the next attempt succeeds.
+     */
     private fun unwrap(wrapped: ByteArray): ByteArray? {
         val key = runCatching {
-            keystore.getOrCreateKey(KeystoreManager.ALIAS_PIN_WRAP, allowUserIv = true)
-        }.getOrNull() ?: return null
+            keystore.loadExistingKey(KeystoreManager.ALIAS_PIN_WRAP)
+        }.getOrElse {
+            Timber.w(it, "LockRepository: PIN wrap key unavailable, cannot verify")
+            return null
+        }
         return when (val r = aead.decrypt(key, wrapped)) {
             is Outcome.Success -> r.value
             is Outcome.Failure -> null

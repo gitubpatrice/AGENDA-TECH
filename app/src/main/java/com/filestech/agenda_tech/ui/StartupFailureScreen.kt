@@ -30,10 +30,12 @@ import com.filestech.agenda_tech.R
  * So the trade stands — **the agenda is not touched** — and what this screen adds is the part that
  * was missing: saying so.
  *
- * It deliberately offers **no button**. Every action that would help here (reinstall the newer
- * version, or clear the data) lives outside the app, and a "reset" button on this screen would be a
- * one-tap path to destroying the only copy of an agenda that is, at this point, still perfectly
- * intact. The message names the likely cause instead, which is the thing the user can act on.
+ * It deliberately offers **no button**. Every action that would help here (restart the phone,
+ * reinstall the newer version, or clear the data) lives outside the app, and a "reset" button on this
+ * screen would be a one-tap path to destroying the only copy of an agenda that is, at this point, still
+ * perfectly intact. The message names the two known causes instead, each with what the user can do:
+ * a keystore daemon that did not answer — which, on API 26–30, is also what a key that is truly gone
+ * looks like (`KeystoreManager.loadExistingKey`) — and a database newer than the installed version.
  */
 @Composable
 fun StartupFailureScreen() {

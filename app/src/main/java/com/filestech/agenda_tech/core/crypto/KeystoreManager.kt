@@ -4,6 +4,7 @@ import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import timber.log.Timber
+import java.security.GeneralSecurityException
 import java.security.KeyStore
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -20,6 +21,11 @@ import javax.inject.Singleton
  *  - [ALIAS_AUTOBACKUP_PW] : wraps the automatic-backup password (reversibly — see
  *    [com.filestech.agenda_tech.domain.backup.AutoBackupSecret] for why that one is encrypted and
  *    not hashed).
+ *
+ * Two accessors, and which one a caller uses is a decision about the user's data:
+ *  - [getOrCreateKey] when **sealing** something new (first launch, a new PIN, a new password);
+ *  - [loadExistingKey] when **opening** something already sealed. Creating a key there can never
+ *    help — a fresh key decrypts nothing written before — and it destroys the key it replaces.
  *
  * `allowUserIv` (= `setRandomizedEncryptionRequired(false)`) defaults to **false**, i.e. the OS
  * enforces IV randomisation. [ALIAS_DB_MASTER] opts in to `true` because
@@ -41,6 +47,33 @@ class KeystoreManager @Inject constructor() {
         return generateKey(alias, userAuthRequired, allowUserIv)
     }
 
+    /**
+     * The key already stored under [alias]. **Never creates one.**
+     *
+     * The three read paths — the database key, the PIN blob, the backup password — used to go through
+     * [getOrCreateKey], which generates a key whenever `KeyStore.getKey` returns null. On API 26–30
+     * that null does not prove the key is gone: `AndroidKeyStoreSpi.engineGetKey` returns it when
+     * `KeyStore.contains()` is false, and `contains()` answers false on a `RemoteException` from the
+     * keystore daemon ("Cannot connect to keystore") — read in AOSP `oreo-release`, `oreo-mr1-release`,
+     * `pie-release`, `android10-release` and `android11-release`. A daemon unreachable for a moment, as
+     * during a boot, therefore had a valid key **replaced** under the same alias; the database key then
+     * failed its GCM tag, was classified unrecoverable, and the agenda was reset.
+     *
+     * From API 31 (keystore2, `android12-release`) `engineGetKey` returns null only on `KEY_NOT_FOUND`
+     * and rethrows every other failure, so a null there is conclusive.
+     *
+     * @throws KeyGoneException the key conclusively does not exist (API 31+).
+     * @throws KeyUnreachableException the Keystore returned no key and cannot say why (API 26–30).
+     */
+    fun loadExistingKey(alias: String): SecretKey {
+        keyStore.getKey(alias, null)?.let { return it as SecretKey }
+        throw if (missingKeyIsConclusive(Build.VERSION.SDK_INT)) {
+            KeyGoneException(alias)
+        } else {
+            KeyUnreachableException(alias)
+        }
+    }
+
     fun deleteKey(alias: String) {
         runCatching { keyStore.deleteEntry(alias) }
             .onFailure { Timber.w(it, "KeystoreManager: failed to delete %s", alias) }
@@ -58,6 +91,9 @@ class KeystoreManager @Inject constructor() {
      * destroys it — that is the desired behaviour (someone who can add a fingerprint must not
      * inherit the unlock), and the caller has to be ready for
      * [android.security.keystore.KeyPermanentlyInvalidatedException] at cipher init.
+     *
+     * Regenerating it on a null, unlike the three wrapping keys, loses nothing: it seals no data, it
+     * only proves that an authentication took place.
      *
      * On API 30+ the accepted tier is pinned to `AUTH_BIOMETRIC_STRONG`, so device credential
      * cannot satisfy it — the same Class 3 policy [com.filestech.agenda_tech.security.StrongBiometrics]
@@ -106,6 +142,17 @@ class KeystoreManager @Inject constructor() {
         return keyGen.generateKey()
     }
 
+    /** [loadExistingKey]: the alias does not exist, and the platform is able to say so (API 31+). */
+    class KeyGoneException(alias: String) :
+        GeneralSecurityException("AndroidKeyStore has no key under $alias")
+
+    /**
+     * [loadExistingKey]: no key came back, on a platform where that is not proof of absence (API 26–30).
+     * The key may be intact; this attempt failed.
+     */
+    class KeyUnreachableException(alias: String) :
+        GeneralSecurityException("AndroidKeyStore returned no key for $alias; not proof that it is gone")
+
     companion object {
         const val ANDROID_KEYSTORE = "AndroidKeyStore"
         const val KEY_SIZE_BITS = 256
@@ -119,5 +166,11 @@ class KeystoreManager @Inject constructor() {
          * lock off deletes that one, and it must not take the backup password with it.
          */
         const val ALIAS_AUTOBACKUP_PW = "agendatech_autobackup_pw"
+
+        /**
+         * Whether a null from `KeyStore.getKey` proves the alias is absent. Pure, so the decision is
+         * testable on the JVM for every API level instead of only the one a test device runs.
+         */
+        internal fun missingKeyIsConclusive(sdkInt: Int): Boolean = sdkInt >= Build.VERSION_CODES.S
     }
 }

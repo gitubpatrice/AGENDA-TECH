@@ -256,7 +256,7 @@
     <string name="calendar_error_delete_failed">Le calendrier n’a pas pu être supprimé. Rien n’a été retiré — réessayez.</string>
     <string name="db_reset_notice">Vos données n\'ont pas pu être déverrouillées (clé de sécurité de l\'appareil modifiée) et ont été réinitialisées.</string>
     <string name="startup_failure_title">Agenda Tech ne peut pas ouvrir vos données</string>
-    <string name="startup_failure_body">Votre agenda est toujours là et n\'a pas été modifié. Cela vient en général d\'une version plus ancienne de l\'application installée par-dessus une plus récente : la base de données est plus récente que ce que cette version sait lire. Réinstaller la version plus récente rétablit l\'accès. L\'application n\'efface volontairement rien d\'elle-même.</string>
+    <string name="startup_failure_body">Votre agenda est toujours là et n\'a pas été modifié. Deux causes sont connues. Si le stockage sécurisé des clés du téléphone n\'a pas répondu, redémarrez le téléphone, puis rouvrez Agenda Tech. Si une version plus ancienne de l\'application a été installée par-dessus une plus récente, réinstallez la version plus récente. L\'application n\'efface volontairement rien d\'elle-même.</string>
     <string name="settings_reset_notice">Vos réglages n\'ont pas pu être lus et ont été réinitialisés. Si vous aviez un verrou d\'application, il a été désactivé — réactivez-le dans les Réglages.</string>
     <string name="reminders_incomplete_notice">Certains rappels répétés ne sont pas reprogrammés après le redémarrage. Ouvrez les événements concernés et enregistrez-les à nouveau pour les réactiver.</string>
     <string name="settings_section_security">Sécurité</string>
