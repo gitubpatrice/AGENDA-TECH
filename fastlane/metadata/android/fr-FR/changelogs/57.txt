@@ -1,0 +1,9 @@
+v1.1.1 — Deux corrections importantes
+
+• Avec le code PIN, la restauration d'une
+  sauvegarde reprend après le choix du fichier.
+• Plus de code PIN après chaque sélecteur de
+  fichier, et retour à l'écran quitté.
+• Android 8 à 11 : un stockage de clés muet
+  un instant ne peut plus effacer l'agenda ni
+  rendre le code PIN inutilisable.

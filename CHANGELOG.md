@@ -3,6 +3,43 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [1.1.1] — 2026-09-15
+
+Two fixes that matter to anyone on 1.1.0. One was found by testing on a phone, the other by an
+external code review; both were checked against the code and on a device before being fixed.
+
+### Fixed
+
+- **With the app lock on, restoring a backup stopped after the PIN.** Opening the file picker
+  locked the app, and unlocking rebuilt the navigation on the month view, so the password dialog
+  never appeared. The app no longer asks for the PIN after a file picker it opened itself, and
+  unlocking always returns to the screen you left — an event being typed survives a phone call.
+  The lock still applies when you leave the app, when the screen turns off while a picker is open,
+  and when you come back more than 3 minutes later.
+- **Android 8 to 11: a key store that briefly stopped responding could erase the agenda.** On those
+  versions the system reports a key it cannot reach as missing. The app then created a new key,
+  which destroyed the real one: the agenda was reset, or the PIN could never be verified again. A
+  key is now never created while reading. The app refuses to open, erases nothing, and says to
+  restart the phone.
+
+### Changed
+
+- Build toolchain: Android Gradle Plugin 9.4, Gradle 9.7.1, Kotlin 2.4.10, compileSdk 37 (target
+  unchanged, 35). SQLCipher 4.19, checked by opening a 1.1.0 database in place.
+
+### Français
+
+- **Avec le verrouillage par code PIN, la restauration s'arrêtait après le code.** Ouvrir le
+  sélecteur de fichier verrouillait l'application, et le déverrouillage ramenait sur le mois : la
+  fenêtre du mot de passe ne s'ouvrait jamais. L'application ne redemande plus le code après un
+  sélecteur qu'elle a ouvert, et le déverrouillage ramène toujours à l'écran quitté. Le verrou
+  s'applique toujours en quittant l'application, si l'écran s'éteint pendant un sélecteur, et au
+  retour après plus de 3 minutes.
+- **Android 8 à 11 : un stockage de clés muet un instant pouvait effacer l'agenda.** La clé est
+  désormais toujours relue, jamais recréée : l'application refuse d'ouvrir sans rien effacer et
+  invite à redémarrer le téléphone.
+- Chaîne de build : AGP 9.4, Gradle 9.7.1, Kotlin 2.4.10, compileSdk 37 ; SQLCipher 4.19.
+
 ## [1.1.0] — 2026-09-11
 
 Trois fonctionnalités nouvelles, et l'audit global le plus profond que l'application ait reçu :

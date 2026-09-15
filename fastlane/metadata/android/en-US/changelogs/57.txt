@@ -1,0 +1,9 @@
+v1.1.1 — Two important fixes
+
+• With the PIN lock on, restoring a backup
+  now goes on after you pick the file.
+• No PIN again after each file picker, and
+  unlocking returns to the screen you left.
+• Android 8 to 11: a key store that briefly
+  stops responding can no longer erase the
+  agenda or make the PIN unusable.
