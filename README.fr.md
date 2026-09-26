@@ -129,4 +129,5 @@ portant une version silencieusement fausse.
 
 ## Licence
 
-[Apache License 2.0](LICENSE) — © 2026 Patrice Haltaya / Files Tech.
+[Apache License 2.0](LICENSE) — © 2026 Patrice Haltaya / Files Tech. Bibliothèques tierces et leurs
+licences : [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

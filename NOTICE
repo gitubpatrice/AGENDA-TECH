@@ -21,3 +21,6 @@ Third-party components (see each project's own license):
   - Kotlin & kotlinx.coroutines                               — Apache 2.0
   - SQLCipher for Android (net.zetetic)                       — BSD-style (Zetetic)
   - Timber                                                    — Apache 2.0
+
+The complete list, with versions, and the notices the BSD licences of SQLCipher
+and Protocol Buffers require, is in THIRD_PARTY_NOTICES.md.
