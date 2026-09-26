@@ -127,4 +127,5 @@ carrying a silently wrong version.
 
 ## Licence
 
-[Apache License 2.0](LICENSE) — © 2026 Patrice Haltaya / Files Tech.
+[Apache License 2.0](LICENSE) — © 2026 Patrice Haltaya / Files Tech. Third-party libraries and their
+licences: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
