@@ -1,0 +1,12 @@
+v1.1.1 — Zwei wichtige Korrekturen
+
+• Mit aktiver PIN-Sperre wird das
+  Wiederherstellen einer Sicherung nach der
+  Dateiauswahl nun fortgesetzt.
+• Keine erneute PIN nach jeder Dateiauswahl,
+  und das Entsperren führt zum verlassenen
+  Bildschirm zurück.
+• Android 8 bis 11: Ein Schlüsselspeicher,
+  der kurz nicht antwortet, kann die Agenda
+  nicht mehr löschen oder die PIN unbrauchbar
+  machen.

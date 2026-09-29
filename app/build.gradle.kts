@@ -61,8 +61,11 @@ android {
     }
 
     // AGP 8.13+ : locale filters remplacent le déprécié `resourceConfigurations`.
+    // Every shipped language MUST be listed here: a values-XX/ left out is STRIPPED from the APK at
+    // build time, without any error, and the app stays in English. tools/check-translations.py
+    // fails the build when this list, res/xml/locales_config.xml and the values-XX/ folders disagree.
     androidResources {
-        localeFilters += listOf("en", "fr")
+        localeFilters += listOf("en", "fr", "de", "it", "es")
     }
 
     // `MigrationTestHelper` lit les schémas exportés depuis les ASSETS du test instrumenté, pas

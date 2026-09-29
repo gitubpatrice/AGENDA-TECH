@@ -52,7 +52,7 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
 - **Recherche** dans tout l'agenda (titre, description, lieu, adresse, ville) — insensible aux
   accents et à la casse : « reunion » trouve « Réunion ».
 - **Verrou optionnel** par code PIN et/ou biométrie.
-- **Thème sombre** (style GitHub), **widgets** écran d'accueil, français / anglais.
+- **Thème sombre** (style GitHub), **widgets** écran d'accueil, en français, anglais, allemand, italien et espagnol (corrections bienvenues : [TRANSLATING.md](TRANSLATING.md)).
 
 ## Confidentialité
 
@@ -125,6 +125,7 @@ portant une version silencieusement fausse.
 
 - Modèle de menace, chiffrement, verrou : [SECURITY.md](SECURITY.md).
 - Politique de confidentialité (permissions, données, contact) : [PRIVACY.fr.md](PRIVACY.fr.md).
+- Conditions d'utilisation : [TERMS.fr.md](TERMS.fr.md). Pour ces deux documents, la version française fait foi.
 - Signalement de vulnérabilité : voir [SECURITY.md](SECURITY.md#signalement).
 
 ## Licence

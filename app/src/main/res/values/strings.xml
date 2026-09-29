@@ -137,6 +137,8 @@
     <string name="week_start_saturday">Saturday</string>
     <string name="week_start_sunday">Sunday</string>
     <string name="settings_show_week_numbers">Show week numbers</string>
+    <string name="settings_language">App language</string>
+    <string name="settings_language_sub">Opens the Android language screen for this app. Agenda Tech follows your phone\'s language unless you pick one there.</string>
     <string name="settings_section_events">Events</string>
     <string name="settings_default_color">Default event colour</string>
     <string name="settings_default_duration">Default duration</string>
@@ -336,6 +338,8 @@
      declarees non traduisibles, aurait silencieusement renvoye les francophones vers la version
      anglaise. Lint le signalait deja ([Untranslatable]). -->
     <string name="about_privacy_policy_url">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/PRIVACY.md</string>
+    <string name="about_terms">Terms of use</string>
+    <string name="about_terms_url">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/TERMS.md</string>
     <!-- %1$d = snooze minutes -->
     <string name="reminder_snooze">Snooze %1$d min</string>
     <!-- Restore offer, on an empty agenda (first run / new phone) -->

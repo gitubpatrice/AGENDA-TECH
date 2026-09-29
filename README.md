@@ -50,7 +50,7 @@ The APK is **universal** (works on every device, no variant to pick) and **signe
 - **Search** across the whole calendar (title, description, place, address, city) — accent- and
   case-insensitive: "reunion" finds "Réunion".
 - **Optional lock** with a PIN and/or biometrics.
-- **Dark theme** (GitHub-styled), home-screen **widgets**, French / English.
+- **Dark theme** (GitHub-styled), home-screen **widgets**, in English, French, German, Italian and Spanish (corrections welcome: [TRANSLATING.md](TRANSLATING.md)).
 
 ## Privacy
 
@@ -123,6 +123,7 @@ carrying a silently wrong version.
 
 - Threat model, encryption, lock: [SECURITY.md](SECURITY.md).
 - Privacy policy (permissions, data, contact): [PRIVACY.md](PRIVACY.md).
+- Terms of use: [TERMS.md](TERMS.md). For both documents, the French version prevails.
 - Reporting a vulnerability: see [SECURITY.md](SECURITY.md#signalement).
 
 ## Licence

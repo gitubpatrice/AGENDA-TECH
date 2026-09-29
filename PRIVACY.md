@@ -1,6 +1,9 @@
 # Privacy Policy — Agenda Tech
 
-_Last updated: 26 August 2026 — version 1.0.3_ · 🇫🇷 [Version française](PRIVACY.fr.md)
+_Last updated: 26 August 2026 — version 1.0.3_ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
+
+> This is a translation. **In case of discrepancy, the [French version](PRIVACY.fr.md) prevails**:
+> the publisher is based in France and the French text is the one he writes and answers for.
 
 Agenda Tech (`com.filestech.agenda_tech`) is a **fully local** calendar app, built on one principle:
 **your data never leaves your device.**
@@ -123,7 +126,9 @@ The app collects no data and is suitable for all audiences.
 This policy may evolve alongside the app; the date at the top indicates the latest revision, and the
 history is public in this repository.
 
-## Contact
+## Publisher and contact
+
+Agenda Tech is published by **Patrice Haltaya** (France), who is the controller within the meaning of the GDPR — even though, as explained above, no data ever reaches him. Contact: **contact@files-tech.com**.
 
 Question or report: open an [issue](https://github.com/gitubpatrice/AGENDA-TECH/issues) on the
 repository, or reach us via [files-tech.com](https://files-tech.com). For security, see

@@ -1,0 +1,11 @@
+v1.1.1 — Dos correcciones importantes
+
+• Con el bloqueo por PIN activado, restaurar
+  una copia de seguridad continúa ahora tras
+  elegir el archivo.
+• Ya no se pide el PIN tras cada selector de
+  archivos, y al desbloquear se vuelve a la
+  pantalla que se dejó.
+• Android 8 a 11: un almacén de claves que
+  deja de responder un momento ya no puede
+  borrar la agenda ni inutilizar el PIN.

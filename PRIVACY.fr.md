@@ -1,6 +1,9 @@
 # Politique de confidentialité — Agenda Tech
 
-_Dernière mise à jour : 26 août 2026 — version 1.0.3_ · 🇬🇧 [English version](PRIVACY.md)
+_Dernière mise à jour : 26 août 2026 — version 1.0.3_ · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
+
+> **Version de référence.** En cas de divergence entre cette politique et l'une de ses traductions,
+> c'est cette version française qui fait foi.
 
 Agenda Tech (`com.filestech.agenda_tech`) est une application d'agenda **entièrement locale**.
 Elle est conçue autour d'un principe simple : **vos données ne quittent jamais votre appareil.**
@@ -131,7 +134,9 @@ L'application ne collecte aucune donnée et convient à tous les publics.
 Cette politique pourra évoluer avec l'application ; la date en tête de document indique la dernière
 révision, et l'historique est public dans ce dépôt.
 
-## Contact
+## Éditeur et contact
+
+Agenda Tech est édité par **Patrice Haltaya** (France), responsable du traitement au sens du RGPD — même si, comme expliqué plus haut, aucune donnée ne lui parvient jamais. Contact : **contact@files-tech.com**.
 
 Question ou signalement : ouvrez une [issue](https://github.com/gitubpatrice/AGENDA-TECH/issues)
 sur le dépôt, ou via [files-tech.com](https://files-tech.com). Pour la sécurité, voir
