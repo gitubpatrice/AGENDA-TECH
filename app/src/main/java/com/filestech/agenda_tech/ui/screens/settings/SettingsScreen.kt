@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import com.filestech.agenda_tech.ui.util.rememberAppResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -151,6 +152,17 @@ fun SettingsScreen(
                 checked = settings.showWeekNumbers,
                 onCheckedChange = viewModel::setShowWeekNumbers,
             )
+            // The per-app language picker (res/xml/locales_config.xml) lives in Android's settings,
+            // where nobody looks for it: declaring the languages without leading there offers them by
+            // half. Android 13+ only - below, the page does not exist and the row would open nothing,
+            // which is worse than no row. There, the app follows the phone's language.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ClickRow(
+                    title = stringResource(R.string.settings_language),
+                    subtitle = stringResource(R.string.settings_language_sub),
+                    onClick = { openAppLanguageSettings(context) },
+                )
+            }
 
             HorizontalDivider()
             SectionHeader(stringResource(R.string.settings_section_events))
@@ -629,6 +641,19 @@ private fun ringtoneTitle(uri: String?): String {
             }
         } ?: default
     }.value
+}
+
+/**
+ * Opens Android's per-app language page. Not every manufacturer exposes it: without a fallback the tap
+ * would do nothing, and the user would conclude the feature is broken. The app's details page is one
+ * tap away from the language instead.
+ */
+private fun openAppLanguageSettings(context: Context) {
+    val app = Uri.fromParts("package", context.packageName, null)
+    val language = Intent(Settings.ACTION_APP_LOCALE_SETTINGS, app).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    val details = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, app).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    runCatching { context.startActivity(language) }
+        .onFailure { runCatching { context.startActivity(details) } }
 }
 
 private fun openAppNotificationSettings(context: Context) {

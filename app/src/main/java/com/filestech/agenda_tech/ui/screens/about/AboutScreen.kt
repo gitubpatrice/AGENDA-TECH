@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material.icons.outlined.ImportExport
@@ -169,6 +170,15 @@ fun AboutScreen(onBack: () -> Unit) {
                 icon = Icons.Outlined.PrivacyTip,
                 label = stringResource(R.string.about_privacy_policy),
                 onClick = { openUrl(context, privacyPolicyUrl) },
+            )
+            // Same mechanism as the privacy policy: one resource per language, so each language
+            // opens its own TERMS.xx.md. tools/check-translations.py fails the build if one of those
+            // files does not exist.
+            val termsUrl = stringResource(R.string.about_terms_url)
+            LinkItem(
+                icon = Icons.Outlined.Description,
+                label = stringResource(R.string.about_terms),
+                onClick = { openUrl(context, termsUrl) },
             )
 
             Spacer(Modifier.size(24.dp))

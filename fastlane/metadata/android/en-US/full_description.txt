@@ -9,12 +9,12 @@ It exists so that your calendar never has to live anywhere but on your phone. A 
 <li>Events — all-day, description, per-event colour, postal address and GPS coordinates that open in your maps app (with no location permission)</li>
 <li>Recurring events (RFC 5545) — daily, weekly on chosen days, monthly, yearly; ending after N occurrences or on a date; edit or delete a single occurrence</li>
 <li>Reminders — exact alarms, re-armed after a reboot, free delay, your own sound, and a "snooze 10 min" button on the notification</li>
-<li>Encrypted backup — export your whole calendar to a password-protected .atbak file (Argon2-grade PBKDF2 at 600,000 iterations + AES-256-GCM). Keep it anywhere, cloud included: it stays unreadable without your password</li>
+<li>Encrypted backup — export your whole calendar to a password-protected .atbak file (PBKDF2-HMAC-SHA256 at 600,000 iterations + AES-256-GCM). Keep it anywhere, cloud included: it stays unreadable without your password</li>
 <li>Search — by title, description, place, address or city; accents and case don't matter</li>
 <li>Import from your device calendar — copies what the phone's own calendar apps have already synced onto it, read-only, without any network</li>
 <li>.ics import / export (RFC 5545) through the system file picker</li>
 <li>Optional PIN and biometric lock</li>
-<li>Home-screen widgets, dark theme, French and English</li>
+<li>Home-screen widgets, dark theme, in English, French, German, Italian and Spanish</li>
 </ul>
 
 <b>Privacy</b>

@@ -50,7 +50,7 @@ The APK is **universal** (works on every device, no variant to pick) and **signe
 - **Search** across the whole calendar (title, description, place, address, city) — accent- and
   case-insensitive: "reunion" finds "Réunion".
 - **Optional lock** with a PIN and/or biometrics.
-- **Dark theme** (GitHub-styled), home-screen **widgets**, French / English.
+- **Dark theme** (GitHub-styled), home-screen **widgets**, in English, French, German, Italian and Spanish (corrections welcome: [TRANSLATING.md](TRANSLATING.md)).
 
 ## Privacy
 
@@ -108,8 +108,8 @@ one.
 `version.properties`, at the root, is the **single source** of `versionCode` / `versionName`:
 
 ```properties
-versionCode=55
-versionName=1.0.3
+versionCode=NN        # see the file for the current values
+versionName=X.Y.Z
 ```
 
 The `versionCode` must **always increase**: Android refuses to install an APK whose `versionCode` is
@@ -123,7 +123,8 @@ carrying a silently wrong version.
 
 - Threat model, encryption, lock: [SECURITY.md](SECURITY.md).
 - Privacy policy (permissions, data, contact): [PRIVACY.md](PRIVACY.md).
-- Reporting a vulnerability: see [SECURITY.md](SECURITY.md#signalement).
+- Terms of use: [TERMS.md](TERMS.md). For both documents, the French version prevails.
+- Reporting a vulnerability: see [SECURITY.md](SECURITY.md#reporting-a-vulnerability).
 
 ## Licence
 

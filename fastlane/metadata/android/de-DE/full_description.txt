@@ -1,0 +1,37 @@
+Agenda Tech ist ein Kalender für Android, der alles auf Ihrem Gerät behält. Keine Cloud, kein Konto, keine Werbung, keine Tracker. Die App fordert überhaupt keine Internetberechtigung an, sie ist also technisch nicht in der Lage, irgendetwas irgendwohin zu senden — und Sie können das selbst in den App-Einstellungen von Android prüfen.
+
+Sie existiert, damit Ihr Kalender nirgendwo anders leben muss als auf Ihrem Telefon. Ein Kalender verrät viel über einen Menschen: Ärzte, Anwälte, Vorstellungsgespräche, wen man trifft und wann.
+
+<b>Funktionen</b>
+
+<ul>
+<li>Vier Ansichten — Monat (zwischen Monaten wischen), Woche, Tag und Agendaliste</li>
+<li>Termine — ganztägig, Beschreibung, eigene Farbe, Postanschrift und GPS-Koordinaten, die sich in Ihrer Karten-App öffnen (ohne Standortberechtigung)</li>
+<li>Wiederkehrende Termine (RFC 5545) — täglich, wöchentlich an gewählten Tagen, monatlich, jährlich; Ende nach N Terminen oder an einem Datum; einzelnen Termin bearbeiten oder löschen</li>
+<li>Erinnerungen — exakte Wecker, nach einem Neustart wieder eingeplant, freie Vorlaufzeit, eigener Ton und eine Taste „10 Min. schlummern“ in der Benachrichtigung</li>
+<li>Verschlüsselte Sicherung — den ganzen Kalender in eine passwortgeschützte .atbak-Datei exportieren (PBKDF2 mit 600.000 Iterationen + AES-256-GCM). Bewahren Sie sie überall auf, auch in der Cloud: Ohne Ihr Passwort bleibt sie unlesbar</li>
+<li>Suche — nach Titel, Beschreibung, Ort, Adresse oder Stadt; Akzente und Groß-/Kleinschreibung spielen keine Rolle</li>
+<li>Import aus dem Gerätekalender — kopiert, was die Kalender-Apps des Telefons bereits darauf synchronisiert haben, nur lesend, ohne jedes Netzwerk</li>
+<li>.ics-Import / -Export (RFC 5545) über die Dateiauswahl des Systems</li>
+<li>Optionale Sperre per PIN und Biometrie</li>
+<li>Widgets für den Startbildschirm, dunkles Design, auf Deutsch, Englisch, Französisch, Italienisch und Spanisch</li>
+</ul>
+
+<b>Datenschutz</b>
+
+<ul>
+<li>Keine INTERNET-Berechtigung. Nicht „wir versprechen, es nicht zu tun“ — die App kann es nicht</li>
+<li>Im Ruhezustand verschlüsselt: SQLCipher (AES-256), Hauptschlüssel durch den Android KeyStore versiegelt</li>
+<li>Bildschirmfotos blockiert (FLAG_SECURE), von den Cloud-Sicherungen von Android ausgeschlossen</li>
+<li>Apache 2.0 — jedes Versprechen auf dieser Seite lässt sich Zeile für Zeile prüfen</li>
+</ul>
+
+<b>Grenzen, ehrlich gesagt</b>
+
+<ul>
+<li>Keine Synchronisierung. Der Import kopiert, was auf dem Telefon ist; ein hier angelegter Termin wandert nicht in den ursprünglichen Kalender zurück. Das ist der Preis für null Netzwerk, und er ist gewollt</li>
+<li>Kein CalDAV, kein Teilen von Kalendern, keine Einladungen — all das braucht ein Netzwerk</li>
+<li>Die verschlüsselte Sicherung ist die Brücke zwischen Ihren Geräten, und sie wird von Hand geschlagen</li>
+</ul>
+
+<i>Diese Übersetzung wurde vom Entwickler maschinengestützt erstellt und noch nicht von einer Muttersprachlerin oder einem Muttersprachler geprüft. Wenn etwas falsch klingt, melden Sie es bitte: https://github.com/gitubpatrice/AGENDA-TECH/issues</i>

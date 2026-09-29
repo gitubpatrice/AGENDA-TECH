@@ -50,6 +50,7 @@ import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.ui.theme.BrandDanger
+import com.filestech.agenda_tech.ui.util.displayName
 
 @Composable
 fun CalendarsScreen(
@@ -138,7 +139,7 @@ fun CalendarsScreen(
         AlertDialog(
             onDismissRequest = { confirmDelete = null },
             title = { Text(stringResource(R.string.calendar_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.calendar_delete_confirm_body, target.name)) },
+            text = { Text(stringResource(R.string.calendar_delete_confirm_body, target.displayName())) },
             confirmButton = {
                 // `enabled` double le garde du ViewModel, il ne le remplace pas : la recomposition
                 // n'arrive qu'a l'image suivante, donc deux tapes dans la meme image passent ici
@@ -180,7 +181,7 @@ private fun CalendarRow(
                 .clip(CircleShape)
                 .background(Color(calendar.color.argb)),
         )
-        Text(calendar.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Text(calendar.displayName(), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         Switch(checked = calendar.isVisible, onCheckedChange = onToggleVisibility)
     }
 }
@@ -194,7 +195,8 @@ private fun CalendarEditDialog(
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var name by remember { mutableStateOf(initial?.name.orEmpty()) }
+    val initialName = initial?.displayName().orEmpty()
+    var name by remember { mutableStateOf(initialName) }
     var color by remember { mutableStateOf(initial?.color ?: CalendarColor.DEFAULT) }
     val ringColor = MaterialTheme.colorScheme.onSurface
 

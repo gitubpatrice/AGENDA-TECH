@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Italian. Source of truth: values/strings.xml (English). Formal address (Lei), as across the
+     Files Tech apps. Machine-assisted, not yet reviewed by a native speaker: see TRANSLATING.md. -->
+<resources>
+    <string name="app_name">Agenda Tech</string>
+
+    <!-- View switcher -->
+    <string name="view_month">Mese</string>
+    <string name="view_week">Settimana</string>
+    <string name="view_day">Giorno</string>
+    <string name="view_agenda">Agenda</string>
+    <string name="agenda_empty">Nessun evento in programma</string>
+    <string name="day_previous">Giorno precedente</string>
+    <string name="day_next">Giorno successivo</string>
+    <string name="week_previous">Settimana precedente</string>
+    <string name="week_next">Settimana successiva</string>
+
+    <!-- First-run default calendar -->
+    <string name="default_calendar_name">Personale</string>
+
+    <!-- Import / export (.ics) -->
+    <string name="menu_more">Altro</string>
+    <string name="menu_import_ics">Importa .ics…</string>
+    <string name="menu_export_ics">Esporta .ics…</string>
+    <plurals name="ics_export_ok">
+        <item quantity="one">%1$d evento esportato</item>
+        <item quantity="many">%1$d di eventi esportati</item>
+        <item quantity="other">%1$d eventi esportati</item>
+    </plurals>
+    <plurals name="ics_import_ok">
+        <item quantity="one">%1$d evento importato</item>
+        <item quantity="many">%1$d di eventi importati</item>
+        <item quantity="other">%1$d eventi importati</item>
+    </plurals>
+    <string name="ics_error">Impossibile leggere il file del calendario</string>
+    <string name="ics_import_too_many">Questo file contiene più eventi di quanti l\'app ne accetti (%1$d al massimo). Lo divida e importi le parti.</string>
+
+    <!-- Month view -->
+    <string name="month_today">Oggi</string>
+    <string name="month_previous">Mese precedente</string>
+    <string name="month_next">Mese successivo</string>
+    <string name="month_add_event">Aggiungi evento</string>
+    <string name="month_no_events">Nessun evento in questo giorno</string>
+    <string name="month_all_day">Tutto il giorno</string>
+
+    <!-- Event editor -->
+    <string name="editor_new_title">Nuovo evento</string>
+    <string name="editor_edit_title">Modifica evento</string>
+    <string name="editor_save">Salva</string>
+    <string name="editor_delete">Elimina</string>
+    <string name="editor_duplicate">Duplica</string>
+    <string name="editor_duplicate_title">%1$s (copia)</string>
+    <string name="editor_back">Indietro</string>
+    <string name="editor_title_label">Titolo</string>
+    <string name="editor_all_day">Tutto il giorno</string>
+    <string name="editor_calendar">Calendario</string>
+    <string name="editor_starts">Inizio</string>
+    <string name="editor_ends">Fine</string>
+    <string name="editor_recurrence">Ripeti</string>
+    <string name="editor_color">Colore</string>
+    <string name="scope_edit_title">Modifica evento ricorrente</string>
+    <string name="scope_delete_title">Elimina evento ricorrente</string>
+    <string name="scope_this_occurrence">Solo questo evento</string>
+    <string name="scope_whole_series">Tutti gli eventi della serie</string>
+    <string name="editor_description">Descrizione</string>
+    <string name="editor_location">Luogo</string>
+    <string name="editor_address">Indirizzo</string>
+    <string name="editor_postal_code">CAP</string>
+    <string name="editor_city">Città</string>
+    <string name="editor_gps">Coordinate GPS</string>
+    <string name="editor_gps_hint">44.0512, 5.0489</string>
+    <string name="editor_gps_help">Latitudine, longitudine — tocchi lo spillo per aprire la sua app di mappe</string>
+    <string name="editor_gps_open">Apri sulla mappa</string>
+    <string name="editor_error_blank_title">Il titolo è obbligatorio</string>
+    <string name="editor_error_end_before_start">La fine deve essere successiva all\'inizio</string>
+    <string name="editor_error_delete_failed">Non è stato possibile eliminare l\'evento. Non è stato rimosso nulla — riprovi.</string>
+    <string name="editor_error_save_failed">Impossibile salvare l\'evento</string>
+    <string name="editor_ok">OK</string>
+    <string name="editor_cancel">Annulla</string>
+
+    <!-- Recurrence options -->
+    <string name="recurrence_none">Non si ripete</string>
+    <string name="recurrence_daily">Ogni giorno</string>
+    <string name="recurrence_weekly">Ogni settimana</string>
+    <string name="recurrence_monthly">Ogni mese</string>
+    <string name="recurrence_yearly">Ogni anno</string>
+
+    <!-- Advanced recurrence -->
+    <string name="recurrence_every">Ogni</string>
+    <string name="recurrence_unit_days">giorno/i</string>
+    <string name="recurrence_unit_weeks">settimana/e</string>
+    <string name="recurrence_unit_months">mese/i</string>
+    <string name="recurrence_unit_years">anno/i</string>
+    <string name="recurrence_ends_label">Termina</string>
+    <string name="recurrence_end_never">Mai</string>
+    <string name="recurrence_end_after">Dopo</string>
+    <string name="recurrence_occurrences">occorrenze</string>
+    <string name="recurrence_end_on">Il</string>
+
+    <!-- Reminders -->
+    <string name="editor_reminders">Promemoria</string>
+    <string name="editor_add_reminder">Aggiungi promemoria</string>
+    <string name="editor_remove_reminder">Rimuovi promemoria</string>
+    <string name="reminder_at_time">All\'ora dell\'evento</string>
+    <string name="reminder_minutes">%1$d min prima</string>
+    <string name="reminder_hours">%1$d h prima</string>
+    <string name="reminder_days">%1$d giorno/i prima</string>
+    <string name="reminder_custom">Personalizzato…</string>
+    <string name="reminder_custom_amount">Tempo prima dell\'evento</string>
+    <string name="reminder_custom_duplicate">Questo promemoria esiste già</string>
+    <string name="reminder_custom_too_far">Al massimo 28 giorni prima dell\'evento</string>
+    <string name="reminder_unit_minutes">Minuti</string>
+    <string name="reminder_unit_hours">Ore</string>
+    <string name="reminder_unit_days">Giorni</string>
+    <string name="reminder_channel_name">Promemoria degli eventi</string>
+    <string name="reminder_channel_desc">Notifiche dei promemoria dell\'agenda</string>
+    <string name="reminder_notifications_blocked_title">I promemoria non saranno mostrati</string>
+    <string name="reminder_notifications_blocked_body">Questo promemoria è salvato e sarà riprogrammato dopo un riavvio, ma Agenda Tech non è autorizzata a mostrare notifiche: quando scatterà, non apparirà nulla.</string>
+    <string name="reminder_notifications_blocked_action">Consenti le notifiche</string>
+
+    <!-- Home-screen widget -->
+    <string name="widget_description">La data di oggi e gli eventi in programma</string>
+    <string name="widget_icon_description">Icona compatta della data: giorno della settimana, giorno e mese</string>
+    <string name="widget_no_events">Nessun evento in programma</string>
+
+    <!-- Settings -->
+    <string name="menu_settings">Impostazioni</string>
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_section_appearance">Aspetto</string>
+    <string name="settings_theme">Tema</string>
+    <string name="theme_system">Automatico</string>
+    <string name="theme_light">Chiaro</string>
+    <string name="theme_dark">Scuro</string>
+    <string name="settings_week_start">Primo giorno della settimana</string>
+    <string name="week_start_system">Automatico</string>
+    <string name="week_start_monday">Lunedì</string>
+    <string name="week_start_saturday">Sabato</string>
+    <string name="week_start_sunday">Domenica</string>
+    <string name="settings_show_week_numbers">Mostra i numeri delle settimane</string>
+    <string name="settings_language">Lingua dell\'app</string>
+    <string name="settings_language_sub">Apre la schermata Android della lingua di questa app. Agenda Tech segue la lingua del telefono finché non ne sceglie una.</string>
+    <string name="settings_section_events">Eventi</string>
+    <string name="settings_default_color">Colore predefinito degli eventi</string>
+    <string name="settings_default_duration">Durata predefinita</string>
+    <string name="settings_default_reminder">Promemoria predefinito</string>
+    <string name="reminder_off">Nessuno</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="duration_hours">%1$d h</string>
+    <string name="settings_section_notifications">Notifiche dei promemoria</string>
+    <string name="settings_notif_sound">Suono</string>
+    <string name="settings_notif_ringtone">Suono del promemoria</string>
+    <string name="settings_notif_ringtone_default">Predefinito di sistema</string>
+    <string name="settings_notif_sound_reset">Torna al suono di sistema</string>
+    <string name="settings_notif_vibrate">Vibrazione</string>
+    <string name="settings_notif_lockscreen">Mostra nella schermata di blocco</string>
+    <string name="settings_notif_system">Apri le impostazioni di sistema delle notifiche</string>
+    <string name="settings_section_privacy">Privacy</string>
+    <string name="settings_flag_secure">Blocca gli screenshot</string>
+    <string name="settings_flag_secure_sub">Nasconde l\'app dalle app recenti e dalle registrazioni dello schermo</string>
+    <string name="settings_widget_hide_titles">Nascondi i titoli nel widget</string>
+    <string name="settings_widget_hide_titles_sub">Mostra solo gli orari nella schermata Home</string>
+    <string name="settings_about">Informazioni</string>
+    <string name="settings_calendars">Gestisci i calendari</string>
+
+    <!-- Calendars -->
+    <string name="calendars_title">Calendari</string>
+    <string name="calendar_add">Aggiungi calendario</string>
+    <string name="calendar_name">Nome</string>
+    <string name="calendar_new_title">Nuovo calendario</string>
+    <string name="calendar_edit_title">Modifica calendario</string>
+    <string name="action_save">Salva</string>
+    <string name="action_cancel">Annulla</string>
+    <string name="action_delete">Elimina</string>
+
+    <!-- About -->
+    <string name="about_tagline">Agenda locale e cifrata — zero rete.</string>
+    <string name="about_version">Versione %1$s (build %2$d)</string>
+    <string name="about_website">files-tech.com</string>
+    <string name="about_source">Codice sorgente (GitHub)</string>
+    <string name="about_license">Licenza</string>
+    <string name="about_check_update">Vedi gli aggiornamenti</string>
+
+    <!-- About · Privacy -->
+    <string name="about_privacy_title">Privacy</string>
+    <string name="about_privacy_card_title">100% privato — zero sorveglianza</string>
+    <string name="about_privacy_body">La sua agenda non lascia mai questo telefono. L\'app non dichiara alcuna autorizzazione Internet: è tecnicamente incapace di inviare qualsiasi cosa ovunque.</string>
+    <string name="about_badge_no_network">Nessuna rete</string>
+    <string name="about_badge_no_ads">Nessuna pubblicità</string>
+    <string name="about_badge_no_tracker">Nessun tracker</string>
+    <string name="about_badge_no_account">Nessun account</string>
+
+    <!-- About · Features -->
+    <string name="about_features_title">Funzionalità</string>
+    <string name="about_feat_views_label">Viste Mese, Settimana, Giorno e Agenda</string>
+    <string name="about_feat_views_desc">Scorra tra i mesi, torni a oggi, più calendari.</string>
+    <string name="about_feat_recurrence_label">Eventi ricorrenti</string>
+    <string name="about_feat_recurrence_desc">Da ogni giorno a ogni anno, intervalli personalizzati, data di fine — modifichi una singola occorrenza o l\'intera serie.</string>
+    <string name="about_feat_reminders_label">Promemoria</string>
+    <string name="about_feat_reminders_desc">Sveglie esatte, anticipo personalizzato, la sua suoneria. Riprogrammati dopo un riavvio.</string>
+    <string name="about_feat_import_label">Importazione / esportazione</string>
+    <string name="about_feat_import_desc">Copi gli eventi già presenti su questo telefono (Google, Exchange…) o scambi file .ics — tutto offline.</string>
+    <string name="about_feat_widgets_label">Widget per la schermata Home</string>
+    <string name="about_feat_widgets_desc">Eventi in programma e un\'icona compatta della data.</string>
+    <string name="about_feat_lock_label">Blocco con PIN / biometria</string>
+    <string name="about_feat_lock_desc">Blocco facoltativo dell\'intera app, con protezione dai tentativi ripetuti.</string>
+    <string name="about_feat_encryption_label">Archiviazione cifrata</string>
+    <string name="about_feat_encryption_desc">L\'intero database è cifrato AES-256; la chiave non lascia mai l\'hardware sicuro del dispositivo.</string>
+    <string name="about_feat_theme_label">Tema chiaro e scuro</string>
+    <string name="about_feat_theme_desc">Segue il sistema, oppure lo imponga. Numeri delle settimane, primo giorno della settimana, colore predefinito.</string>
+
+    <!-- About · Security -->
+    <string name="about_security_title">Sicurezza</string>
+    <string name="about_security_card_title">Cifrata a riposo</string>
+    <string name="about_security_body">Il database (SQLCipher, AES-256) è cifrato con una chiave casuale protetta dall\'Android Keystore — supportato dall\'hardware e non esportabile sui dispositivi dotati di elemento sicuro. Senza il suo telefono, il file è illeggibile. Gli screenshot e l\'anteprima nelle app recenti sono bloccati per impostazione predefinita, e i backup nel cloud sono disattivati, così la sua agenda non viene mai copiata fuori dal dispositivo.</string>
+
+    <!-- About · Permissions -->
+    <string name="about_permissions_title">Autorizzazioni e perché</string>
+    <string name="about_perm_read_calendar">Sola lettura. Serve unicamente a copiare, quando lo chiede, gli eventi già memorizzati su questo telefono. Non vi viene mai scritto nulla, e nulla viene mai inviato.</string>
+    <string name="about_perm_notifications">Mostrare i suoi promemoria.</string>
+    <string name="about_perm_exact_alarm">Far scattare un promemoria al minuto esatto — un promemoria di calendario in ritardo non serve a nulla.</string>
+    <string name="about_perm_boot">Riprogrammare i suoi promemoria dopo un riavvio (le sveglie non sopravvivono a un riavvio).</string>
+    <string name="about_perm_vibrate">Vibrare a un promemoria, se lo attiva.</string>
+    <string name="about_perm_no_internet_name">INTERNET — non richiesta</string>
+    <string name="about_perm_no_internet">L\'app non ha alcuna autorizzazione di rete. I link di questa pagina si aprono nel suo browser, fuori dall\'app.</string>
+
+    <!-- About · Author and links -->
+    <string name="about_author_title">Autore</string>
+    <string name="about_author_role">Sviluppatore</string>
+    <string name="about_links_title">Link</string>
+    <string name="about_report_issue">Segnala un problema</string>
+    <string name="about_license_name">Apache License 2.0</string>
+    <string name="about_privacy_policy">Informativa sulla privacy</string>
+    <string name="about_credits_body">Realizzata con cura da %1$s. Software libero e open source: il codice è pubblico e verificabile.</string>
+    <string name="about_legal_body">© %1$s %2$s — Apache License 2.0</string>
+
+    <string name="settings_device_import">Importa dal calendario del dispositivo</string>
+    <string name="settings_device_import_sub">Copia gli eventi già presenti su questo telefono (Google, ecc.) — senza Internet</string>
+    <string name="device_import_title">Importazione dal calendario del dispositivo</string>
+    <string name="device_import_rationale">Agenda Tech può copiare gli eventi già sincronizzati su questo telefono (Google, Exchange, calendari locali). Li legge soltanto in locale — nessun accesso a Internet, nessuna connessione al suo account.</string>
+    <string name="device_import_grant">Consenti l\'accesso al calendario</string>
+    <string name="device_import_oneway_title">Una copia, non una sincronizzazione</string>
+    <string name="device_import_oneway_body">I suoi eventi vengono copiati qui. Non viene mai riscritto nulla: un evento creato in Agenda Tech resta in Agenda Tech e non apparirà in Google. Torni a importare quando vuole: l\'aggiornamento non crea duplicati.</string>
+    <string name="device_import_pick">Scelga i calendari da importare:</string>
+    <string name="device_import_fallback_name">Calendario importato</string>
+    <string name="device_import_empty">Nessun calendario trovato su questo dispositivo.</string>
+    <string name="device_import_failed">Non è stato possibile leggere i calendari del dispositivo. Non è stato modificato nulla — riprovi.</string>
+    <string name="device_import_action">Importa (%1$d)</string>
+    <string name="device_import_running">Importazione…</string>
+    <string name="device_import_done">%1$d eventi importati da %2$d calendario/i.</string>
+    <string name="device_import_partial">%1$d eventi importati da %2$d calendario/i. %3$d calendario/i non hanno potuto essere letti.</string>
+    <string name="device_import_truncated">%1$d eventi importati da %2$d calendario/i. La selezione ne conteneva più dei %3$d che questa app accetta in una sola importazione — importi separatamente i calendari rimanenti.</string>
+    <string name="device_import_clear">Elimina i calendari importati in precedenza</string>
+    <string name="device_import_cleared">Calendari importati eliminati.</string>
+    <string name="device_import_clear_confirm_title">Eliminare i calendari importati?</string>
+    <string name="device_import_clear_confirm_body">Verranno rimossi tutti i calendari importati in precedenza e i relativi eventi. I suoi calendari restano.</string>
+    <string name="event_delete_confirm_title">Eliminare l\'evento?</string>
+    <string name="event_delete_confirm_body">Questo evento e i suoi promemoria saranno eliminati definitivamente.</string>
+    <string name="calendar_delete_confirm_title">Eliminare il calendario?</string>
+    <string name="calendar_delete_confirm_body">«%1$s» e tutti i suoi eventi saranno eliminati definitivamente.</string>
+    <string name="calendar_error_save_failed">Non è stato possibile salvare il calendario. Non è stato scritto nulla — riprovi.</string>
+    <string name="calendar_error_delete_failed">Non è stato possibile eliminare il calendario. Non è stato rimosso nulla — riprovi.</string>
+    <string name="db_reset_notice">Non è stato possibile sbloccare i suoi dati (la chiave di sicurezza del dispositivo è cambiata), e sono stati reimpostati.</string>
+    <string name="startup_failure_title">Agenda Tech non riesce ad aprire i suoi dati</string>
+    <string name="startup_failure_body">La sua agenda è ancora lì e non è stata modificata. Le cause note sono due. Se l\'archivio sicuro delle chiavi del telefono non ha risposto, riavvii il telefono e poi riapra Agenda Tech. Se una versione più vecchia dell\'app è stata installata sopra una più recente, reinstalli la versione più recente. L\'app, deliberatamente, non cancella nulla da sola.</string>
+    <string name="settings_reset_notice">Non è stato possibile leggere le sue impostazioni, che sono state reimpostate. Se aveva un blocco dell\'app, è stato disattivato: lo imposti di nuovo nelle Impostazioni.</string>
+    <string name="reminders_incomplete_notice">Alcuni promemoria ricorrenti non hanno potuto essere riprogrammati dopo il riavvio. Apra gli eventi interessati e li salvi di nuovo per riattivarli.</string>
+    <string name="settings_section_security">Sicurezza</string>
+    <string name="settings_lock_enabled">Blocca l\'app</string>
+    <string name="settings_lock_enabled_sub">Richiedi un PIN o la biometria all\'apertura</string>
+    <string name="settings_lock_change_pin">Cambia PIN</string>
+    <string name="settings_lock_pin_save_failed">Non è stato possibile salvare il PIN: l\'archivio delle chiavi del dispositivo ha rifiutato. La sua impostazione di blocco precedente resta invariata.</string>
+    <string name="settings_lock_biometric">Usa la biometria</string>
+    <string name="settings_lock_set_pin">Imposta un PIN</string>
+    <string name="settings_lock_confirm_pin">Conferma il PIN</string>
+    <string name="settings_lock_confirm_current">Inserisca il PIN attuale</string>
+    <string name="action_continue">Continua</string>
+    <string name="lock_throttled">Troppi tentativi. Riprovi tra %1$d s.</string>
+    <string name="lock_prompt">Inserisca il PIN per sbloccare</string>
+    <string name="lock_pin">PIN</string>
+    <string name="lock_unlock">Sblocca</string>
+    <string name="lock_wrong_pin">PIN errato</string>
+    <string name="lock_use_biometric">Usa la biometria</string>
+    <string name="lock_biometric_title">Sblocca Agenda Tech</string>
+    <string name="lock_use_pin">Usa il PIN</string>
+    <string name="lock_biometric_failed">Non è stato possibile verificare lo sblocco biometrico. Usi il PIN.</string>
+    <string name="lock_biometric_enrollment_changed">La biometria di questo dispositivo è cambiata, quindi lo sblocco biometrico è stato disattivato. Usi il PIN, poi lo riattivi nelle Impostazioni.</string>
+
+    <!-- Encrypted backup (.atbak) -->
+    <string name="settings_backup">Backup cifrato</string>
+    <string name="settings_backup_sub">Esporta o ripristina l\'intera agenda come file protetto da password</string>
+    <string name="backup_title">Backup cifrato</string>
+    <string name="backup_intro_title">Una copia completa e cifrata</string>
+    <string name="backup_intro_body">Il file contiene tutto: calendari, eventi, ricorrenze, luoghi e promemoria. È cifrato con la sua password (AES-256): nessuno può aprirlo senza quella password, noi compresi. Lo conservi dove preferisce: chiavetta USB, computer, cloud.</string>
+    <string name="backup_warn_title">La password non si può recuperare</string>
+    <string name="backup_warn_body">Per un backup che esporta a mano non viene memorizzata da nessuna parte: se la dimentica, il file resta illeggibile per sempre. La salvi in un gestore di password. I backup automatici sono l\'eccezione: devono conservare la loro password su questo telefono, protetta dal suo hardware sicuro, per poter funzionare senza di lei.</string>
+    <string name="backup_export">Esporta un backup</string>
+    <string name="backup_export_sub">Crea un file .atbak cifrato</string>
+    <string name="backup_restore">Ripristina un backup</string>
+    <string name="backup_restore_sub">Sostituisce l\'agenda attuale con il contenuto di un file .atbak</string>
+    <string name="backup_password">Password</string>
+    <string name="backup_password_confirm">Conferma la password</string>
+    <string name="backup_password_hint">Almeno 12 caratteri</string>
+    <string name="backup_password_mismatch">Le due password non coincidono.</string>
+    <string name="backup_password_too_short">Password troppo corta: almeno 12 caratteri.</string>
+    <string name="backup_password_show">Mostra la password</string>
+    <string name="backup_password_hide">Nascondi la password</string>
+    <string name="backup_export_dialog_title">Scelga una password</string>
+    <string name="backup_restore_dialog_title">Password del backup</string>
+    <string name="backup_restore_confirm_body">I suoi calendari, eventi e promemoria attuali saranno eliminati e sostituiti dal contenuto del file. L\'operazione non si può annullare.</string>
+    <string name="backup_restore_confirm_action">Sostituisci</string>
+    <string name="backup_working">Cifratura…</string>
+    <string name="backup_working_sub">Qualche secondo: è il calcolo che protegge la sua password.</string>
+    <string name="backup_exported">Backup creato: %1$d evento/i.</string>
+    <string name="backup_restored">Ripristinati: %1$d calendario/i, %2$d evento/i, %3$d promemoria.</string>
+    <string name="backup_bad_password">Password errata, o file danneggiato.</string>
+    <string name="backup_not_a_backup">Questo file non è un backup di Agenda Tech.</string>
+    <string name="backup_too_new">Questo backup è stato scritto da una versione più recente di Agenda Tech. Aggiorni l\'app per ripristinarlo — non elimini il file.</string>
+    <string name="backup_damaged">È un backup di Agenda Tech, ma è incompleto o danneggiato. Provi un\'altra copia — conservi questo file.</string>
+    <string name="backup_failed">Il backup non è riuscito. Nessun dato è stato modificato.</string>
+    <string name="backup_working_restore">Decifratura…</string>
+
+    <!-- Search -->
+    <string name="search_open">Cerca un evento</string>
+    <string name="search_field_hint">Titolo, descrizione, luogo, città…</string>
+    <string name="search_clear">Cancella la ricerca</string>
+    <string name="search_prompt">Cerchi un evento per titolo, descrizione, luogo o città. Accenti e maiuscole non contano.</string>
+    <string name="search_no_results">Nessun risultato per «%1$s».</string>
+    <string name="search_no_results_hint">Controlli l\'ortografia, o provi una parola più corta.</string>
+    <string name="search_section_upcoming">In programma</string>
+    <string name="search_section_past">Passati</string>
+    <string name="search_hidden_calendar">calendario nascosto</string>
+
+    <string name="about_privacy_policy_url">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/PRIVACY.it.md</string>
+    <string name="about_terms">Condizioni d\'uso</string>
+    <string name="about_terms_url">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/TERMS.it.md</string>
+    <string name="reminder_snooze">Posticipa di %1$d min</string>
+    <!-- Restore offer, on an empty agenda (first run / new phone) -->
+    <string name="restore_prompt_title">Ha un backup?</string>
+    <string name="restore_prompt_body">Il suo calendario è vuoto. Arriva da un altro telefono? Può recuperare tutti i suoi calendari, eventi e promemoria da un file .atbak.</string>
+    <string name="restore_prompt_action">Ripristina un backup</string>
+    <string name="restore_prompt_dismiss">No, grazie</string>
+    <!-- Backup reminder, on a filled agenda never backed up -->
+    <string name="backup_prompt_title">Nessun backup</string>
+    <string name="backup_prompt_body">I suoi eventi esistono solo su questo telefono. Se viene perso, rubato o si rompe, li perde anche lei. Un backup cifrato richiede pochi secondi.</string>
+    <string name="backup_prompt_stale_body">Il suo calendario è cambiato dall\'ultimo backup. Queste modifiche esistono solo su questo telefono.</string>
+    <string name="backup_prompt_action">Esegui il backup</string>
+    <string name="backup_prompt_later">Più tardi</string>
+    <!-- Birthdays -->
+    <string name="editor_kind_event">Evento</string>
+    <string name="editor_kind_birthday">Compleanno</string>
+    <string name="editor_birthday_date">Data di nascita</string>
+    <string name="editor_birthday_hint">Si ripete ogni anno, tutto il giorno. Se non conosce l\'anno, lasci quello proposto: l\'età semplicemente non sarà mostrata.</string>
+    <plurals name="birthday_age">
+        <item quantity="one">%1$d anno</item>
+        <item quantity="many">%1$d di anni</item>
+        <item quantity="other">%1$d anni</item>
+    </plurals>
+    <!-- Automatic backup -->
+    <string name="backup_auto_title">Backup automatico</string>
+    <string name="backup_auto_sub">Scrive un file .atbak cifrato in una cartella a sua scelta, una volta alla settimana. Vengono conservati i quattro più recenti; i più vecchi vengono eliminati.</string>
+    <string name="backup_auto_password_title">Password dei backup automatici</string>
+    <string name="backup_auto_password_note">La annoti in un luogo sicuro. È memorizzata su questo telefono, protetta dal suo hardware sicuro, ma un backup che non si può aprire non è un backup.</string>
+    <string name="backup_auto_folder">Cartella: %1$s</string>
+    <string name="backup_auto_folder_none">Nessuna cartella ancora scelta</string>
+    <string name="backup_auto_folder_lost">La cartella scelta non è più raggiungibile. Disattivi e riattivi l\'interruttore per sceglierne una.</string>
+    <string name="backup_auto_change_folder">Cambia cartella</string>
+    <string name="backup_auto_run_now">Esegui il backup ora</string>
+    <string name="backup_auto_never">Mai eseguito finora</string>
+    <string name="backup_auto_last_ok">Ultimo backup: %1$s</string>
+    <string name="backup_auto_err_no_folder">Non è stato scritto nulla: nessuna cartella impostata.</string>
+    <string name="backup_auto_err_no_password">Non è stato scritto nulla: non è stato possibile leggere la password. Disattivi e riattivi l\'interruttore per impostarla.</string>
+    <string name="backup_auto_err_folder">Non è stato scritto nulla: la cartella non è raggiungibile. Potrebbe essere stata spostata, o la sua autorizzazione revocata.</string>
+    <string name="backup_auto_err_export">Non è stato possibile esportare l\'agenda. Non è stato scritto nulla.</string>
+    <string name="backup_auto_err_write">Non è stato possibile scrivere il file nella cartella.</string>
+</resources>

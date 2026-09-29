@@ -48,6 +48,7 @@ import com.filestech.agenda_tech.domain.search.EventSearchHit
 import com.filestech.agenda_tech.ui.util.EventRow
 import com.filestech.agenda_tech.ui.util.EventRowDetail
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
+import com.filestech.agenda_tech.ui.util.displayName
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -213,9 +214,9 @@ private fun dateLabel(hit: EventSearchHit, zone: ZoneId, locale: Locale): String
 @Composable
 private fun calendarLabel(hit: EventSearchHit): String =
     if (hit.calendar.isVisible) {
-        hit.calendar.name
+        hit.calendar.displayName()
     } else {
-        "${hit.calendar.name} · ${stringResource(R.string.search_hidden_calendar)}"
+        "${hit.calendar.displayName()} · ${stringResource(R.string.search_hidden_calendar)}"
     }
 
 @Composable

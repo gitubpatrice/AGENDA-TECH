@@ -1,0 +1,37 @@
+Agenda Tech è un calendario per Android che tiene tutto sul suo dispositivo. Niente cloud, niente account, niente pubblicità, niente tracker. Non dichiara alcuna autorizzazione Internet, quindi è tecnicamente incapace di inviare qualsiasi cosa ovunque — e può verificarlo lei stesso nelle impostazioni delle app di Android.
+
+Esiste perché il suo calendario non debba vivere altrove che sul suo telefono. Un calendario dice molto di una persona: i suoi medici, i suoi avvocati, i suoi colloqui di lavoro, chi incontra e quando.
+
+<b>Funzionalità</b>
+
+<ul>
+<li>Quattro viste — Mese (scorrimento tra i mesi), Settimana, Giorno ed elenco Agenda</li>
+<li>Eventi — tutto il giorno, descrizione, colore per evento, indirizzo postale e coordinate GPS che si aprono nella sua app di mappe (senza autorizzazione di posizione)</li>
+<li>Eventi ricorrenti (RFC 5545) — ogni giorno, ogni settimana nei giorni scelti, ogni mese, ogni anno; fine dopo N occorrenze o a una data; modifica o eliminazione di una singola occorrenza</li>
+<li>Promemoria — sveglie esatte, riprogrammate dopo un riavvio, anticipo libero, il suo suono e un pulsante «Posticipa di 10 min» nella notifica</li>
+<li>Backup cifrato — esporti l'intero calendario in un file .atbak protetto da password (PBKDF2 a 600.000 iterazioni + AES-256-GCM). Lo conservi ovunque, cloud compreso: senza la sua password resta illeggibile</li>
+<li>Ricerca — per titolo, descrizione, luogo, indirizzo o città; accenti e maiuscole non contano</li>
+<li>Importazione dal calendario del dispositivo — copia ciò che le app di calendario del telefono vi hanno già sincronizzato, in sola lettura, senza alcuna rete</li>
+<li>Importazione / esportazione .ics (RFC 5545) tramite il selettore di file del sistema</li>
+<li>Blocco facoltativo con PIN e biometria</li>
+<li>Widget per la schermata Home, tema scuro, in italiano, inglese, francese, tedesco e spagnolo</li>
+</ul>
+
+<b>Privacy</b>
+
+<ul>
+<li>Nessuna autorizzazione INTERNET. Non «promettiamo di non farlo»: l'app non può</li>
+<li>Cifrato a riposo: SQLCipher (AES-256), chiave principale sigillata dall'Android KeyStore</li>
+<li>Screenshot bloccati (FLAG_SECURE), esclusa dai backup cloud di Android</li>
+<li>Apache 2.0 — ogni promessa di questa pagina è verificabile riga per riga</li>
+</ul>
+
+<b>Limiti, onestamente</b>
+
+<ul>
+<li>Non è una sincronizzazione. L'importazione copia ciò che c'è sul telefono; un evento creato qui non torna nel calendario d'origine. È il prezzo di zero rete, ed è voluto</li>
+<li>Niente CalDAV, niente condivisione di calendari, niente inviti: richiedono tutti una rete</li>
+<li>Il backup cifrato è il ponte tra i suoi dispositivi, ed è un ponte manuale</li>
+</ul>
+
+<i>Questa traduzione è stata prodotta dallo sviluppatore con l'aiuto di strumenti automatici e non è ancora stata rivista da un madrelingua. Se qualcosa suona male, lo segnali: https://github.com/gitubpatrice/AGENDA-TECH/issues</i>

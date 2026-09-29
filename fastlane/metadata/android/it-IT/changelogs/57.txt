@@ -1,0 +1,12 @@
+v1.1.1 — Due correzioni importanti
+
+• Con il blocco PIN attivo, il ripristino di
+  un backup ora prosegue dopo la scelta del
+  file.
+• Nessun PIN richiesto dopo ogni scelta di
+  file, e lo sblocco riporta alla schermata
+  lasciata.
+• Android da 8 a 11: un archivio delle chiavi
+  che per un attimo non risponde non può più
+  cancellare l'agenda né rendere il PIN
+  inutilizzabile.

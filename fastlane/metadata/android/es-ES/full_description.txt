@@ -1,0 +1,37 @@
+Agenda Tech es un calendario para Android que lo guarda todo en su dispositivo. Sin nube, sin cuenta, sin anuncios, sin rastreadores. No declara ningún permiso de Internet, así que es técnicamente incapaz de enviar nada a ninguna parte — y usted mismo puede comprobarlo en los ajustes de aplicaciones de Android.
+
+Existe para que su calendario no tenga que vivir en ningún otro sitio que su teléfono. Un calendario dice mucho de una persona: sus médicos, sus abogados, sus entrevistas de trabajo, con quién se reúne y cuándo.
+
+<b>Funciones</b>
+
+<ul>
+<li>Cuatro vistas — Mes (deslizar entre meses), Semana, Día y lista Agenda</li>
+<li>Eventos — todo el día, descripción, color por evento, dirección postal y coordenadas GPS que se abren en su app de mapas (sin permiso de ubicación)</li>
+<li>Eventos periódicos (RFC 5545) — diarios, semanales en los días elegidos, mensuales, anuales; fin tras N repeticiones o en una fecha; editar o eliminar una sola repetición</li>
+<li>Recordatorios — alarmas exactas, reprogramadas tras un reinicio, antelación libre, su propio sonido y un botón «Posponer 10 min» en la notificación</li>
+<li>Copia de seguridad cifrada — exporte todo su calendario a un archivo .atbak protegido con contraseña (PBKDF2 con 600.000 iteraciones + AES-256-GCM). Guárdelo donde quiera, nube incluida: sin su contraseña sigue siendo ilegible</li>
+<li>Búsqueda — por título, descripción, lugar, dirección o ciudad; los acentos y las mayúsculas no importan</li>
+<li>Importación desde el calendario del dispositivo — copia lo que las apps de calendario del teléfono ya han sincronizado en él, solo lectura, sin ninguna red</li>
+<li>Importación / exportación .ics (RFC 5545) mediante el selector de archivos del sistema</li>
+<li>Bloqueo opcional con PIN y biometría</li>
+<li>Widgets de pantalla de inicio, tema oscuro, en español, inglés, francés, alemán e italiano</li>
+</ul>
+
+<b>Privacidad</b>
+
+<ul>
+<li>Sin permiso INTERNET. No es «prometemos no hacerlo»: la app no puede</li>
+<li>Cifrado en reposo: SQLCipher (AES-256), clave maestra sellada por el Android KeyStore</li>
+<li>Capturas de pantalla bloqueadas (FLAG_SECURE), excluida de las copias de seguridad en la nube de Android</li>
+<li>Apache 2.0 — cada promesa de esta página se puede comprobar línea por línea</li>
+</ul>
+
+<b>Límites, con franqueza</b>
+
+<ul>
+<li>No es una sincronización. La importación copia lo que hay en el teléfono; un evento creado aquí no vuelve al calendario original. Es el precio de cero red, y es deliberado</li>
+<li>Sin CalDAV, sin calendarios compartidos, sin invitaciones: todo ello necesita una red</li>
+<li>La copia de seguridad cifrada es el puente entre sus dispositivos, y es un puente manual</li>
+</ul>
+
+<i>Esta traducción la ha realizado el desarrollador con ayuda de herramientas automáticas y todavía no la ha revisado un hablante nativo. Si algo le suena mal, avísenos: https://github.com/gitubpatrice/AGENDA-TECH/issues</i>

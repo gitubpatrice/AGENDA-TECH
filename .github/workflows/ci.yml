@@ -30,6 +30,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Translation parity, before any compilation: it costs a second where a failed build costs
+      # ten minutes. A language that loses keys does not become incomplete in the open, it does so
+      # SILENTLY - the screen falls back to English word by word. The negative control runs first:
+      # it proves the check can go red, and for the right reason, before its green is believed.
+      - name: Translation parity
+        run: |
+          python3 tools/check-translations-negative-control.py
+          python3 tools/check-translations.py
+
       - uses: actions/setup-java@v6
         with:
           distribution: temurin

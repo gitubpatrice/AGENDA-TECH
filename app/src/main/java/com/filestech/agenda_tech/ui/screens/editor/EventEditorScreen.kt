@@ -83,6 +83,7 @@ import com.filestech.agenda_tech.ui.theme.BrandSuccess
 import com.filestech.agenda_tech.ui.util.ReminderNotificationsBlockedNotice
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import com.filestech.agenda_tech.ui.util.rememberReminderNotifications
+import com.filestech.agenda_tech.ui.util.displayName
 import timber.log.Timber
 import java.time.DayOfWeek
 import java.time.Instant
@@ -567,7 +568,7 @@ private fun CalendarDropdown(
     onSelect: (Long) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val selectedName = calendars.firstOrNull { it.id == selectedId }?.name.orEmpty()
+    val selectedName = calendars.firstOrNull { it.id == selectedId }?.displayName().orEmpty()
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
             value = selectedName,
@@ -585,7 +586,7 @@ private fun CalendarDropdown(
         ) {
             calendars.forEach { calendar ->
                 DropdownMenuItem(
-                    text = { Text(calendar.name) },
+                    text = { Text(calendar.displayName()) },
                     onClick = {
                         onSelect(calendar.id)
                         expanded = false

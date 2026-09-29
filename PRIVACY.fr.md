@@ -1,6 +1,9 @@
 # Politique de confidentialité — Agenda Tech
 
-_Dernière mise à jour : 26 août 2026 — version 1.0.3_ · 🇬🇧 [English version](PRIVACY.md)
+_Dernière mise à jour : 29 septembre 2026_ · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
+
+> **Version de référence.** En cas de divergence entre cette politique et l'une de ses traductions,
+> c'est cette version française qui fait foi.
 
 Agenda Tech (`com.filestech.agenda_tech`) est une application d'agenda **entièrement locale**.
 Elle est conçue autour d'un principe simple : **vos données ne quittent jamais votre appareil.**
@@ -96,7 +99,7 @@ votre appareil, d'une application à l'autre :
   **votre mot de passe est conservé sur le téléphone** : chiffré par une clé détenue par le
   matériel sécurisé de l'appareil, qui ne le quitte jamais. Désactiver l'option efface le mot de
   passe et cette clé. L'arbitrage est assumé — une sauvegarde que vous seul pouvez ouvrir, et qui
-  reste utilisable le jour où le téléphone n'est plus là. `SECURITY.md` l'énonce en entier.
+  reste utilisable le jour où le téléphone n'est plus là. `SECURITY.fr.md` l'énonce en entier.
 - **Ouvrir un lieu sur la carte** : si vous saisissez des coordonnées GPS sur un événement et que
   vous touchez le repère, l'application transmet **ces coordonnées et le libellé de l'événement** à
   l'application de cartes de votre téléphone. Rien d'autre n'est transmis, et rien ne part si vous
@@ -131,8 +134,10 @@ L'application ne collecte aucune donnée et convient à tous les publics.
 Cette politique pourra évoluer avec l'application ; la date en tête de document indique la dernière
 révision, et l'historique est public dans ce dépôt.
 
-## Contact
+## Éditeur et contact
+
+Agenda Tech est édité par **Patrice Haltaya** (France), responsable du traitement au sens du RGPD — même si, comme expliqué plus haut, aucune donnée ne lui parvient jamais. Contact : **contact@files-tech.com**.
 
 Question ou signalement : ouvrez une [issue](https://github.com/gitubpatrice/AGENDA-TECH/issues)
 sur le dépôt, ou via [files-tech.com](https://files-tech.com). Pour la sécurité, voir
-[SECURITY.md](SECURITY.md).
+[SECURITY.fr.md](SECURITY.fr.md).

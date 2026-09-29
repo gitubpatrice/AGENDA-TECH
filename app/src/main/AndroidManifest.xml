@@ -114,6 +114,7 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="${appLabel}"
+        android:localeConfig="@xml/locales_config"
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true"
         android:largeHeap="false"

@@ -22,10 +22,12 @@
     <string name="menu_export_ics">Exporter .ics…</string>
     <plurals name="ics_export_ok">
         <item quantity="one">%1$d événement exporté</item>
+        <item quantity="many">%1$d d’événements exportés</item>
         <item quantity="other">%1$d événements exportés</item>
     </plurals>
     <plurals name="ics_import_ok">
         <item quantity="one">%1$d événement importé</item>
+        <item quantity="many">%1$d d’événements importés</item>
         <item quantity="other">%1$d événements importés</item>
     </plurals>
     <string name="ics_error">Impossible de lire le fichier agenda</string>
@@ -134,6 +136,8 @@
     <string name="week_start_saturday">Samedi</string>
     <string name="week_start_sunday">Dimanche</string>
     <string name="settings_show_week_numbers">Afficher les numéros de semaine</string>
+    <string name="settings_language">Langue de l\'application</string>
+    <string name="settings_language_sub">Ouvre l\'écran Android de langue de cette application. Agenda Tech suit la langue de votre téléphone tant que vous n\'en choisissez pas une.</string>
     <string name="settings_section_events">Événements</string>
     <string name="settings_default_color">Couleur d\'événement par défaut</string>
     <string name="settings_default_duration">Durée par défaut</string>
@@ -327,6 +331,8 @@
 
     <!-- URL de la politique de confidentialité, localisée : voir values/strings.xml. -->
     <string name="about_privacy_policy_url">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/PRIVACY.fr.md</string>
+    <string name="about_terms">Conditions d\'utilisation</string>
+    <string name="about_terms_url">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/TERMS.fr.md</string>
     <!-- %1$d = minutes de report -->
     <string name="reminder_snooze">Répéter %1$d min</string>
     <!-- Proposition de restauration, sur un agenda vide (1er lancement / nouveau téléphone) -->
@@ -348,6 +354,7 @@
     <!-- Âge marqué par une occurrence d'anniversaire, par exemple « 42 ans ». -->
     <plurals name="birthday_age">
         <item quantity="one">%1$d an</item>
+        <item quantity="many">%1$d d’ans</item>
         <item quantity="other">%1$d ans</item>
     </plurals>
     <!-- Sauvegarde automatique -->

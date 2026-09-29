@@ -1,389 +1,378 @@
-# Sécurité — Agenda Tech
+# Security — Agenda Tech
 
-## Modèle de menace
+English · 🇫🇷 [Version française](SECURITY.fr.md)
 
-Agenda Tech est un agenda **local, hors-ligne**. Les données (événements, lieux, notes, rappels)
-ne quittent jamais l'appareil : aucune permission `INTERNET` n'est déclarée et aucune ne doit
-l'être. La surface d'attaque réseau est donc nulle par construction ; la protection porte sur les
-données **au repos** et sur l'**exposition à l'écran**.
+## Threat model
 
-## Chiffrement au repos
+Agenda Tech is a **local, offline** calendar. Its data (events, places, notes, reminders) never leaves
+the device: no `INTERNET` permission is declared, and none may be. The network attack surface is
+therefore zero by construction; protection is about data **at rest** and **exposure on screen**.
 
-- **SQLCipher** chiffre l'intégralité du fichier `agendatech.db` (AES-256).
-- La **passphrase SQLCipher** est une clé aléatoire de 32 octets, générée au premier lancement,
-  **enveloppée (AES-256-GCM) par une clé de l'AndroidKeyStore** (`agendatech_db_master`) —
-  matérielle (TEE/StrongBox) sur les appareils compatibles, non exportable. Le blob enveloppé est
-  stocké dans `filesDir/db/master.key`. Cf. `DatabaseKeyManager` / `KeystoreManager` / `AeadCipher`.
-- **Pas de KEK en clair.** La clé maître n'est jamais persistée en clair : sans la clé
-  AndroidKeyStore de l'appareil, le fichier `master.key` — et donc la base — est inexploitable.
-- **Résidence en mémoire (assumée).** SQLCipher relit la passphrase à **chaque** ouverture de
-  connexion de son pool : elle doit donc rester en mémoire tant que la base est ouverte. La copie
-  transmise à SQLCipher vit pour la durée de vie du processus ; celle détenue par l'app est
-  effacée (`wipe`) dès la construction terminée. C'est une contrainte de la bibliothèque, pas un
-  choix — un effacement plus précoce casserait les connexions suivantes.
-- **Robustesse** : la base n'est réinitialisée que si la clé est **prouvée perdue** — blob
-  `master.key` refusé par la clé Keystore toujours présente, ou alias absent sur Android 12 et plus
-  (`KEY_NOT_FOUND`). Tout autre échec (Keystore injoignable, erreur d'E/S, exception inconnue) laisse
-  la base intacte : un nouvel essai, puis refus d'ouvrir.
-- **Une clé n'est jamais créée en relisant** (correctif du 2026-09-15). Sur Android 8 à 11,
-  `KeyStore.getKey` renvoie aussi `null` quand le démon Keystore est momentanément injoignable (lu
-  dans le source AOSP). L'ancien code générait alors une nouvelle clé sous le même alias, ce qui
-  détruisait la vraie : l'agenda était réinitialisé comme « irrécupérable », ou le PIN ne pouvait plus
-  jamais être vérifié. Les trois relectures (clé de base, PIN, mot de passe de sauvegarde) passent
-  désormais par `KeystoreManager.loadExistingKey`. **Contrepartie assumée** : sur Android 8 à 11, une
-  clé réellement disparue laisse l'application sur l'écran d'échec de démarrage au lieu de repartir à
-  vide — ces données étaient de toute façon perdues.
+## Encryption at rest
 
-### Posture connue (assumée, à revisiter selon le besoin)
+- **SQLCipher** encrypts the whole `agendatech.db` file (AES-256).
+- The **SQLCipher passphrase** is a random 32-byte key generated on first run, **wrapped
+  (AES-256-GCM) by an AndroidKeyStore key** (`agendatech_db_master`) — hardware-backed (TEE/StrongBox)
+  on compatible devices, non-exportable. The wrapped blob is stored in `filesDir/db/master.key`. See
+  `DatabaseKeyManager` / `KeystoreManager` / `AeadCipher`.
+- **No plaintext KEK.** The master key is never persisted in clear: without the device's
+  AndroidKeyStore key, `master.key` — and therefore the database — is useless.
+- **Residence in memory (accepted).** SQLCipher re-reads the passphrase every time its pool opens a
+  connection, so it must stay in memory while the database is open. The copy handed to SQLCipher
+  lives for the process lifetime; the one the app holds is wiped as soon as construction is done.
+  This is a constraint of the library, not a choice — wiping earlier would break later connections.
+- **Robustness**: the database is only reset when the key is **proven lost** — the `master.key` blob
+  rejected by a Keystore key that is still present, or the alias absent on Android 12 and later
+  (`KEY_NOT_FOUND`). Any other failure (Keystore unreachable, I/O error, unknown exception) leaves the
+  database intact: one more attempt, then a refusal to open.
+- **A key is never created while reading** (fix of 2026-09-15). On Android 8 to 11,
+  `KeyStore.getKey` also returns `null` when the Keystore daemon is momentarily unreachable (read in
+  the AOSP source). The old code then generated a new key under the same alias, which destroyed the
+  real one: the agenda was reset as "unrecoverable", or the PIN could never be verified again. The
+  three reads (database key, PIN, backup password) now go through `KeystoreManager.loadExistingKey`.
+  **Accepted trade-off**: on Android 8 to 11, a key that is really gone leaves the app on the startup
+  failure screen instead of starting over empty — that data was lost anyway.
 
-La clé de base **n'est pas** protégée par authentification utilisateur
-(`setUserAuthenticationRequired = false`), à l'identique du socle SMS Tech : la protection au repos
-repose sur le verrou de l'appareil + l'AndroidKeyStore.
+### Known posture (accepted, to revisit if needed)
 
-## Verrou d'application (PIN / biométrie)
+The database key is **not** protected by user authentication (`setUserAuthenticationRequired =
+false`), exactly like the SMS Tech foundation: protection at rest relies on the device lock plus the
+AndroidKeyStore.
 
-Un **verrou optionnel** garde l'UI derrière un code PIN et/ou la biométrie (`AppLockManager`,
-`LockScreen`, `LockRepository`). Il est indépendant du chiffrement de la base (qui reste actif
-quoi qu'il arrive) : c'est un **gate UI**, il ne modifie pas la posture crypto de la clé DB.
+## App lock (PIN / biometrics)
 
-- **PIN jamais stocké.** Seul un hash **PBKDF2-HMAC-SHA256** (120 000 itérations, sel aléatoire de
-  16 o, clé de 256 bits) est conservé. La comparaison est à temps constant (`MessageDigest.isEqual`).
-- **Hash enveloppé (LOCK-1).** Le blob `sel || hash` est **chiffré AES-256-GCM sous une clé
-  AndroidKeyStore** (`agendatech_pin_wrap`) avant d'atterrir dans le fichier DataStore (non chiffré
-  par défaut) — même pattern que la clé DB. Un PIN a un keyspace minuscule : sans cet enveloppement,
-  un sel+hash en clair serait cassable hors-ligne en secondes. L'enveloppement bloque l'exfiltration
-  simple de fichier (une extraction root avec exécution de code reste hors périmètre).
-- **Anti-force-brute (LOCK-4).** Après 5 essais erronés, un back-off croissant (10 s, 20 s… plafonné
-  à 60 s) est imposé avant chaque nouvelle tentative. Le décompte vivant utilise l'horloge
-  **monotone** (`SystemClock.elapsedRealtime`), insensible au changement d'heure.
-- **Le compteur survit à la mort du processus (audit SEC-2, v0.5.2).** L'état était auparavant
-  purement en mémoire : un simple *force-stop* — aucun privilège requis — remettait le compteur à
-  zéro et rendait 5 tentatives fraîches à chaque relance, annulant l'escalade. Il est désormais
-  persisté (`LockThrottleStore`). Le plafond de 60 s garantit qu'un lock-out oublié ne peut pas
-  bloquer l'app. L'échéance persistée est en horloge murale, donc déplaçable par l'utilisateur —
-  elle est **bornée à un palier** au rechargement : avancer l'heure fait sauter au plus une
-  attente, jamais le compteur de tentatives.
-- **Une tentative = une opération atomique (audit S16 + SEC-2, v0.5.5).** Le back-off, la vérification
-  du PIN et l'enregistrement du résultat se déroulent **sous un même verrou**
-  (`AppLockManager.attemptPin`).
+An **optional lock** keeps the UI behind a PIN and/or biometrics (`AppLockManager`, `LockScreen`,
+`LockRepository`). It is independent of the database encryption (which stays active whatever
+happens): it is a **UI gate**, and does not change the cryptographic posture of the database key.
 
-  Auparavant la décision était coupée en deux par les ~100 ms de PBKDF2, verrou relâché : toute
-  tentative lancée dans cet intervalle lisait un back-off nul et obtenait son essai. Le compteur
-  restait juste, mais le back-off n'était appliqué à aucune d'elles — une rafale d'appuis obtenait
-  donc plusieurs essais par fenêtre de 60 s.
+- **The PIN is never stored.** Only a **PBKDF2-HMAC-SHA256** hash is kept (120,000 iterations, random
+  16-byte salt, 256-bit key). Comparison is constant-time (`MessageDigest.isEqual`).
+- **Wrapped hash (LOCK-1).** The `salt || hash` blob is **encrypted with AES-256-GCM under an
+  AndroidKeyStore key** (`agendatech_pin_wrap`) before it lands in the DataStore file (not encrypted
+  by default) — same pattern as the database key. A PIN has a tiny keyspace: without this wrapping, a
+  plaintext salt and hash could be cracked offline in seconds. The wrapping stops simple file
+  exfiltration (a root extraction with code execution remains out of scope).
+- **Anti brute-force (LOCK-4).** After 5 wrong attempts, an increasing back-off (10 s, 20 s… capped
+  at 60 s) is enforced before each new attempt. The live countdown uses the **monotonic** clock
+  (`SystemClock.elapsedRealtime`), immune to clock changes.
+- **The counter survives process death (audit SEC-2, v0.5.2).** The state used to live only in
+  memory: a simple *force-stop* — no privilege needed — reset the counter and handed out 5 fresh
+  attempts at every relaunch, cancelling the escalation. It is now persisted (`LockThrottleStore`).
+  The 60 s cap guarantees a forgotten lock-out cannot block the app. The persisted deadline uses the
+  wall clock, which the user can move — so it is **clamped to one step** on reload: moving the clock
+  forward skips at most one wait, never the attempt counter.
+- **One attempt = one atomic operation (audits S16 + SEC-2, v0.5.5).** The back-off, the PIN check and
+  recording the result happen **under a single lock** (`AppLockManager.attemptPin`).
 
-  ⚠️ Cela vaut désormais pour **les deux** écrans qui demandent un PIN : celui de verrouillage et
-  celui des **Réglages**. S16 n'avait corrigé que le premier, alors que cette phrase affirmait déjà la
-  parité — et le second est précisément l'écran depuis lequel le verrou peut être **désactivé**
-  (audit SEC-2).
-- **Réinitialisation des réglages : dite, jamais silencieuse (audit S15, v0.5.5).** Le fichier de
-  préférences porte `lock_enabled` et l'enveloppe du PIN. S'il devient illisible (coupure pendant une
-  écriture, secteur corrompu, ou un octet modifié par quiconque a un accès fichier ponctuel), il est
-  remplacé par des valeurs par défaut — et **le verrou d'application se retrouve désactivé**. Il n'est
-  pas restaurable : l'enveloppe du PIN est morte avec le fichier, et verrouiller sans rien à saisir
-  serait la seule issue pire. L'application **le signale explicitement au démarrage suivant**, pour
-  que personne ne continue à faire confiance à une protection qui n'est plus là.
-- **Ré-authentification (LOCK-6).** Désactiver le verrou ou changer le PIN exige d'abord la saisie
-  du PIN actuel.
-- **Biométrie : Classe 3 uniquement (audit F3, v0.5.3).** `BiometricPrompt` n'accepte plus que
-  `BIOMETRIC_STRONG`. `BIOMETRIC_WEAK` (Classe 2) est précisément le palier que la plateforme
-  interdit d'adosser à une clé Keystore, parce qu'il est usurpable par une photo sur beaucoup de
-  déverrouillages faciaux OEM ; le compromis UX antérieur (LOCK-9) est donc annulé. `DEVICE_CREDENTIAL`
-  reste exclu : il réadmettrait le même palier faible indirectement. Un appareil sans Classe 3
-  retombe sur le PIN, qui est throttlé, et le champ PIN est affiché en toutes circonstances — le
-  durcissement ne peut pas enfermer l'utilisateur hors de ses données. La politique est centralisée
-  dans `StrongBiometrics` : disponibilité et masque d'authentifieurs sont la même question, posée au
-  même endroit par le prompt, l'écran de verrouillage et le réglage.
-- **Liaison cryptographique (audit F3, v0.5.4).** Le déverrouillage n'est plus conditionné au seul
-  rappel `onAuthenticationSucceeded` — une affirmation faite par le processus de l'app, donc sans
-  valeur là où ce processus peut être manipulé. `BiometricPrompt` reçoit un `CryptoObject` adossé à
-  une clé AndroidKeyStore dédiée (`agendatech_biometric_gate`, cf. `BiometricGate`), créée avec
-  `setUserAuthenticationRequired(true)` **sans** fenêtre de validité : le TEE exige donc une
-  authentification Classe 3 pour **chaque** usage. L'UI ne s'ouvre que si l'opération cryptographique
-  aboutit réellement. Sur API 30+, le palier accepté est épinglé à `AUTH_BIOMETRIC_STRONG` — la
-  politique Classe 3 est alors imposée par l'OS, pas seulement par notre propre contrôle.
-- **Résiduel accepté (API 26-29).** `setUserAuthenticationParameters` n'existe qu'à partir d'API 30 :
-  sur les appareils antérieurs, la clé exige bien une authentification par usage, mais le palier
-  Classe 3 n'est pas épinglé dans le Keystore lui-même — il repose alors sur le seul
-  `setAllowedAuthenticators` de `BiometricPrompt`. Non vérifié sur un appareil réel API < 30.
-- **Ré-enrôlement.** La clé est créée avec `setInvalidatedByBiometricEnrollment(true)` : ajouter une
-  empreinte la détruit, ce qui est le comportement voulu (qui peut enrôler ne doit pas hériter du
-  déverrouillage). `KeyPermanentlyInvalidatedException` est rattrapée à l'initialisation du cipher,
-  la clé morte est supprimée, la préférence biométrique désactivée et l'utilisateur informé — puis
-  repli sur le PIN, jamais un bouton qui échoue en silence.
-- **Portée.** La biométrie garde l'**écran**. Elle ne dérive pas la clé de la base : celle-ci reste
-  enveloppée par sa propre clé AndroidKeyStore, indépendamment du verrou d'application.
-- **Résiduel accepté (LOCK-8).** Le PIN transite en `String` immuable dans l'état Compose avant
-  conversion en `CharArray` (wipé après hachage). Le scrubbing complet du chemin Compose serait
-  disproportionné (`OutlinedTextField` est nativement `String`-backed) ; l'exploitation exigerait un
-  dump mémoire d'un build release non-debuggable.
+  The decision used to be split in two by the ~100 ms of PBKDF2, with the lock released: any attempt
+  started in that window read a zero back-off and got its try. The counter stayed right, but the
+  back-off applied to none of them — a burst of taps therefore got several attempts per 60 s window.
 
-## Exposition à l'écran
+  ⚠️ This now holds for **both** screens that ask for a PIN: the lock screen and **Settings**. S16 had
+  only fixed the first, while this sentence already claimed parity — and the second is precisely the
+  screen from which the lock can be **turned off** (audit SEC-2).
+- **Settings reset: said, never silent (audit S15, v0.5.5).** The preferences file holds
+  `lock_enabled` and the wrapped PIN. If it becomes unreadable (power cut during a write, corrupt
+  sector, or a byte changed by anyone with one-off file access), it is replaced by defaults — and **the
+  app lock ends up turned off**. It cannot be restored: the wrapped PIN died with the file, and locking
+  with nothing to type would be the only worse outcome. The app **says so explicitly at the next
+  start**, so that nobody keeps trusting a protection that is no longer there.
+- **Re-authentication (LOCK-6).** Turning the lock off or changing the PIN first requires the current
+  PIN.
+- **Biometrics: Class 3 only (audit F3, v0.5.3).** `BiometricPrompt` only accepts `BIOMETRIC_STRONG`.
+  `BIOMETRIC_WEAK` (Class 2) is precisely the tier the platform forbids binding to a Keystore key,
+  because many OEM face unlocks can be fooled by a photo; the earlier UX compromise (LOCK-9) is
+  therefore withdrawn. `DEVICE_CREDENTIAL` stays excluded: it would readmit the same weak tier
+  indirectly. A device without Class 3 falls back to the PIN, which is throttled, and the PIN field is
+  shown in every case — the hardening cannot lock the user out of their data. The policy lives in one
+  place, `StrongBiometrics`: availability and the authenticator mask are the same question, asked in
+  the same place by the prompt, the lock screen and the setting.
+- **Cryptographic binding (audit F3, v0.5.4).** Unlocking no longer depends on the
+  `onAuthenticationSucceeded` callback alone — a claim made by the app's own process, and so
+  worthless wherever that process can be tampered with. `BiometricPrompt` receives a `CryptoObject`
+  backed by a dedicated AndroidKeyStore key (`agendatech_biometric_gate`, see `BiometricGate`),
+  created with `setUserAuthenticationRequired(true)` and **no** validity window: the TEE therefore
+  requires a Class 3 authentication for **every** use. The UI only opens if the cryptographic
+  operation actually succeeds. On API 30+, the accepted tier is pinned to `AUTH_BIOMETRIC_STRONG` —
+  the Class 3 policy is then enforced by the OS, not only by our own check.
+- **Accepted residual (API 26–29).** `setUserAuthenticationParameters` only exists from API 30: on
+  older devices, the key does require an authentication per use, but the Class 3 tier is not pinned in
+  the Keystore itself — it then rests on `BiometricPrompt`'s `setAllowedAuthenticators` alone. Not
+  verified on a real device below API 30.
+- **Re-enrolment.** The key is created with `setInvalidatedByBiometricEnrollment(true)`: adding a
+  fingerprint destroys it, which is the intended behaviour (whoever can enrol must not inherit the
+  unlock). `KeyPermanentlyInvalidatedException` is caught when the cipher is initialised, the dead key
+  is deleted, the biometric preference turned off and the user told — then the PIN takes over, never a
+  button that fails silently.
+- **Scope.** Biometrics guard the **screen**. They do not derive the database key: that key stays
+  wrapped by its own AndroidKeyStore key, independently of the app lock.
+- **Accepted residual (LOCK-8).** The PIN passes through an immutable `String` in the Compose state
+  before being converted to a `CharArray` (wiped after hashing). Scrubbing the whole Compose path would
+  be disproportionate (`OutlinedTextField` is natively `String`-backed); exploiting it would require a
+  memory dump of a non-debuggable release build.
 
-- `FLAG_SECURE` est posé par défaut sur l'`Activity` : pas d'aperçu dans les Récents, capture
-  d'écran bloquée. Un réglage « confidentialité » permet de l'assouplir, **mais** il est
-  **forcé actif** dans deux cas (LOCK-2) : tant que le verrou **garde effectivement l'écran**
-  (application verrouillée) et tant que son état n'est **pas encore résolu** au démarrage.
+## Exposure on screen
 
-  ⚠️ Une fois le PIN saisi, votre réglage « autoriser les captures » **reprend la main** : c'est le
-  comportement voulu, et ce n'était pas ce que ce paragraphe disait. Il annonçait « forcé actif tant
-  que le verrou est activé », ce qui se lit naturellement comme « tant que la fonction verrou est
-  activée dans les réglages » — un utilisateur pouvait donc croire ses captures bloquées alors
-  qu'elles ne l'étaient pas (audit S14).
+- `FLAG_SECURE` is set on the `Activity` by default: no preview in Recents, screenshots blocked. A
+  privacy setting relaxes it, **but** it is **forced on** in two cases (LOCK-2): while the lock
+  **actually guards the screen** (app locked), and while its state is **not yet resolved** at
+  startup.
 
-- **Passage en arrière-plan.** `FLAG_SECURE` est levé dès `onPause`, un cycle de vie **avant** le
-  re-verrouillage, et de nouveau à `onStop`. La raison est une course qui n'avait jamais été
-  mesurée : `Window.addFlags` n'atteint le gestionnaire de fenêtres qu'au traversal suivant, tandis
-  que l'instantané de tâche est capturé par le système autour de cette même transition. Lever le
-  drapeau plus tôt donne au traversal le temps d'arriver.
+  ⚠️ Once the PIN is entered, your "allow screenshots" setting **takes over again**: that is the
+  intended behaviour, and it is not what this paragraph used to say. It announced "forced on while the
+  lock is enabled", which naturally reads as "while the lock feature is enabled in Settings" — a user
+  could therefore believe their screenshots blocked when they were not (audit S14).
 
-- **Sélecteurs ouverts par l'application : pas de nouveau PIN (2026-09-15).** Règle de Patrice :
-  tant que l'utilisateur reste dans l'application, le PIN n'est pas redemandé. Un sélecteur de
-  fichier ou le sélecteur de sonnerie ouverts **par l'application** ne déclenchent donc plus le
-  re-verrouillage de `onStop` (`PickerRelockPolicy`, passage obligé `rememberAppResultLauncher`,
-  garanti par un test sur le source). Trois bornes : l'exemption ne vaut que si l'arrêt suit
-  l'ouverture de **3 s** au plus ; **l'écran éteint** verrouille aussitôt, qu'il s'éteigne pendant le
-  sélecteur ou qu'il le soit déjà au moment de l'arrêt ; un retour **plus de 3 min** après verrouille
-  quand même. `FLAG_SECURE` est levé comme avant.
+- **Going to the background.** `FLAG_SECURE` is raised as early as `onPause`, one lifecycle step
+  **before** the re-lock, and again at `onStop`. The reason is a race that had never been measured:
+  `Window.addFlags` only reaches the window manager at the next traversal, while the system captures
+  the task snapshot around that very transition. Raising the flag earlier gives the traversal time to
+  arrive.
 
-  Les **demandes de permission** n'ont aucune exemption : leur dialogue translucide met l'activité en
-  pause sans l'arrêter, elles ne verrouillaient donc déjà pas. Leur accorder une exemption ouvrait un
-  trou relevé en relecture externe (Gemini Pro) : demande de permission, Accueil dans les 3 s, et
-  l'application se rouvrait déverrouillée depuis les Récents.
+- **Pickers opened by the app: no new PIN (2026-09-15).** The maintainer's product rule: as long as
+  the user stays in the app, the PIN is not asked again. A file picker or the ringtone picker opened
+  **by the app** therefore no longer triggers the `onStop` re-lock (`PickerRelockPolicy`, through the
+  mandatory `rememberAppResultLauncher`, enforced by a test on the source). Three bounds: the exemption
+  only applies if the stop follows the launch within **3 s**; **turning the screen off** locks at once,
+  whether it goes off during the picker or is already off at the stop; coming back **more than
+  3 minutes** later locks anyway. `FLAG_SECURE` is raised as before.
 
-  Revenir dans l'application **par une notification, le widget ou l'icône** pendant qu'un sélecteur est
-  ouvert verrouille aussi : c'est entrer de l'extérieur (`onNewIntent`, relevé par l'audit pré-tag de
-  la v1.1.1 — l'activité `singleTask` reprenait sans nouvel `onStop`).
+  **Permission requests** get no exemption: their translucent dialog pauses the activity without
+  stopping it, so they already did not lock. Exempting them opened a hole found by an external review
+  (Gemini Pro): a permission request, Home within 3 s, and the app reopened unlocked from Recents.
 
-  ⚠️ **Limite connue, assumée par Patrice.** Une fois le sélecteur à l'écran, l'application ne voit plus
-  rien : un retour **par les Récents** ne transporte aucune intention, et ne se distingue pas du
-  sélecteur qui rend son résultat. Quelqu'un qui quitte le sélecteur et revient par les Récents
-  **écran allumé** retrouve l'agenda déverrouillé s'il le fait dans les 3 minutes. Aller dans une autre application (navigateur,
-  réglages système, carte), appuyer sur Accueil ou ouvrir une notification **verrouille toujours**.
-- **Le déverrouillage rend l'écran quitté.** L'écran de verrouillage **remplace** l'interface — rien
-  n'en est dessiné, touchable ni lu par l'accessibilité, ses dialogues compris — mais la navigation
-  et l'état des écrans sont conservés au-dessus du verrou (`LockedAppHost`). Auparavant, déverrouiller
-  ramenait sur le mois : une restauration en attente de son mot de passe disparaissait, une saisie
-  interrompue par un appel était perdue.
+  Coming back into the app **through a notification, the widget or the icon** while a picker is open
+  locks as well: that is entering from outside (`onNewIntent`, found by the pre-tag audit of v1.1.1 —
+  the `singleTask` activity resumed without a new `onStop`).
 
-  ⚠️ Ce paragraphe affirmait auparavant que l'aperçu Récents « ne peut jamais fuiter ». Une garantie
-  absolue posée sur une course non mesurée n'en est pas une (audit S5). Ce qui est vrai et vérifiable
-  aujourd'hui : le drapeau est levé au **premier** point du cycle de vie que l'application contrôle
-  après avoir quitté le premier plan, et le verrouillage, lui, est **synchrone** depuis F13 — il ne
-  dépend plus d'une lecture disque qui se terminait après la capture.
+  ⚠️ **Known limit, accepted by the maintainer.** Once the picker is on screen, the app sees nothing
+  more: coming back **through Recents** carries no intent, and cannot be told apart from the picker
+  returning its result. Someone who leaves the picker and comes back through Recents **with the screen
+  on** finds the agenda unlocked if they do so within 3 minutes. Going to another app (browser, system
+  settings, map), pressing Home or opening a notification **always locks**. So does leaving for
+  Android's per-app language screen from Settings: it is not a picker the app waits on.
+- **Unlocking returns the screen you left.** The lock screen **replaces** the interface — nothing of it
+  is drawn, touchable or read by accessibility services, its dialogs included — but the navigation and
+  the screens' state are kept above the lock (`LockedAppHost`). Unlocking used to return to the month
+  view: a restore waiting for its password vanished, an entry interrupted by a phone call was lost.
+  The same holds when a language change recreates the activity while the app is locked (measured on
+  API 34).
 
-### Widget écran d'accueil (limitation connue)
+  ⚠️ This paragraph used to claim that the Recents preview "can never leak". An absolute guarantee
+  resting on an unmeasured race is not one (audit S5). What is true and checkable today: the flag is
+  raised at the **first** lifecycle point the app controls after leaving the foreground, and locking
+  has been **synchronous** since F13 — it no longer depends on a disk read that finished after the
+  capture.
 
-Le widget optionnel affiche la date du jour et les **titres** des prochains événements
-directement sur l'écran d'accueil. C'est le comportement attendu d'un widget d'agenda (identique
-à Google Agenda), mais `FLAG_SECURE` **ne s'applique pas** aux widgets — leur contenu est rendu
-par le launcher, hors du contrôle de l'app.
+### Home-screen widget (known limitation)
 
-Deux garde-fous : le widget est **opt-in** (l'utilisateur choisit de le poser) ; un réglage
-« masquer les titres » n'affiche alors que l'heure. **Quand le verrou d'application est activé, les
-titres sont masqués d'office dans le widget (LOCK-3)** — activer le verrou ne laisse donc jamais de
-titre lisible sur l'écran d'accueil.
+The optional widget shows today's date and the **titles** of the next events directly on the home
+screen. That is what a calendar widget is expected to do (same as Google Calendar), but `FLAG_SECURE`
+**does not apply** to widgets — their content is rendered by the launcher, outside the app's control.
 
-### Notification de rappel et verrou d'application — asymétrie assumée (F9)
+Two safeguards: the widget is **opt-in** (the user chooses to place it); a "hide titles" setting then
+shows only the time. **When the app lock is on, titles are hidden in the widget whatever that setting
+says (LOCK-3)** — turning the lock on therefore never leaves a readable title on the home screen.
 
-Le verrou d'application masque les titres dans le **widget**, mais **pas** dans la **notification de
-rappel**, qui continue d'afficher le titre de l'événement. Les deux surfaces répondent donc
-différemment à un même réglage. C'est un **arbitrage produit**, pas un oubli : il est écrit ici pour
-qu'il cesse d'en être un.
+### Reminder notification and app lock — accepted asymmetry (F9)
 
-**Décision retenue : garder le comportement actuel.**
+The app lock hides titles in the **widget**, but **not** in the **reminder notification**, which keeps
+showing the event title. The two surfaces therefore respond differently to the same setting. This is
+a **product trade-off**, not an oversight: it is written here so that it stops being one.
 
-- Un rappel dont le titre est masqué ne dit plus ce qu'il rappelle. C'est la fonction principale du
-  produit, et la dégrader pour tous protégerait un scénario que les deux garde-fous ci-dessous
-  couvrent déjà.
-- L'écran de verrouillage de **l'appareil** est traité séparément et l'est correctement : la
-  visibilité des notifications y est restreinte, de sorte qu'un téléphone verrouillé posé sur une
-  table n'expose pas le titre.
-- Le widget et la notification ne sont pas des surfaces comparables. Le widget est **permanent** sur
-  l'écran d'accueil, visible de tous, sans action de personne ; la notification est **transitoire**,
-  déclenchée par un rappel que l'utilisateur a lui-même posé.
+**Decision: keep the current behaviour.**
 
-**Ce que cela implique, et qu'il faut savoir** : sur un téléphone **déverrouillé** confié à
-quelqu'un, un rappel qui survient affiche le titre de l'événement, même si le verrou d'application
-est activé. Quiconque a besoin d'une confidentialité plus forte que cela doit s'appuyer sur le verrou
-de l'appareil, pas sur celui de l'application.
+- A reminder whose title is hidden no longer says what it reminds you of. That is the product's main
+  function, and degrading it for everyone would protect a scenario the two safeguards below already
+  cover.
+- The **device's** lock screen is handled separately, and correctly: notification visibility is
+  restricted there, so a locked phone lying on a table does not expose the title.
+- The widget and the notification are not comparable surfaces. The widget is **permanent** on the
+  home screen, visible to anyone, without anyone doing anything; the notification is **transient**,
+  triggered by a reminder the user set themselves.
 
-À revisiter si un troisième cas d'usage vient s'ajouter — la bonne réponse serait alors probablement
-un réglage explicite, pas un masquage imposé.
+**What this implies, and what you should know**: on an **unlocked** phone handed to someone, a reminder
+that fires shows the event title, even with the app lock on. Anyone who needs stronger
+confidentiality than that must rely on the device lock, not on the app's.
 
-## Import du calendrier de l'appareil (READ_CALENDAR)
+To revisit if a third use case comes along — the right answer would then probably be an explicit
+setting, not an imposed masking.
 
-L'app peut copier ponctuellement les événements **déjà synchronisés localement** sur le téléphone
-(agenda Google, Exchange, calendriers locaux) via le Calendar Provider Android (`CalendarContract`).
-C'est la **seule** permission dangereuse de l'app, et elle **ne trahit pas** la doctrine zéro-réseau :
+## Device calendar import (READ_CALENDAR)
 
-- **Lecture seule, 100 % locale.** `READ_CALENDAR` uniquement — jamais `WRITE_CALENDAR` ni
-  `GET_ACCOUNTS`. Aucune connexion réseau, aucun accès au compte Google : Agenda Tech ne lit que ce
-  que le système a déjà stocké sur l'appareil. La synchro distante reste gérée par les apps système.
-- **Demandée à l'exécution, scoped à l'écran d'import** (`DeviceImportScreen`), jamais au démarrage.
-  Aucune requête `CalendarContract` avant octroi ; refus géré proprement (pas de crash, pas de boucle).
-- **Défenses sur le contenu tiers** (un calendrier partagé peut être piégé) : requêtes
-  ContentResolver **paramétrées** (pas de concat SQL), cursors fermés (`use{}`), plafond
-  `MAX_EVENTS` (20 000) et cap de longueur des champs, nettoyage **anti-Bidi** partagé avec l'import
-  `.ics` (`BidiSanitizer`), parsing RRULE/EXDATE/durée **tolérant** (retourne null plutôt que de
-  crasher, durée bornée anti-overflow). Import résilient : une erreur sur un calendrier est journalisée
-  et ignorée, jamais propagée. Écriture DB **atomique par lot** (`upsertAll` en transaction).
-- **Import idempotent (refresh sûr).** Chaque calendrier device est rattaché via un `source_id`
-  stable (réutilisé au ré-import, plus de calendrier dupliqué) et chaque événement via un `source_uid`
-  (`_sync_id`, repli `rowid`) : ré-importer met à jour les lignes en place et ajoute les nouveaux
-  événements au lieu de tout dupliquer. Ce n'est PAS une synchro bidirectionnelle : un événement
-  supprimé à la source n'est pas retiré (import additif). Réserve : un événement créé hors-ligne et
-  pas encore synchronisé côté serveur peut être ré-inséré une fois au premier passage `rowid → _sync_id`.
-  VALARM hors périmètre (comme l'import `.ics`).
+The app can copy, on demand, the events **already synced locally** onto the phone (Google Calendar,
+Exchange, local calendars) through the Android Calendar Provider (`CalendarContract`). It is the app's
+**only** dangerous permission, and it **does not break** the zero-network doctrine:
 
-## Contenu importé et expansion des récurrences
+- **Read-only, 100 % local.** `READ_CALENDAR` only — never `WRITE_CALENDAR` nor `GET_ACCOUNTS`. No
+  network connection, no access to the Google account: Agenda Tech only reads what the system has
+  already stored on the device. Remote sync stays with the system apps.
+- **Requested at runtime, scoped to the import screen** (`DeviceImportScreen`), never at startup. No
+  `CalendarContract` query before it is granted; a refusal is handled cleanly (no crash, no loop).
+- **Defences on third-party content** (a shared calendar can be booby-trapped): **parameterised**
+  ContentResolver queries (no SQL concatenation), cursors closed (`use{}`), a `MAX_EVENTS` cap
+  (20,000) and a field-length cap, **anti-Bidi** cleaning shared with the `.ics` import
+  (`BidiSanitizer`), **tolerant** RRULE/EXDATE/duration parsing (returns null rather than crashing,
+  duration bounded against overflow). A resilient import: an error on one calendar is logged and
+  skipped, never propagated. Database writes are **atomic per batch** (`upsertAll` in a transaction).
+- **Idempotent import (safe refresh).** Each device calendar is linked through a stable `source_id`
+  (reused on re-import, no duplicated calendar) and each event through a `source_uid` (`_sync_id`,
+  falling back to `rowid`): re-importing updates rows in place and adds new events instead of
+  duplicating everything. This is NOT a two-way sync: an event deleted at the source is not removed
+  (additive import). Caveat: an event created offline and not yet synced server-side may be inserted
+  again once, on the first `rowid → _sync_id` pass. VALARM is out of scope (as for the `.ics` import).
 
-Un `.ics`, un calendrier système **et une sauvegarde `.atbak`** sont tous du **contenu tiers** : ils
-sont traités comme hostiles, y compris une fois en base.
+## Imported content and recurrence expansion
 
-⚠️ Le `.atbak` manquait à cette liste, et le code suivait la liste (audit S7, v0.5.5). C'est pourtant
-le format qui porte **tout** l'agenda, et une sauvegarde arrive volontiers d'ailleurs — « voilà mon
-agenda partagé, mot de passe xxx ». Son fuseau était normalisé mais ses six champs de texte libre ne
-passaient par aucun nettoyage : un `U+202E` dans un titre inversait sa lecture dans la vue mois, la
-timeline, **le widget de l'écran d'accueil** et la notification de rappel. Le nettoyage anti-Bidi et
-le plafond de longueur s'y appliquent désormais comme aux deux autres.
+An `.ics`, a system calendar **and an `.atbak` backup** are all **third-party content**: they are
+treated as hostile, including once they are in the database.
 
-- **Plafond sur le NOMBRE d'événements (audit S12, v0.5.5).** Les plafonds d'import étaient tous en
-  **octets** — 5 Mio pour un `.ics`, 16 Mio pour un `.atbak` — ce qui borne la mémoire mais pas le
-  nombre de lignes écrites : 5 Mio de blocs `VEVENT` minimaux font environ 87 000 événements.
-  `ImportLimits.MAX_EVENTS` donne une réponse unique et partagée. Un **fichier** choisi par
-  l'utilisateur est refusé **en bloc** avec un message — en importer une partie ressemble exactement
-  à l'importer en entier — tandis que l'agenda **de l'appareil**, qui est un fournisseur vivant sans
-  fichier à rendre, reste tronqué.
+⚠️ The `.atbak` was missing from this list, and the code followed the list (audit S7, v0.5.5). Yet it
+is the format that carries the **whole** agenda, and a backup readily comes from elsewhere — "here is
+my shared agenda, password xxx". Its time zone was normalised, but its six free-text fields went
+through no cleaning: a `U+202E` in a title reversed its reading in the month view, the timeline, **the
+home-screen widget** and the reminder notification. The anti-Bidi cleaning and the length cap now
+apply to it as to the other two.
 
-  ✅ Cette troncature **est signalée à l'utilisateur** (audit SEC-6, livré). Le fait est *retourné*
-  par `DeviceCalendarRepositoryImpl.readEvents()` (`DeviceRead(rows, truncated)`) et non journalisé —
-  le journal serait inerte sur une version publiée (`NoOpReleaseTree`). `ImportDeviceEventsUseCase`
-  le propage jusqu'à `DeviceImportScreen`, qui affiche `device_import_truncated` (présente en FR et
-  en EN), distincte du message de succès et de celui d'échec partiel : une troncature n'est ni l'un
-  ni l'autre, et les confondre, c'est la taire.
+- **A cap on the NUMBER of events (audit S12, v0.5.5).** The import caps were all in **bytes** —
+  5 MiB for an `.ics`, 16 MiB for an `.atbak` — which bounds memory but not the number of rows written:
+  5 MiB of minimal `VEVENT` blocks make about 87,000 events. `ImportLimits.MAX_EVENTS` gives one
+  shared answer. A **file** chosen by the user is refused **as a whole** with a message — importing
+  part of it looks exactly like importing all of it — while the **device** calendar, a live provider
+  with no file to hand back, is truncated.
 
-  Le plafond s'applique par **import**, pas par calendrier (audit DR-9) : `ImportDeviceEventsUseCase`
-  tient **une seule allocation** (`var remaining = ImportLimits.MAX_EVENTS`) dépensée au fil des
-  calendriers sélectionnés. Sélectionner dix calendriers en une fois ne peut donc plus dépasser le
-  nombre annoncé — les calendriers laissés de côté faute d'allocation sont comptés comme *tronqués*,
-  jamais comme *en échec*, parce que rien n'a mal tourné.
+  ✅ That truncation **is reported to the user** (audit SEC-6, shipped). The fact is *returned* by
+  `DeviceCalendarRepositoryImpl.readEvents()` (`DeviceRead(rows, truncated)`), not logged — the log
+  would be inert on a published version (`NoOpReleaseTree`). `ImportDeviceEventsUseCase` carries it up
+  to `DeviceImportScreen`, which shows `device_import_truncated` (present in all five languages),
+  distinct from the success message and from the partial-failure one: a truncation is neither, and
+  conflating them would be hiding it.
 
-  > Ces deux paragraphes affirmaient l'inverse jusqu'au 2026-09-11 : ils décrivaient une troncature
-  > muette et un plafond par calendrier, tous deux corrigés depuis. C'est le même motif que la revue
-  > F-Droid du 26/08 avait relevé pour le mot de passe de sauvegarde — une surface de documentation
-  > qui se périme en silence — mais dans l'autre sens : le document décrivait l'application comme
-  > **moins** sûre qu'elle ne l'est. Relire ces quatre surfaces (ce fichier, les deux `PRIVACY`, le
-  > manifeste) à chaque fonction touchant au stockage, aux permissions ou au réseau.
+  The cap applies per **import**, not per calendar (audit DR-9): `ImportDeviceEventsUseCase` holds
+  **a single allowance** (`var remaining = ImportLimits.MAX_EVENTS`) spent across the selected
+  calendars. Selecting ten calendars at once can therefore no longer exceed the announced number —
+  calendars left out for lack of allowance are counted as *truncated*, never as *failed*, because
+  nothing went wrong.
 
-- **`INTERVAL` borné (audit F1/F5/F7, v0.5.3).** Un intervalle absurde faisait lever une
-  `DateTimeException` non rattrapée dans `RecurrenceExpander` : toutes les vues et le widget
-  plantaient à chaque rendu, en boucle dès le lancement, et l'événement fautif devenait inatteignable
-  — seule issue, effacer toutes les données. `RecurrenceRule.MAX_INTERVAL` est imposé dans `init` et
-  borné aux **cinq** points d'ingestion : import `.ics`, import device, **lecture depuis la base**,
-  **restauration `.atbak`** et éditeur. Les deux derniers sont indispensables : sans le bornage à la
-  lecture, une ligne déjà écrite par une version affectée déplacerait le crash au lieu de le corriger.
-- **Bornes de RRULE tolérantes (v0.5.4).** Un `COUNT` inférieur à 1, ou un `COUNT` et un `UNTIL`
-  simultanés, violent les invariants du modèle. Plutôt que de faire perdre à l'événement toute sa
-  récurrence, la borne fautive est écartée et `COUNT` l'emporte — même lecture par l'import `.ics` et
-  par l'import device.
-- **Budget d'expansion global (audit F8, v0.5.4).** Le plafond par événement ne dit rien du nombre
-  d'événements, et c'est exactement ce qu'un import contrôle. Un `ExpansionBudget` unique est partagé
-  par toute une passe de rendu : un agenda pathologique est **tronqué** (et journalisé), jamais
-  transformé en gel de l'interface.
+  > These two paragraphs said the opposite until 2026-09-11: they described a silent truncation and a
+  > per-calendar cap, both fixed since. It is the same pattern the F-Droid review of 26/08 had found
+  > for the backup password — a documentation surface that goes stale silently — but the other way
+  > round: the document described the app as **less** safe than it is. Re-read these surfaces (this
+  > file, `PRIVACY` and `TERMS` in all their languages, the manifest) with every feature that touches
+  > storage, permissions or the network.
 
-## Sauvegardes
+- **Bounded `INTERVAL` (audit F1/F5/F7, v0.5.3).** An absurd interval raised an uncaught
+  `DateTimeException` in `RecurrenceExpander`: every view and the widget crashed on every render, in a
+  loop from launch, and the faulty event became unreachable — the only way out was to erase all data.
+  `RecurrenceRule.MAX_INTERVAL` is enforced in `init` and bounded at the **five** ingestion points:
+  `.ics` import, device import, **reading from the database**, **`.atbak` restore** and the editor.
+  The last two are essential: without bounding on read, a row already written by an affected version
+  would move the crash instead of fixing it.
+- **Tolerant RRULE bounds (v0.5.4).** A `COUNT` below 1, or `COUNT` and `UNTIL` together, break the
+  model's invariants. Rather than make the event lose its whole recurrence, the faulty bound is
+  dropped and `COUNT` wins — the same reading in the `.ics` import and in the device import.
+- **Global expansion budget (audit F8, v0.5.4).** The per-event cap says nothing about the number of
+  events, and that is exactly what an import controls. A single `ExpansionBudget` is shared by a whole
+  rendering pass: a pathological agenda is **truncated** (and logged), never turned into a frozen UI.
 
-- `allowBackup="false"` + règles d'exclusion (`data_extraction_rules.xml`, `backup_rules.xml`) :
-  ni backup cloud ni transfert d'appareil. La clé enveloppée étant liée à l'AndroidKeyStore local,
-  l'exporter serait inutile et inutilement exposant.
+## Backups
 
-### Sauvegarde chiffrée `.atbak` (export manuel)
+- `allowBackup="false"` plus exclusion rules (`data_extraction_rules.xml`, `backup_rules.xml`): no
+  cloud backup and no device-to-device transfer. The wrapped key being bound to the local
+  AndroidKeyStore, exporting it would be useless and needlessly exposing.
 
-Comme la clé de la base est liée à l'appareil, une copie exploitable ailleurs doit être chiffrée
-par un secret que l'utilisateur connaît — d'où un mot de passe, et non la clé du KeyStore.
+### Encrypted `.atbak` backup (manual export)
+
+Since the database key is bound to the device, a copy usable elsewhere must be encrypted by a secret
+the user knows — hence a password, not the KeyStore key.
 
 ```
-[magic:5 "ATBAK"][envVersion:1][kdfId:1][iterations:4 BE][saltLen:1][salt:16]   ← en-tête (28 o)
-[AeadCipher : version:1 | iv:12 | ciphertext+tag]                              ← corps
+[magic:5 "ATBAK"][envVersion:1][kdfId:1][iterations:4 BE][saltLen:1][salt:16]   ← header (28 B)
+[AeadCipher: version:1 | iv:12 | ciphertext+tag]                                ← body
 ```
 
-- **KDF** : PBKDF2-HMAC-SHA256, **600 000 itérations** (plancher OWASP), sel aléatoire de 16 octets,
-  clé de 256 bits. Mot de passe **12 caractères minimum**. Pour un export **manuel**, il n'est stocké
-  nulle part : un mot de passe oublié rend le fichier définitivement illisible — c'est le prix du
-  chiffrement hors ligne. La **sauvegarde automatique** est la seule exception, et elle est
-  documentée ci-dessous : elle ne peut pas demander le mot de passe chaque semaine, donc elle le
-  conserve.
-- **Chiffrement** : AES-256-GCM via `AeadCipher` (le même primitif que la clé de base).
-- **En-tête authentifié (AAD)** : l'en-tête n'est pas secret mais il est **authentifié**. Réécrire le
-  sel, ou abaisser `iterations` à une valeur bon marché pour rendre une attaque hors ligne triviale,
-  casse le tag GCM et le fichier refuse de s'ouvrir. À la lecture, `iterations` hors de
-  `[100 000, 10 000 000]` est refusé avant tout calcul (déni de service par fichier hostile).
-- **Évolutivité** : `kdfId` et le coût sont écrits explicitement, pas implicites — passer à Argon2id
-  plus tard n'invalidera pas les fichiers déjà écrits. Une sauvegarde doit encore s'ouvrir dans des
-  années, c'est sa seule raison d'être.
-- **Restauration atomique** : le fichier est intégralement déchiffré et validé **avant** toute
-  écriture, puis l'agenda est remplacé en une transaction. Un fichier tronqué, falsifié ou protégé
-  par un autre mot de passe laisse l'agenda existant intact.
-- **Résiduel accepté (identique à LOCK-8).** Le mot de passe de sauvegarde transite lui aussi en
-  `String` immuable dans l'état Compose avant conversion en `CharArray` (wipé après dérivation, sur
-  tous les chemins — y compris annulation et échec). Même raison, même arbitrage :
-  `OutlinedTextField` est nativement `String`-backed, et l'exploitation exigerait un dump mémoire
-  d'un build release non-debuggable.
-- **Validation avant écriture.** Le fichier est refusé en bloc (jamais partiellement appliqué) s'il
-  porte un id ≤ 0 (Room renumérote silencieusement un id 0 sur une clé `autoGenerate`, ce qui ferait
-  pendre toutes les références), un id dupliqué, un événement rattaché à un calendrier absent, ou un
-  override pointant vers un parent absent (aucune FK ne couvre `recurrence_parent_id`).
-- Un mauvais mot de passe et un fichier corrompu sont **indistinguables** (tous deux = tag GCM
-  invalide) : l'UI dit « mot de passe incorrect **ou** fichier endommagé », sans confirmer lequel.
+- **KDF**: PBKDF2-HMAC-SHA256, **600,000 iterations** (the OWASP floor), random 16-byte salt, 256-bit
+  key. Password **12 characters minimum**. For a **manual** export it is stored nowhere: a forgotten
+  password makes the file permanently unreadable — the price of offline encryption. The **automatic
+  backup** is the only exception, documented below: it cannot ask for the password every week, so it
+  keeps it.
+- **Encryption**: AES-256-GCM through `AeadCipher` (the same primitive as the database key).
+- **Authenticated header (AAD)**: the header is not secret but it is **authenticated**. Rewriting the
+  salt, or lowering `iterations` to a cheap value to make an offline attack trivial, breaks the GCM tag
+  and the file refuses to open. On read, `iterations` outside `[100,000, 10,000,000]` is refused before
+  any computation (denial of service by a hostile file).
+- **Upgradability**: `kdfId` and the cost are written explicitly, not implied — moving to Argon2id
+  later will not invalidate files already written. A backup must still open years from now; that is
+  its only reason to exist.
+- **Atomic restore**: the file is fully decrypted and validated **before** any write, then the agenda
+  is replaced in one transaction. A truncated, tampered-with, or differently-passworded file leaves
+  the existing agenda intact.
+- **Accepted residual (same as LOCK-8).** The backup password also passes through an immutable
+  `String` in the Compose state before being converted to a `CharArray` (wiped after derivation, on
+  every path — cancellation and failure included). Same reason, same trade-off: `OutlinedTextField` is
+  natively `String`-backed, and exploiting it would require a memory dump of a non-debuggable release
+  build.
+- **Validation before writing.** The file is refused as a whole (never partly applied) if it carries
+  an id ≤ 0 (Room silently renumbers an id 0 on an `autoGenerate` key, which would leave every
+  reference dangling), a duplicated id, an event attached to a missing calendar, or an override
+  pointing at a missing parent (no FK covers `recurrence_parent_id`).
+- A wrong password and a corrupted file are **indistinguishable** (both = invalid GCM tag): the UI
+  says "wrong password **or** damaged file", without confirming which.
 
-### Sauvegarde automatique (hebdomadaire) — le mot de passe est conservé
+### Automatic backup (weekly) — the password is kept
 
-C'est le **seul** endroit de l'application où un secret utilisateur est stocké de façon réversible.
-La contrepartie est explicite, et c'est l'utilisateur qui la choisit en activant l'option.
+This is the **only** place in the app where a user secret is stored reversibly. The trade-off is
+explicit, and the user chooses it by turning the option on.
 
-- **Ce que ça coûte.** Le mot de passe existe désormais sur l'appareil, là où il n'existait que dans
-  la tête de l'utilisateur. Quiconque compromet complètement l'appareil **en fonctionnement** peut
-  faire déchiffrer ce mot de passe par l'application.
-- **Ce que ça achète.** Le fichier reste ouvrable à la main, sur n'importe quelle machine, avec ce
-  mot de passe. Une clé qui ne quitterait jamais ce téléphone produirait des sauvegardes qui meurent
-  avec lui — or une sauvegarde existe précisément pour le jour où le téléphone n'est plus là.
-- **Ce que l'enveloppe protège quand même.** Le mot de passe est chiffré en AES-256-GCM par une clé
-  **AndroidKeyStore dédiée** (`agendatech_autobackup_pw`), non exportable, adossée au TEE sur les
-  appareils compatibles, avant d'atterrir en Base64 dans le DataStore. Le **vol du fichier** — copie
-  du DataStore, exploit de lecture de fichier, sauvegarde adb — ne suffit donc pas : la clé ne quitte
-  pas l'appareil.
-- **Alias distinct de celui du PIN**, délibérément : désactiver le verrou d'application supprime
-  `agendatech_pin_wrap`, et cela ne doit pas emporter le mot de passe de sauvegarde avec lui. Ce sont
-  deux décisions indépendantes de l'utilisateur.
-- **Désactiver l'option efface le mot de passe** et supprime la clé Keystore qui l'enveloppait. Sans
-  cette suppression, le blob resterait déchiffrable par quiconque restaurerait plus tard le fichier
-  DataStore sur ce même appareil.
-- **Jamais de `String`.** Le mot de passe passe du champ de saisie au Keystore en `CharArray` puis en
-  `ByteArray`, tous deux wipés ; un `String` resterait dans le tas jusqu'au bon vouloir du GC, sans
-  moyen de l'effacer. (Le résiduel LOCK-8 du champ Compose reste identique à celui de l'export.)
-- **Aucune permission de stockage.** L'écriture passe par le Storage Access Framework : l'accès de
-  l'application se limite au dossier que l'utilisateur a désigné dans le sélecteur système, pour la
-  durée où il maintient l'autorisation. Chaque exécution revérifie cette autorisation au lieu de la
-  supposer acquise, et signale son absence dans l'écran Sauvegarde.
-- **La rotation ne peut atteindre que les fichiers écrits par cette fonction.** Elle ne supprime que
-  les noms `agenda-tech-auto-<date>.atbak`, jamais un export manuel `agenda-tech-<date>.atbak` ni
-  quoi que ce soit d'autre dans le dossier — l'utilisateur est censé viser un dossier qu'il utilise
-  déjà. C'est la règle la plus dangereuse de la fonction, donc elle vit dans le domaine et elle est
-  testée séparément.
-- **Limite connue — « Forcer l'arrêt » suspend la planification.** Android bloque les tâches en
-  attente d'une application que l'utilisateur a forcée à s'arrêter (ou que le constructeur a mise
-  en veille agressive), jusqu'à la prochaine ouverture de l'app. Le réglage reste sur « activé »,
-  l'écran affiche la dernière exécution connue, et **plus rien ne s'exécute**. L'application ne
-  peut pas le détecter depuis l'intérieur : elle ne tourne pas. L'alerte « votre agenda a changé
-  depuis votre dernière sauvegarde » reste le filet, puisque la date de dernière sauvegarde, elle,
-  ne bouge plus.
-- **Un échec ne peut pas se faire passer pour un succès.** Le résultat de chaque exécution est
-  enregistré et affiché ; seule une exécution qui a réellement produit un fichier déplace la date de
-  « dernière sauvegarde », donc l'alerte « votre agenda a changé depuis votre dernière sauvegarde »
-  reste armée tant que rien n'a été écrit.
+- **What it costs.** The password now exists on the device, where it used to exist only in the user's
+  head. Anyone who fully compromises the device **while it runs** can make the app decrypt that
+  password.
+- **What it buys.** The file stays openable by hand, on any machine, with that password. A key that
+  never left this phone would produce backups that die with it — and a backup exists precisely for
+  the day the phone is gone.
+- **What the wrapping still protects.** The password is encrypted with AES-256-GCM by a **dedicated
+  AndroidKeyStore key** (`agendatech_autobackup_pw`), non-exportable, TEE-backed on compatible
+  devices, before it lands in Base64 in the DataStore. **Stealing the file** — a copy of the
+  DataStore, a file-read exploit, an adb backup — is therefore not enough: the key does not leave the
+  device.
+- **An alias distinct from the PIN's**, on purpose: turning the app lock off deletes
+  `agendatech_pin_wrap`, and that must not take the backup password with it. They are two independent
+  user decisions.
+- **Turning the option off erases the password** and deletes the Keystore key that wrapped it.
+  Without that deletion, the blob would stay decryptable by anyone who later restored the DataStore
+  file on this same device.
+- **Never a `String`.** The password goes from the input field to the Keystore as a `CharArray` then a
+  `ByteArray`, both wiped; a `String` would stay on the heap at the GC's discretion, with no way to
+  erase it. (The LOCK-8 residual of the Compose field is the same as for the export.)
+- **No storage permission.** Writing goes through the Storage Access Framework: the app's access is
+  limited to the folder the user picked in the system picker, for as long as they keep the grant.
+  Every run re-checks that grant instead of assuming it, and reports its absence on the Backup
+  screen.
+- **Rotation can only reach files written by this feature.** It only deletes names of the form
+  `agenda-tech-auto-<date>.atbak`, never a manual export `agenda-tech-<date>.atbak` nor anything else
+  in the folder — the user is expected to point at a folder they already use. It is the feature's most
+  dangerous rule, so it lives in the domain layer and is tested on its own.
+- **Known limit — "Force stop" suspends the schedule.** Android blocks the pending jobs of an app the
+  user force-stopped (or that the manufacturer put into aggressive standby), until the app is next
+  opened. The setting stays "on", the screen shows the last known run, and **nothing runs any more**.
+  The app cannot detect it from inside: it is not running. The "your agenda has changed since your
+  last backup" warning remains the safety net, since the last-backup date no longer moves.
+- **A failure cannot pass for a success.** The result of every run is recorded and shown; only a run
+  that actually produced a file moves the "last backup" date, so the "your agenda has changed since
+  your last backup" warning stays armed as long as nothing was written.
 
-## Signalement
+## Supported versions
 
-Vulnérabilité ? Contact : voir les mentions du dépôt Files Tech. Merci de ne pas divulguer
-publiquement avant correctif.
+Only the **latest published release** receives security fixes: an app without network access does
+not update itself, and a fix only ships in a new version.
+
+## Reporting a vulnerability
+
+Think you have found a vulnerability? **Please do not open a public issue.** Two channels, either
+one:
+
+- **GitHub private reporting**: the repository's *Security* tab, then *Report a vulnerability*
+  (https://github.com/gitubpatrice/AGENDA-TECH/security/advisories/new);
+- **email**: **contact@files-tech.com**, subject `[SECURITY] Agenda Tech — <summary>`.
+
+Please allow 90 days before any public disclosure of an unfixed issue.
