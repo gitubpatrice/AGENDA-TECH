@@ -3,6 +3,47 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [Unreleased]
+
+### Added
+
+- **German, Italian and Spanish**, alongside English and French: every screen, notification and
+  widget, the F-Droid listing, the privacy policy and the new terms of use. Machine-assisted and not
+  yet reviewed by a native speaker — corrections welcome, see `TRANSLATING.md`.
+- **Language entry in Settings** (Android 13 and later): it opens Android's per-app language screen.
+  Below Android 13 the app follows the phone's language, as before.
+- **Terms of use** (`TERMS.md`), linked from About. For them and for the privacy policy, the French
+  version prevails; the policy now names its publisher and a contact address.
+
+### Fixed
+
+- **The first calendar kept the language the app was first opened in.** "Perso" stayed "Perso" on a
+  German screen, because the name was written once at first run. It is now shown in the current
+  language, on existing installs too, as long as it still has its original name. A calendar you named
+  yourself, or one imported from the phone, is never renamed.
+- **The French plurals lacked their `many` form** (exact millions: *1 000 000 d'événements*).
+- **The F-Droid listing claimed "Argon2-grade PBKDF2".** Backups use PBKDF2-HMAC-SHA256 at 600,000
+  iterations, which is not Argon2; the claim is withdrawn.
+
+### Français
+
+- **Allemand, italien et espagnol**, en plus de l'anglais et du français : tous les écrans, les
+  notifications et le widget, la fiche F-Droid, la politique de confidentialité et les nouvelles
+  conditions d'utilisation. Traductions assistées par machine, pas encore relues par un locuteur
+  natif — corrections bienvenues, voir `TRANSLATING.md`.
+- **Entrée « Langue de l'application » dans les réglages** (Android 13 et plus) : elle ouvre l'écran
+  Android de langue par application. Sous Android 13, l'application suit la langue du téléphone.
+- **Conditions d'utilisation** (`TERMS.fr.md`), accessibles depuis « À propos ». Pour elles comme pour
+  la politique de confidentialité, la version française fait foi ; la politique nomme désormais son
+  éditeur et une adresse de contact.
+- **Le premier calendrier gardait la langue du premier lancement** : « Perso » restait « Perso » sur
+  un écran allemand. Il s'affiche désormais dans la langue courante, installations existantes
+  comprises, tant qu'il porte son nom d'origine. Un calendrier que vous avez nommé, ou importé du
+  téléphone, n'est jamais renommé.
+- **Les pluriels français n'avaient pas leur forme `many`** (millions exacts).
+- **La fiche F-Droid annonçait « Argon2-grade PBKDF2 ».** Les sauvegardes utilisent
+  PBKDF2-HMAC-SHA256 à 600 000 itérations, qui n'est pas Argon2 ; la mention est retirée.
+
 ## [1.1.1] — 2026-09-15
 
 Two fixes that matter to anyone on 1.1.0. One was found by testing on a phone, the other by an
