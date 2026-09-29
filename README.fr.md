@@ -44,7 +44,7 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
 - **Sauvegarde automatique** (facultative) : le même `.atbak` chiffré, écrit tout seul une fois par
   semaine dans un dossier que vous choisissez, les quatre plus récents conservés. C'est le seul
   endroit où l'app conserve un mot de passe — enveloppé par l'AndroidKeyStore, effacé si vous
-  désactivez l'option ; l'arbitrage est expliqué dans [SECURITY.md](SECURITY.md).
+  désactivez l'option ; l'arbitrage est expliqué dans [SECURITY.fr.md](SECURITY.fr.md).
 - **Import / export `.ics`** (RFC 5545) via le sélecteur de fichiers système — format d'échange,
   qui ne remplace pas la sauvegarde (il perd rappels, couleurs et structure des calendriers).
 - **Import depuis le calendrier de l'appareil** (Google, Exchange, calendriers locaux) en
@@ -61,11 +61,11 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
 - **Chiffré au repos.** Base Room adossée à **SQLCipher** (AES-256) ; clé maître enveloppée par
   l'**AndroidKeyStore** (matériel/TEE sur les appareils compatibles).
 - **Sauvegardes chiffrées de bout en bout.** Le fichier `.atbak` est chiffré par votre mot de passe
-  seul : il reste illisible même posé sur un cloud. Format documenté dans [SECURITY.md](SECURITY.md).
+  seul : il reste illisible même posé sur un cloud. Format documenté dans [SECURITY.fr.md](SECURITY.fr.md).
 - **Confidentialité à l'écran.** `FLAG_SECURE` (pas d'aperçu dans les Récents, capture d'écran
   bloquée), sauvegardes cloud exclues (`allowBackup=false`).
 
-Détails : [SECURITY.md](SECURITY.md) · [PRIVACY.fr.md](PRIVACY.fr.md).
+Détails : [SECURITY.fr.md](SECURITY.fr.md) · [PRIVACY.fr.md](PRIVACY.fr.md).
 
 ## Stack technique
 
@@ -110,8 +110,8 @@ de debug n'en a pas besoin.
 `version.properties`, à la racine, est la **source unique** de `versionCode` / `versionName` :
 
 ```properties
-versionCode=55
-versionName=1.0.3
+versionCode=NN        # valeurs actuelles : voir le fichier
+versionName=X.Y.Z
 ```
 
 Le `versionCode` doit **toujours augmenter** : Android refuse d'installer un APK dont le
@@ -123,10 +123,10 @@ portant une version silencieusement fausse.
 
 ## Sécurité & vie privée
 
-- Modèle de menace, chiffrement, verrou : [SECURITY.md](SECURITY.md).
+- Modèle de menace, chiffrement, verrou : [SECURITY.fr.md](SECURITY.fr.md).
 - Politique de confidentialité (permissions, données, contact) : [PRIVACY.fr.md](PRIVACY.fr.md).
 - Conditions d'utilisation : [TERMS.fr.md](TERMS.fr.md). Pour ces deux documents, la version française fait foi.
-- Signalement de vulnérabilité : voir [SECURITY.md](SECURITY.md#signalement).
+- Signalement de vulnérabilité : voir [SECURITY.fr.md](SECURITY.fr.md#signalement).
 
 ## Licence
 

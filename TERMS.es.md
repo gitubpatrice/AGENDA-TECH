@@ -1,6 +1,6 @@
 # Condiciones de uso — Agenda Tech
 
-_Traducción (del inglés) de la versión del 29 de septiembre de 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md)
+_Traducción de la versión del 29 de septiembre de 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md)
 
 > Esta traducción la ha realizado el desarrollador con ayuda de herramientas automáticas y todavía
 > no la ha revisado un hablante nativo. **En caso de discrepancia, prevalece la

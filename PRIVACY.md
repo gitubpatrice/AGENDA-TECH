@@ -1,6 +1,6 @@
 # Privacy Policy — Agenda Tech
 
-_Last updated: 26 August 2026 — version 1.0.3_ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
+_Last updated: 29 September 2026_ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
 
 > This is a translation. **In case of discrepancy, the [French version](PRIVACY.fr.md) prevails**:
 > the publisher is based in France and the French text is the one he writes and answers for.

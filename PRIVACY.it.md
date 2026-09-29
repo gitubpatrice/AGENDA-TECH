@@ -1,6 +1,6 @@
 # Informativa sulla privacy — Agenda Tech
 
-_Traduzione della versione inglese del 26 agosto 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇪🇸 [Español](PRIVACY.es.md)
+_Traduzione della versione del 29 settembre 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇪🇸 [Español](PRIVACY.es.md)
 
 > Questa traduzione è stata prodotta dallo sviluppatore con l'aiuto di strumenti automatici e non è
 > ancora stata rivista da un madrelingua. **In caso di discordanza prevale la

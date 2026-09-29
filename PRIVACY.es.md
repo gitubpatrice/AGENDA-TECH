@@ -1,6 +1,6 @@
 # Política de privacidad — Agenda Tech
 
-_Traducción de la versión inglesa del 26 de agosto de 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md)
+_Traducción de la versión del 29 de septiembre de 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md)
 
 > Esta traducción la ha realizado el desarrollador con ayuda de herramientas automáticas y todavía
 > no la ha revisado un hablante nativo. **En caso de discrepancia, prevalece la

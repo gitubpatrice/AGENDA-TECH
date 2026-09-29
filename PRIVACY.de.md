@@ -1,6 +1,6 @@
 # Datenschutzerklärung — Agenda Tech
 
-_Übersetzung der englischen Fassung vom 26. August 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
+_Übersetzung der Fassung vom 29. September 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
 
 > Diese Übersetzung wurde vom Entwickler maschinengestützt erstellt und noch nicht von einer
 > Muttersprachlerin oder einem Muttersprachler geprüft. **Bei Abweichungen gilt die
