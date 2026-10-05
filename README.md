@@ -23,7 +23,8 @@ The APK is **universal** (works on every device, no variant to pick) and **signe
 
 ## Features
 
-- **Views**: Month (smooth swipe between months), Week, Day and Agenda (list).
+- **Views**: Month (smooth swipe between months; dots, titles in the grid or one row per day, pinch
+  to switch), Week, Day and Agenda (list).
 - **Events**: create/edit, all-day, description, per-event colour.
 - **Place**: label, postal address (street, postcode, city) and GPS coordinates — one tap opens the
   point in your maps app (with no location permission at all).

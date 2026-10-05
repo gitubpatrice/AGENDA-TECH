@@ -62,6 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -80,6 +81,7 @@ import com.filestech.agenda_tech.ui.util.ReminderNotificationsBlockedNotice
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import com.filestech.agenda_tech.ui.util.rememberReminderNotifications
 import com.filestech.agenda_tech.ui.util.displayName
+import com.filestech.agenda_tech.ui.util.reminderLabel
 import timber.log.Timber
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -711,7 +713,7 @@ private fun AdvancedRecurrenceSection(
     ) {
         // Interval — "every N days/weeks/months/years".
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.recurrence_every))
+            Text(stringResource(intervalPrefixRes(freq)))
             OutlinedTextField(
                 value = interval.toString(),
                 onValueChange = { it.trim().toIntOrNull()?.let(onIntervalChange) },
@@ -719,7 +721,7 @@ private fun AdvancedRecurrenceSection(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.width(88.dp),
             )
-            Text(intervalUnitLabel(context, freq))
+            Text(intervalUnitLabel(context, freq, interval))
         }
 
         // Weekly BYDAY chips.
@@ -756,7 +758,7 @@ private fun AdvancedRecurrenceSection(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.width(88.dp),
             )
-            Text(stringResource(R.string.recurrence_occurrences))
+            Text(pluralStringResource(R.plurals.recurrence_occurrences, count))
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RadioButton(selected = end == RecurrenceEnd.ON_DATE, onClick = { onEndChange(RecurrenceEnd.ON_DATE) })
@@ -987,21 +989,24 @@ private val SAVE_BUTTON_HEIGHT = 36.dp
 /** Reminder presets, in minutes-before-start. */
 private val REMINDER_PRESETS = listOf(0, 5, 10, 15, 30, 60, 24 * 60)
 
-private fun reminderLabel(context: android.content.Context, minutes: Int): String = when {
-    minutes == 0 -> context.getString(R.string.reminder_at_time)
-    minutes % (24 * 60) == 0 -> context.getString(R.string.reminder_days, minutes / (24 * 60))
-    minutes % 60 == 0 -> context.getString(R.string.reminder_hours, minutes / 60)
-    else -> context.getString(R.string.reminder_minutes, minutes)
+/** The word before the interval field, per unit: French says « Toutes les » semaines but « Tous les » jours. */
+private fun intervalPrefixRes(freq: RecurrenceFreq): Int = when (freq) {
+    RecurrenceFreq.DAILY -> R.string.recurrence_every_days
+    RecurrenceFreq.WEEKLY -> R.string.recurrence_every_weeks
+    RecurrenceFreq.MONTHLY -> R.string.recurrence_every_months
+    RecurrenceFreq.YEARLY -> R.string.recurrence_every_years
 }
 
-private fun intervalUnitLabel(context: android.content.Context, freq: RecurrenceFreq): String =
-    context.getString(
+/** The unit after the interval field, agreeing with the number in it: "every 1 week", "every 2 weeks". */
+private fun intervalUnitLabel(context: android.content.Context, freq: RecurrenceFreq, interval: Int): String =
+    context.resources.getQuantityString(
         when (freq) {
-            RecurrenceFreq.DAILY -> R.string.recurrence_unit_days
-            RecurrenceFreq.WEEKLY -> R.string.recurrence_unit_weeks
-            RecurrenceFreq.MONTHLY -> R.string.recurrence_unit_months
-            RecurrenceFreq.YEARLY -> R.string.recurrence_unit_years
+            RecurrenceFreq.DAILY -> R.plurals.recurrence_unit_days
+            RecurrenceFreq.WEEKLY -> R.plurals.recurrence_unit_weeks
+            RecurrenceFreq.MONTHLY -> R.plurals.recurrence_unit_months
+            RecurrenceFreq.YEARLY -> R.plurals.recurrence_unit_years
         },
+        interval,
     )
 
 private fun weekdayNarrow(weekday: Weekday, locale: Locale): String =

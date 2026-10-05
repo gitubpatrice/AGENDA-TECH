@@ -24,7 +24,8 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
 
 ## Fonctionnalités
 
-- **Vues** Mois (changement de mois par glissement fluide), Semaine, Jour et Agenda (liste).
+- **Vues** Mois (changement de mois par glissement fluide ; points, titres dans la grille ou une
+  ligne par jour, au pincement), Semaine, Jour et Agenda (liste).
 - **Événements** : création/édition, journée entière, description, couleur par événement.
 - **Lieu** : libellé, adresse postale (adresse, code postal, ville) et coordonnées GPS — un appui
   ouvre le point dans votre application de cartes (sans aucune permission de localisation).

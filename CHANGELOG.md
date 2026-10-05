@@ -3,7 +3,10 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
-## [Unreleased]
+## [1.2.0] — 2026-10-05
+
+The month now shows what each day holds, the app speaks German, Italian and Spanish, and all-day
+events keep their own date wherever the phone is.
 
 ### Added
 
@@ -51,6 +54,8 @@ versions selon [SemVer](https://semver.org/lang/fr/).
   starting on Sunday — until the app was closed.
 - **An all-day reminder showed a clock time** (00:00, or another hour after a journey); it no longer
   does.
+- **Reminder and repeat labels read "day(s)"**: they now agree with their number in every language —
+  "1 day before", "every 2 weeks", "after 1 occurrence".
 - **Coming back to the month could show the next one.** After swiping to another month, a visit to
   Settings, the editor or search came back one month further — every time.
 - **At the largest text sizes, two-digit day numbers were cut** ("1" for the 12th), and so were
@@ -107,6 +112,8 @@ versions selon [SemVer](https://semver.org/lang/fr/).
   — un mois allemand commençant le dimanche — jusqu'à la fermeture de l'application.
 - **Le rappel d'une journée entière affichait une heure** (00:00, ou une autre après un voyage) ; ce
   n'est plus le cas.
+- **Les libellés de rappel et de répétition disaient « jour(s) »** : ils s'accordent désormais avec leur
+  nombre dans toutes les langues — « 1 jour avant », « 2 semaines », « 1 occurrence ».
 - **Allemand, italien et espagnol**, en plus de l'anglais et du français : tous les écrans, les
   notifications et le widget, la fiche F-Droid, la politique de confidentialité et les nouvelles
   conditions d'utilisation. Traductions assistées par machine, pas encore relues par un locuteur

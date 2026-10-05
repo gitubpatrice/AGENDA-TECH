@@ -1,0 +1,11 @@
+v1.2.0 — See what each day holds
+
+• The month three ways: dots, titles in the
+  grid, or one row per day. Pinch the month
+  to switch; tap a day to open it.
+• Now in German, Italian and Spanish.
+• All-day events keep their own date after
+  a change of time zone, everywhere.
+• An open app follows a new time zone or
+  language at once.
+• Main actions are filled blue buttons.

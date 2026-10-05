@@ -1,0 +1,14 @@
+v1.2.0 — Sehen, was jeder Tag enthält
+
+• Der Monat auf drei Arten: Punkte, Titel im
+  Raster oder eine Zeile pro Tag. Mit zwei
+  Fingern wechseln; einen Tag antippen, um
+  ihn zu öffnen.
+• Jetzt auf Deutsch, Italienisch und
+  Spanisch.
+• Ganztägige Termine behalten nach einem
+  Zeitzonenwechsel überall ihr Datum.
+• Die geöffnete App folgt sofort einer
+  neuen Zeitzone oder Sprache.
+• Hauptaktionen sind gefüllte blaue
+  Schaltflächen.
