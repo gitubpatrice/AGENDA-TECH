@@ -35,6 +35,11 @@ events keep their own date wherever the phone is.
 - **Swiping to the next month slides in a month already filled in**: the neighbouring months are
   read with the one shown.
 - **The splash logo has rounded corners**; the splash's circle clipped them.
+- **A busy month settles faster** in the titles view: the titles a full day cannot show are no longer
+  measured (an agenda of 16 events a day: worst frame 105–150 ms before, 61–69 ms after, on a Galaxy
+  S9).
+- Build: Android Gradle Plugin 9.4.1, Gradle 9.8.0, SQLCipher 4.19.1 (same database format; a 1.1.1
+  agenda opens in place).
 
 ### Fixed
 
@@ -88,6 +93,11 @@ events keep their own date wherever the phone is.
 - **Glisser au mois suivant fait arriver un mois déjà rempli** : les mois voisins sont lus avec celui
   qui est affiché.
 - **Le logo de démarrage a ses coins arrondis** ; le cercle de l'écran de démarrage les coupait.
+- **Un mois chargé s'affiche plus vite** en mode titres : les titres qu'une journée pleine ne peut pas
+  montrer ne sont plus mesurés (16 événements par jour : pire image de 105–150 ms à 61–69 ms sur un
+  Galaxy S9).
+- Chaîne de build : Android Gradle Plugin 9.4.1, Gradle 9.8.0, SQLCipher 4.19.1 (même format de base ;
+  un agenda 1.1.1 s'ouvre tel quel).
 - **Revenir au mois pouvait afficher le suivant.** Après un glissement vers un autre mois, un passage
   par les réglages, l'éditeur ou la recherche ramenait un mois plus loin — à chaque fois.
 - **Aux plus grandes tailles de texte, les numéros de jour à deux chiffres étaient coupés** (« 1 » pour
