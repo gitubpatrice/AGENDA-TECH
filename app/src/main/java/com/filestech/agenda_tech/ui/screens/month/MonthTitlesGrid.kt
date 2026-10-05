@@ -38,9 +38,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.birthday.displayTitle
+import com.filestech.agenda_tech.ui.util.LocalDeviceZone
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.WeekFields
@@ -148,7 +148,7 @@ private fun CellTitles(
 ) {
     if (events.isEmpty()) return
     val style = cellTitleStyle()
-    val zone = remember { ZoneId.systemDefault() }
+    val zone = LocalDeviceZone.current
     val timeFormatter = remember(locale) { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale) }
     val dayStart = remember(date, zone) { date.atStartOfDay(zone).toInstant().toEpochMilli() }
     BoxWithConstraints(modifier = modifier) {

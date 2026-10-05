@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.ui.screens.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.filestech.agenda_tech.core.time.DeviceZone
 import com.filestech.agenda_tech.domain.search.EventSearchHit
 import com.filestech.agenda_tech.domain.usecase.SearchEventsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,6 +16,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     searchEvents: SearchEventsUseCase,
+    deviceZone: DeviceZone,
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
@@ -28,7 +30,7 @@ class SearchViewModel @Inject constructor(
      * would only buy a window in which the query says "dentiste" while the results still say nothing,
      * i.e. a flash of "no results" on every keystroke.
      */
-    val hits: StateFlow<List<EventSearchHit>> = searchEvents(_query)
+    val hits: StateFlow<List<EventSearchHit>> = searchEvents(_query, deviceZone.zone)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
 
     fun onQueryChange(value: String) {

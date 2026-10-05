@@ -1,5 +1,7 @@
 package com.filestech.agenda_tech.domain.usecase
 
+import app.cash.turbine.test
+import com.filestech.agenda_tech.core.time.FarZones
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.Event
@@ -8,11 +10,13 @@ import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Weekday
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 
@@ -68,7 +72,7 @@ class SearchEventsUseCaseTest {
         events.forEach { eventRepo.rows[it.id] = it }
     }
 
-    private suspend fun search(query: String) = useCase(flowOf(query)) { now }.first()
+    private suspend fun search(query: String) = useCase(flowOf(query), flowOf(zone)) { now }.first()
 
     @Test
     fun `finds an accented title from an unaccented query`() = runTest {
@@ -231,6 +235,79 @@ class SearchEventsUseCaseTest {
         assertThat(search("medical")).hasSize(1)
         assertThat(search("MEDICAL")).hasSize(1)
         assertThat(search("dical")).hasSize(1)
+    }
+
+    // --- Journées entières créées dans un autre fuseau ------------------------
+
+    private fun allDayIn(zoneId: String, id: Long, title: String, first: LocalDate, recurrence: RecurrenceRule) =
+        ZoneId.of(zoneId).let { elsewhere ->
+            Event(
+                id = id,
+                calendarId = 1,
+                title = title,
+                startUtcMillis = first.atStartOfDay(elsewhere).toInstant().toEpochMilli(),
+                endUtcMillis = first.plusDays(1).atStartOfDay(elsewhere).toInstant().toEpochMilli(),
+                timeZoneId = elsewhere.id,
+                allDay = true,
+                recurrence = recurrence,
+            )
+        }
+
+    @Test
+    fun `an all-day series made in a zone ahead is dated to tomorrow, not the week after`() = runTest {
+        // Thursday 16 July begins at 12:00 on Wednesday in Paris in UTC+14. At 13:00 its stored start
+        // has passed, and search dated the bin day to the week after while the views showed tomorrow.
+        seed(
+            allDayIn(
+                FarZones.AHEAD, 10, "Poubelles", LocalDate.of(2026, 7, 2),
+                RecurrenceRule(freq = RecurrenceFreq.WEEKLY, byWeekdays = setOf(Weekday.THURSDAY)),
+            ),
+        )
+
+        val hit = useCase(flowOf("poubelles"), flowOf(zone)) { at(2026, 7, 15, 13) }.first().single()
+
+        assertThat(hit.isUpcoming).isTrue()
+        assertThat(hit.occurrenceStartUtcMillis)
+            .isEqualTo(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.of(FarZones.AHEAD)).toInstant().toEpochMilli())
+    }
+
+    @Test
+    fun `an all-day day already begun on the phone is not listed as to come`() = runTest {
+        // Wednesday 15 July begins at 13:00 in Paris in UTC−11. At noon its stored start is still ahead,
+        // and the last day of the series was listed as to come although the phone's day had begun.
+        val last = LocalDate.of(2026, 7, 15)
+        seed(
+            allDayIn(
+                FarZones.BEHIND, 10, "Stage", LocalDate.of(2026, 7, 1),
+                RecurrenceRule(freq = RecurrenceFreq.WEEKLY, byWeekdays = setOf(Weekday.WEDNESDAY), count = 3),
+            ),
+        )
+
+        val hit = useCase(flowOf("stage"), flowOf(zone)) { now }.first().single()
+
+        assertThat(hit.isUpcoming).isFalse()
+        assertThat(hit.occurrenceStartUtcMillis)
+            .isEqualTo(last.atStartOfDay(ZoneId.of(FarZones.BEHIND)).toInstant().toEpochMilli())
+    }
+
+    @Test
+    fun `an open search follows a change of time zone`() = runTest {
+        // Wednesday 15 July, all day, made in UTC−11. At noon in Paris its day has begun; once the phone is
+        // in UTC−11 it is still to come. The results must say so without waiting for the next keystroke.
+        seed(
+            allDayIn(
+                FarZones.BEHIND, 10, "Stage", LocalDate.of(2026, 7, 15),
+                RecurrenceRule(freq = RecurrenceFreq.WEEKLY, byWeekdays = setOf(Weekday.WEDNESDAY), count = 1),
+            ),
+        )
+        val zones = MutableStateFlow(zone)
+
+        useCase(flowOf("stage"), zones) { now }.test {
+            assertThat(awaitItem().single().isUpcoming).isFalse()
+            zones.value = ZoneId.of(FarZones.BEHIND)
+            assertThat(awaitItem().single().isUpcoming).isTrue()
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test

@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.filestech.agenda_tech.core.di.ApplicationScope
+import com.filestech.agenda_tech.system.AgendaChangeNotifier
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
@@ -37,6 +38,9 @@ class BootReceiver : BroadcastReceiver() {
     /** Resolved inside the coroutine, never at injection time — see the class KDoc. */
     @Inject lateinit var scheduler: Provider<ReminderScheduler>
 
+    /** Same rule: the notifier reaches the scheduler, hence the database. */
+    @Inject lateinit var agendaChanged: Provider<AgendaChangeNotifier>
+
     /** Safe to inject directly: [ApplicationScope] only needs a dispatcher, never the database. */
     @Inject @ApplicationScope lateinit var scope: CoroutineScope
 
@@ -59,10 +63,17 @@ class BootReceiver : BroadcastReceiver() {
         // Diffusion protegee elle aussi — mesure sur le S9 (API 29) : refusee a l'uid shell.
         val action = intent.action ?: return
         if (action !in HANDLED_ACTIONS) return
-        rescheduleRemindersAsync(scope, scheduler, reason = action)
+        if (action == Intent.ACTION_TIMEZONE_CHANGED) {
+            // The widgets show the phone's days too: through the seam, which redraws them after the
+            // reminders (AgendaChangeNotifierIsTheOnlySeamTest).
+            finishAsync(scope, reason = action) { agendaChanged.get().onTimeZoneChanged() }
+        } else {
+            rescheduleRemindersAsync(scope, scheduler, reason = action)
+        }
     }
 
-    private companion object {
+    internal companion object {
+        /** Also the actions of its manifest intent-filter — `BootReceiverManifestTest` holds the two together. */
         val HANDLED_ACTIONS = setOf(
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,

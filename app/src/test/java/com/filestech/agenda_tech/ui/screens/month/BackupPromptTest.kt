@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.ui.screens.month
 
 import app.cash.turbine.test
 import com.filestech.agenda_tech.core.time.DAY_MILLIS
+import com.filestech.agenda_tech.core.time.FakeDeviceZone
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
 import com.filestech.agenda_tech.domain.settings.AppSettings
@@ -48,11 +49,14 @@ class BackupPromptTest {
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
+    private val deviceZone = FakeDeviceZone()
+
     private fun viewModel(settings: FakeSettingsRepository) = MonthViewModel(
         observeOccurrences = ObserveOccurrencesInRangeUseCase(eventRepo, calendarRepo, RecurrenceExpander(), dispatcher),
         calendarRepository = calendarRepo,
         eventRepository = eventRepo,
         settingsRepository = settings,
+        deviceZone = deviceZone,
     ).apply { nowUtcMillis = { now } }
 
     private fun seedEvents(count: Int, lastChangeAt: Long = now) {

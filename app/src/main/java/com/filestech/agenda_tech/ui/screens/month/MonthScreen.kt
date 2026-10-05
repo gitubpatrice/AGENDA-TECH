@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -53,6 +54,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -93,6 +95,7 @@ import com.filestech.agenda_tech.ui.navigation.CalendarView
 import com.filestech.agenda_tech.ui.theme.LogoShape
 import com.filestech.agenda_tech.ui.theme.BrandDanger
 import com.filestech.agenda_tech.ui.util.DatePickerModal
+import com.filestech.agenda_tech.ui.util.LocalDeviceZone
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import java.time.DayOfWeek
 import java.time.Instant
@@ -130,6 +133,10 @@ fun MonthScreen(
     val icsBusy by icsViewModel.busy.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    // The first day of the week follows the language the screen is drawn in (see MonthViewModel.appLocale).
+    val appLocale = rememberAppLocale()
+    LaunchedEffect(appLocale) { viewModel.onLocaleChange(appLocale) }
+
     val exportLauncher = rememberAppResultLauncher(
         ActivityResultContracts.CreateDocument("text/calendar"),
     ) { uri -> uri?.let(icsViewModel::export) }
@@ -163,34 +170,37 @@ fun MonthScreen(
     // lit comme « rien ne s'est passe ». Le voile capte aussi les tapes, ce qui evite d'ouvrir
     // l'editeur sur un agenda en train d'etre remplace.
     Box(modifier = Modifier.fillMaxSize()) {
-        MonthScreenContent(
-            state = state,
-            display = display,
-            onSelectView = onSelectView,
-            onPreviousMonth = viewModel::onPreviousMonth,
-            onNextMonth = viewModel::onNextMonth,
-            onToday = viewModel::onToday,
-            onShowMonth = viewModel::showMonth,
-            onSelectDate = viewModel::onSelectDate,
-            onDisplayChange = viewModel::setDisplay,
-            onAddEvent = onAddEvent,
-            onOccurrenceClick = onOccurrenceClick,
-            onExportIcs = { exportLauncher.launch("agenda-tech.ics") },
-            onImportIcs = { importLauncher.launch(arrayOf("text/calendar", "*/*")) },
-            onOpenSettings = onOpenSettings,
-            onOpenAbout = onOpenAbout,
-            onOpenSearch = onOpenSearch,
-            showRestorePrompt = showRestorePrompt,
-            onRestoreBackup = {
-                // Answered either way — restoring or declining. Don't ask again.
-                viewModel.dismissRestorePrompt()
-                onOpenBackup()
-            },
-            onDismissRestorePrompt = viewModel::dismissRestorePrompt,
-            backupPrompt = backupPrompt,
-            onBackupNow = onOpenBackup,
-            onSnoozeBackupPrompt = viewModel::snoozeBackupPrompt,
-        )
+        // Times and today drawn in the zone the state was counted in — see MonthUiState.zone.
+        CompositionLocalProvider(LocalDeviceZone provides state.zone) {
+            MonthScreenContent(
+                state = state,
+                display = display,
+                onSelectView = onSelectView,
+                onPreviousMonth = viewModel::onPreviousMonth,
+                onNextMonth = viewModel::onNextMonth,
+                onToday = viewModel::onToday,
+                onShowMonth = viewModel::showMonth,
+                onSelectDate = viewModel::onSelectDate,
+                onDisplayChange = viewModel::setDisplay,
+                onAddEvent = onAddEvent,
+                onOccurrenceClick = onOccurrenceClick,
+                onExportIcs = { exportLauncher.launch("agenda-tech.ics") },
+                onImportIcs = { importLauncher.launch(arrayOf("text/calendar", "*/*")) },
+                onOpenSettings = onOpenSettings,
+                onOpenAbout = onOpenAbout,
+                onOpenSearch = onOpenSearch,
+                showRestorePrompt = showRestorePrompt,
+                onRestoreBackup = {
+                    // Answered either way — restoring or declining. Don't ask again.
+                    viewModel.dismissRestorePrompt()
+                    onOpenBackup()
+                },
+                onDismissRestorePrompt = viewModel::dismissRestorePrompt,
+                backupPrompt = backupPrompt,
+                onBackupNow = onOpenBackup,
+                onSnoozeBackupPrompt = viewModel::snoozeBackupPrompt,
+            )
+        }
         if (icsBusy) {
             Box(
                 modifier = Modifier
@@ -255,6 +265,8 @@ private fun MonthScreenContent(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
+                            // A full-height touch target: the logo alone made it 28 dp.
+                            .heightIn(min = 48.dp)
                             .clip(MaterialTheme.shapes.small)
                             .clickable(
                                 onClickLabel = stringResource(R.string.month_pick_date),
@@ -304,7 +316,8 @@ private fun MonthScreenContent(
             )
         },
     ) { innerPadding ->
-        val today = remember { LocalDate.now(ZoneId.systemDefault()) }
+        val zone = LocalDeviceZone.current
+        val today = remember(zone) { LocalDate.now(zone) }
         val pagerState = rememberPagerState(initialPage = pageForMonth(state.yearMonth)) { PAGER_PAGE_COUNT }
 
         // Pager settled on a page → tell the ViewModel which month is now shown.
@@ -391,7 +404,7 @@ private fun MonthScreenContent(
                 }
                 TextButton(onClick = {
                     onToday()
-                    requestScrollTo(LocalDate.now(ZoneId.systemDefault()))
+                    requestScrollTo(LocalDate.now(zone))
                 }) { Text(stringResource(R.string.month_today)) }
                 IconButton(onClick = onNextMonth) {
                     Icon(
@@ -634,7 +647,7 @@ internal fun SelectedDayOccurrences(
         }
         return
     }
-    val zone = remember { ZoneId.systemDefault() }
+    val zone = LocalDeviceZone.current
     LazyColumn(modifier = modifier) {
         items(occurrences, key = { it.eventId to it.occurrenceStartUtcMillis }) { occurrence ->
             OccurrenceRow(occurrence, zone, locale, onOccurrenceClick)

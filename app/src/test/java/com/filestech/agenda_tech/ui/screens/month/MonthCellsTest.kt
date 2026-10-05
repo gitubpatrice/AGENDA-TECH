@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.ui.screens.month
 
 import app.cash.turbine.test
+import com.filestech.agenda_tech.core.time.FakeDeviceZone
 import com.filestech.agenda_tech.core.time.FarZones
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.Event
@@ -29,10 +30,12 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.ZoneId
+import java.util.Locale
 
 /**
  * What the month view puts in each day. The three displays draw the same list per day — dots, titles,
@@ -44,6 +47,7 @@ class MonthCellsTest {
     private val dispatcher = StandardTestDispatcher()
     private val eventRepo = FakeEventRepository()
     private val calendarRepo = FakeCalendarRepository()
+    private val deviceZone = FakeDeviceZone(zone)
 
     // The view model opens on the current month; the events are placed relative to it.
     private val month: YearMonth = YearMonth.now(zone)
@@ -64,6 +68,7 @@ class MonthCellsTest {
         calendarRepository = calendarRepo,
         eventRepository = eventRepo,
         settingsRepository = settings,
+        deviceZone = deviceZone,
     )
 
     private fun millis(date: LocalDate, hour: Int, minute: Int = 0): Long =
@@ -132,8 +137,8 @@ class MonthCellsTest {
     @ValueSource(strings = [FarZones.AHEAD, FarZones.BEHIND])
     fun `an all-day event created in another time zone stays on its own date`(elsewhereId: String) = runTest(dispatcher) {
         // Its instants are the midnights of the zone it was created in. Read on this phone's clock they
-        // fall inside two days, and the event showed on both — after any journey, or an import of a
-        // file written elsewhere.
+        // fall inside two days, and the event showed on both — after any journey, or a backup restored
+        // from a phone set to another zone.
         val day = month.atDay(14)
         val elsewhere = ZoneId.of(elsewhereId)
         eventRepo.rows[1] = Event(
@@ -154,6 +159,50 @@ class MonthCellsTest {
         // A tap hands the editor the instant the occurrence is known by, not its place on this calendar.
         assertThat(state.cell(day).events.single().occurrenceStartUtcMillis)
             .isEqualTo(eventRepo.rows.getValue(1).startUtcMillis)
+    }
+
+    @Test
+    fun `an open month follows a change of time zone`() = runTest(dispatcher) {
+        // Read once when the view model was made, the zone stayed the old one after a journey: a meeting
+        // at 01:00 in Paris stayed on the 15th in New York, where it is 19:00 on the 14th.
+        val paris = ZoneId.of("Europe/Paris")
+        deviceZone.zone.value = paris
+        val day = YearMonth.now(paris).atDay(15)
+        val start = day.atTime(1, 0).atZone(paris).toInstant().toEpochMilli()
+        eventRepo.rows[1] = Event(
+            id = 1,
+            calendarId = 1,
+            title = "Early",
+            startUtcMillis = start,
+            endUtcMillis = start + 3_600_000,
+            timeZoneId = paris.id,
+        )
+        val vm = viewModel()
+
+        vm.uiState.test {
+            testScheduler.advanceUntilIdle()
+            assertThat(expectMostRecentItem().cell(day).events.map { it.title }).containsExactly("Early")
+
+            deviceZone.zone.value = ZoneId.of("America/New_York")
+            testScheduler.advanceUntilIdle()
+
+            val there = expectMostRecentItem()
+            assertThat(there.cell(day).events).isEmpty()
+            assertThat(there.cell(day.minusDays(1)).events.map { it.title }).containsExactly("Early")
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `the first day of the week follows the language the screen is drawn in`() = runTest(dispatcher) {
+        // First day set to "system", the app switched from American English to German while open: the
+        // labels turned German and the grid kept starting on Sunday (measured on the Android 14 emulator).
+        val vm = viewModel()
+
+        vm.onLocaleChange(Locale.US)
+        assertThat(vm.state(testScheduler).firstDayOfWeek).isEqualTo(DayOfWeek.SUNDAY)
+        vm.onLocaleChange(Locale.GERMANY)
+        assertThat(vm.state(testScheduler).firstDayOfWeek).isEqualTo(DayOfWeek.MONDAY)
     }
 
     @Test
@@ -210,6 +259,7 @@ class MonthCellsTest {
             calendarRepository = calendarRepo,
             eventRepository = eventRepo,
             settingsRepository = settings,
+            deviceZone = deviceZone,
         )
 
         vm.display.test {
@@ -237,6 +287,7 @@ class MonthCellsTest {
             calendarRepository = calendarRepo,
             eventRepository = eventRepo,
             settingsRepository = settings,
+            deviceZone = deviceZone,
         )
 
         val state = vm.state(testScheduler)

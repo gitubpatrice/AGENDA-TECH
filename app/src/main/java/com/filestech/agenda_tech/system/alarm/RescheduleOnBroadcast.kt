@@ -27,14 +27,25 @@ internal fun BroadcastReceiver.rescheduleRemindersAsync(
     scope: CoroutineScope,
     scheduler: Provider<ReminderScheduler>,
     reason: String,
+) = finishAsync(scope, reason) { scheduler.get().rescheduleAll() }
+
+/**
+ * Runs [work] off the main thread while the broadcast is held by `goAsync()`, and finishes it in a
+ * `finally` — the two rules above, for any work. [work] resolves its own `Provider`s, inside the
+ * coroutine.
+ */
+internal fun BroadcastReceiver.finishAsync(
+    scope: CoroutineScope,
+    reason: String,
+    work: suspend () -> Unit,
 ) {
     val pendingResult = goAsync()
     scope.launch {
         try {
-            scheduler.get().rescheduleAll()
-            Timber.i("Reminders rescheduled (%s)", reason)
+            work()
+            Timber.i("Broadcast handled (%s)", reason)
         } catch (t: Throwable) {
-            Timber.w(t, "Failed to reschedule reminders (%s)", reason)
+            Timber.w(t, "Broadcast handling failed (%s)", reason)
         } finally {
             pendingResult.finish()
         }

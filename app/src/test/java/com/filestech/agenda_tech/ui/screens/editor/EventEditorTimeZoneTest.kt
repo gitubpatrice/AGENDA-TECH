@@ -159,7 +159,7 @@ internal class EventEditorTimeZoneTest : EventEditorTestBase() {
     @ValueSource(strings = [FarZones.AHEAD, FarZones.BEHIND])
     fun `an all-day event created in another zone opens on its own date`(elsewhereId: String) = runTest(dispatcher) {
         // Read on the phone's clock, its midnights fall on the day before or after: the editor showed
-        // the wrong date for anything made before a journey, or imported from a file written elsewhere.
+        // the wrong date for anything made before a journey, or restored from a backup made elsewhere.
         val date = LocalDate.of(2026, 7, 20)
         seedAllDayElsewhere(date, ZoneId.of(elsewhereId))
 

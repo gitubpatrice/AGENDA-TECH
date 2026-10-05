@@ -3,6 +3,7 @@ package com.filestech.agenda_tech.ui.screens.month
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.filestech.agenda_tech.core.time.DeviceZone
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.recurrence.EventOccurrence
@@ -28,7 +29,6 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
-import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import com.filestech.agenda_tech.core.time.DAY_MILLIS
@@ -49,6 +49,7 @@ class MonthViewModel @Inject constructor(
     private val calendarRepository: CalendarRepository,
     private val eventRepository: EventRepository,
     private val settingsRepository: SettingsRepository,
+    private val deviceZone: DeviceZone,
 ) : ViewModel() {
 
     /**
@@ -58,20 +59,31 @@ class MonthViewModel @Inject constructor(
     @VisibleForTesting
     internal var nowUtcMillis: () -> Long = System::currentTimeMillis
 
-    private val zone: ZoneId = ZoneId.systemDefault()
-    private val locale: Locale = Locale.getDefault()
+    /**
+     * The phone's zone now. Read at each use, and the query below follows [DeviceZone.zone]: taken once
+     * at construction, an open month kept the zone it was opened in after a journey.
+     */
+    private val zone: ZoneId get() = deviceZone.zone.value
+
+    /**
+     * The language the screen is drawn in, which decides the first day of the week when the setting
+     * says "system". Sent by the screen ([onLocaleChange]) rather than read here once: the view model
+     * outlives a change of the app's language, and the grid kept the old language's first day — a
+     * German month starting on Sunday — while every label had already turned German.
+     */
+    private val appLocale = MutableStateFlow(Locale.getDefault())
 
     private val displayedMonth = MutableStateFlow(YearMonth.now(zone))
     private val selectedDate = MutableStateFlow(LocalDate.now(zone))
 
-    private val firstDayOfWeekFlow = settingsRepository.settings
-        .map { it.weekStart.toDayOfWeek(locale) }
-        .distinctUntilChanged()
+    private val firstDayOfWeekFlow = combine(settingsRepository.settings, appLocale) { settings, locale ->
+        settings.weekStart.toDayOfWeek(locale)
+    }.distinctUntilChanged()
 
     // Audit DATA-4 — only the settings this view actually uses, so unrelated toggles don't rebuild the grid.
-    private val monthSettingsFlow = settingsRepository.settings
-        .map { it.weekStart to it.showWeekNumbers }
-        .distinctUntilChanged()
+    private val monthSettingsFlow = combine(settingsRepository.settings, appLocale) { settings, locale ->
+        settings.weekStart.toDayOfWeek(locale) to settings.showWeekNumbers
+    }.distinctUntilChanged()
 
     /**
      * How the month is drawn — kept out of [uiState] on purpose. [uiState] waits for the database, and
@@ -88,16 +100,23 @@ class MonthViewModel @Inject constructor(
     // already filled in. With dots, a page filling itself once it settles went unnoticed; with titles in
     // the grid it is plainly visible.
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val windowOccurrences = combine(displayedMonth, firstDayOfWeekFlow) { month, firstDay ->
-        month to firstDay
-    }.flatMapLatest { (month, firstDay) ->
+    private val windowOccurrences = combine(displayedMonth, firstDayOfWeekFlow, deviceZone.zone) { month, firstDay, now ->
+        Triple(month, firstDay, now)
+    }.flatMapLatest { (month, firstDay, windowZone) ->
         val startDate = MonthGrid.gridRange(month.minusMonths(1), firstDay).first
         val endDate = MonthGrid.gridRange(month.plusMonths(1), firstDay).second
-        observeOccurrences(startDate.toStartOfDayUtc(), endDate.toStartOfDayUtc(), zone)
+        observeOccurrences(
+            startDate.atStartOfDay(windowZone).toInstant().toEpochMilli(),
+            endDate.atStartOfDay(windowZone).toInstant().toEpochMilli(),
+            windowZone,
+        ).map { occurrences -> windowZone to occurrences }
     }
 
-    // The last values the two database sources gave, replayed whenever they start again.
-    private var lastOccurrences: List<EventOccurrence> = emptyList()
+    // The last values the two database sources gave, replayed whenever they start again. The occurrences
+    // keep the zone they were read in, and the state is built in that zone: a list read before a journey
+    // and days counted after it would put events on the wrong day until the new query answered
+    // (external review, 2026-10-05).
+    private var lastWindow: Pair<ZoneId, List<EventOccurrence>> = zone to emptyList()
     private var lastCalendars: List<Calendar> = emptyList()
 
     // The two database sources start with their last values: the grid is then drawn as soon as the
@@ -111,16 +130,17 @@ class MonthViewModel @Inject constructor(
     val uiState: StateFlow<MonthUiState> = combine(
         displayedMonth,
         selectedDate,
-        windowOccurrences.onEach { lastOccurrences = it }.onStart { emit(lastOccurrences) },
+        windowOccurrences.onEach { lastWindow = it }.onStart { emit(lastWindow) },
         calendarRepository.observeAll().onEach { lastCalendars = it }.onStart { emit(lastCalendars) },
         monthSettingsFlow,
-    ) { month, selected, occurrences, calendars, settingsPair ->
+    ) { month, selected, (windowZone, occurrences), calendars, settingsPair ->
         buildState(
+            zone = windowZone,
             month = month,
             selected = selected,
             occurrences = occurrences,
             colorByCalendarId = calendars.associate { it.id to it.color.argb },
-            firstDayOfWeek = settingsPair.first.toDayOfWeek(locale),
+            firstDayOfWeek = settingsPair.first,
             showWeekNumbers = settingsPair.second,
             isLoading = false,
         )
@@ -128,11 +148,12 @@ class MonthViewModel @Inject constructor(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
         initialValue = buildState(
+            zone = zone,
             month = YearMonth.now(zone),
             selected = LocalDate.now(zone),
             occurrences = emptyList(),
             colorByCalendarId = emptyMap(),
-            firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek,
+            firstDayOfWeek = WeekFields.of(appLocale.value).firstDayOfWeek,
             showWeekNumbers = false,
             isLoading = true,
         ),
@@ -235,6 +256,11 @@ class MonthViewModel @Inject constructor(
         displayedMonth.value = month
     }
 
+    /** The language the screen is drawn in — see [appLocale]. */
+    fun onLocaleChange(locale: Locale) {
+        appLocale.value = locale
+    }
+
     /** Remembered across launches: the button row and the pinch both land here. */
     fun setDisplay(display: MonthDisplay) = viewModelScope.launch {
         settingsRepository.update { it.copy(monthDisplay = display) }
@@ -248,6 +274,7 @@ class MonthViewModel @Inject constructor(
     }
 
     private fun buildState(
+        zone: ZoneId,
         month: YearMonth,
         selected: LocalDate,
         occurrences: List<EventOccurrence>,
@@ -284,7 +311,7 @@ class MonthViewModel @Inject constructor(
                         isInMonth = YearMonth.from(date) == pageMonth,
                         isToday = date == today,
                         isSelected = date == selected,
-                        events = sorted.overlapping(date),
+                        events = sorted.overlapping(date, zone),
                     )
                 }
             }
@@ -294,11 +321,12 @@ class MonthViewModel @Inject constructor(
             .map { it[MID_WEEK_INDEX].date.get(WeekFields.ISO.weekOfWeekBasedYear()) }
 
         return MonthUiState(
+            zone = zone,
             yearMonth = month,
             firstDayOfWeek = firstDayOfWeek,
             pages = pages,
             selectedDate = selected,
-            selectedDayOccurrences = sorted.overlapping(selected),
+            selectedDayOccurrences = sorted.overlapping(selected, zone),
             showWeekNumbers = showWeekNumbers,
             weekNumbers = weekNumbers,
             isLoading = isLoading,
@@ -309,9 +337,9 @@ class MonthViewModel @Inject constructor(
      * FIAB-2 — every occurrence that overlaps [date], not only those starting on it, so a multi-day or
      * all-day-span event (a 2-day holiday) shows on each day it covers.
      */
-    private fun List<OccurrenceData>.overlapping(date: LocalDate): List<OccurrenceData> {
-        val dayStart = date.toStartOfDayUtc()
-        val dayEnd = date.plusDays(1).toStartOfDayUtc()
+    private fun List<OccurrenceData>.overlapping(date: LocalDate, zone: ZoneId): List<OccurrenceData> {
+        val dayStart = date.atStartOfDay(zone).toInstant().toEpochMilli()
+        val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
         return filter { it.startUtcMillis < dayEnd && it.endUtcMillis > dayStart }
     }
 
@@ -319,12 +347,6 @@ class MonthViewModel @Inject constructor(
         occurrence.event.colorOverride?.argb
             ?: colorByCalendarId[occurrence.event.calendarId]
             ?: CalendarColor.DEFAULT.argb
-
-    private fun Long.toLocalDate(): LocalDate =
-        Instant.ofEpochMilli(this).atZone(zone).toLocalDate()
-
-    private fun LocalDate.toStartOfDayUtc(): Long =
-        atStartOfDay(zone).toInstant().toEpochMilli()
 
     companion object {
         /**

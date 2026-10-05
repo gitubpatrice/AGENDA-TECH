@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.birthday.displayTitle
+import com.filestech.agenda_tech.ui.util.LocalDeviceZone
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -80,7 +81,7 @@ internal fun MonthRows(
     val anchor = days.indexOfFirst { it.isSelected }.takeIf { it >= 0 }
         ?: days.indexOfFirst { it.isToday }.coerceAtLeast(0)
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = (anchor - 1).coerceAtLeast(0))
-    val zone = remember { ZoneId.systemDefault() }
+    val zone = LocalDeviceZone.current
     val timeFormatter = remember(locale) { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale) }
     val addLabel = stringResource(R.string.month_add_event)
     // The time column is as wide as the widest time of the format in use, so the titles line up: in a

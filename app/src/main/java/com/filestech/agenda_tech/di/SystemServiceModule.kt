@@ -2,6 +2,8 @@ package com.filestech.agenda_tech.di
 
 import android.app.AlarmManager
 import android.content.Context
+import com.filestech.agenda_tech.core.time.DeviceZone
+import com.filestech.agenda_tech.system.time.SystemDeviceZone
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,4 +19,8 @@ object SystemServiceModule {
     @Singleton
     fun alarmManager(@ApplicationContext context: Context): AlarmManager =
         context.getSystemService(AlarmManager::class.java)
+
+    @Provides
+    @Singleton
+    fun deviceZone(impl: SystemDeviceZone): DeviceZone = impl
 }

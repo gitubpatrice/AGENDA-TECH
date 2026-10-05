@@ -28,6 +28,7 @@ import androidx.lifecycle.withResumed
 import com.filestech.agenda_tech.data.local.db.AppDatabase
 import com.filestech.agenda_tech.core.di.ApplicationScope
 import com.filestech.agenda_tech.core.prefs.OneShotFlag
+import com.filestech.agenda_tech.core.time.DeviceZone
 import com.filestech.agenda_tech.data.local.db.DatabaseFactory
 import com.filestech.agenda_tech.domain.repository.LockRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
@@ -44,6 +45,7 @@ import com.filestech.agenda_tech.ui.LockedAppHost
 import com.filestech.agenda_tech.ui.StartupFailureScreen
 import com.filestech.agenda_tech.ui.lock.LockScreen
 import com.filestech.agenda_tech.ui.util.ExternalActivityGuard
+import com.filestech.agenda_tech.ui.util.LocalDeviceZone
 import com.filestech.agenda_tech.ui.util.LocalExternalActivityGuard
 import androidx.compose.runtime.CompositionLocalProvider
 import com.filestech.agenda_tech.ui.theme.AgendaTechTheme
@@ -65,6 +67,9 @@ import javax.inject.Provider
 class MainActivity : FragmentActivity() {
 
     @Inject lateinit var settingsRepository: SettingsRepository
+
+    /** The phone's zone for every screen — see [LocalDeviceZone]. Light: a receiver, no database. */
+    @Inject lateinit var deviceZone: DeviceZone
     @Inject lateinit var lockRepository: LockRepository
     @Inject lateinit var appLock: AppLockManager
     @Inject lateinit var biometricGate: BiometricGate
@@ -250,6 +255,7 @@ class MainActivity : FragmentActivity() {
         setContent {
             val settings by settingsRepository.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
             val lockState by appLock.state.collectAsStateWithLifecycle()
+            val zone by deviceZone.zone.collectAsStateWithLifecycle()
             val useDarkTheme = when (settings.themeMode) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
@@ -271,7 +277,10 @@ class MainActivity : FragmentActivity() {
             AgendaTechTheme(useDarkTheme = useDarkTheme) {
                 // Every activity-for-result the screens open reports here first, so the picker it
                 // opens does not lock the app behind the user (see PickerRelockPolicy).
-                CompositionLocalProvider(LocalExternalActivityGuard provides externalActivityGuard) {
+                CompositionLocalProvider(
+                    LocalExternalActivityGuard provides externalActivityGuard,
+                    LocalDeviceZone provides zone,
+                ) {
                     Surface(modifier = Modifier.fillMaxSize()) {
                         when {
                             startupFailure -> StartupFailureScreen()

@@ -65,9 +65,9 @@ import com.filestech.agenda_tech.core.crypto.BackupEnvelope
 import com.filestech.agenda_tech.domain.usecase.ExportBackupUseCase
 import com.filestech.agenda_tech.domain.backup.AutoBackupOutcome
 import com.filestech.agenda_tech.ui.theme.BrandDanger
+import com.filestech.agenda_tech.ui.util.LocalDeviceZone
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import java.time.Instant
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -318,7 +318,7 @@ private fun autoBackupStatus(state: BackupUiState, locale: Locale): String = whe
         R.string.backup_auto_last_ok,
         DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
             .withLocale(locale)
-            .format(Instant.ofEpochMilli(state.autoBackupLastRunAtUtcMillis).atZone(ZoneId.systemDefault())),
+            .format(Instant.ofEpochMilli(state.autoBackupLastRunAtUtcMillis).atZone(LocalDeviceZone.current)),
     )
     AutoBackupOutcome.NO_FOLDER -> stringResource(R.string.backup_auto_err_no_folder)
     AutoBackupOutcome.NO_PASSWORD -> stringResource(R.string.backup_auto_err_no_password)

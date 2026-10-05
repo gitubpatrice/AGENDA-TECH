@@ -205,7 +205,10 @@ class ReminderNotifier @Inject constructor(
             )
             .setContentText(contentText(event, occurrenceStartUtcMillis))
             .setWhen(occurrenceStartUtcMillis)
-            .setShowWhen(true)
+            // A clock time means nothing for an all-day event: its stored start is a midnight, shown as
+            // 00:00 — or as 18:00 the day before, read in another zone than the one it was made in.
+            // The text already says "All day".
+            .setShowWhen(!event.allDay)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

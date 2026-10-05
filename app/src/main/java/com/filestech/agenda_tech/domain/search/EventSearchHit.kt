@@ -17,6 +17,9 @@ data class EventSearchHit(
     val event: Event,
     val calendar: Calendar,
     val occurrenceStartUtcMillis: Long,
-    /** True when [occurrenceStartUtcMillis] is still ahead — drives ordering and the section header. */
+    /**
+     * True when the occurrence begins after now on the phone's calendar — for an all-day one, at the
+     * phone's midnight of its date. Drives ordering and the section header.
+     */
     val isUpcoming: Boolean,
 )

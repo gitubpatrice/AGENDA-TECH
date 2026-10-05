@@ -48,6 +48,7 @@ import com.filestech.agenda_tech.domain.recurrence.dateZone
 import com.filestech.agenda_tech.domain.search.EventSearchHit
 import com.filestech.agenda_tech.ui.util.EventRow
 import com.filestech.agenda_tech.ui.util.EventRowDetail
+import com.filestech.agenda_tech.ui.util.LocalDeviceZone
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import com.filestech.agenda_tech.ui.util.displayName
 import java.time.Instant
@@ -136,7 +137,7 @@ private fun Results(
     onOccurrenceClick: (Long, Long) -> Unit,
 ) {
     val locale = rememberAppLocale()
-    val zone = ZoneId.systemDefault()
+    val zone = LocalDeviceZone.current
     // The use case already orders upcoming-then-past; partitioning only splits, never reorders.
     val upcoming = hits.filter { it.isUpcoming }
     val past = hits.filterNot { it.isUpcoming }
