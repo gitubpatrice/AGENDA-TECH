@@ -31,9 +31,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.text.KeyboardOptions
@@ -54,7 +51,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -79,17 +75,15 @@ import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.location.GeoLink
 import com.filestech.agenda_tech.domain.model.Weekday
 import com.filestech.agenda_tech.ui.theme.BrandDanger
-import com.filestech.agenda_tech.ui.theme.BrandSuccess
+import com.filestech.agenda_tech.ui.util.DatePickerModal
 import com.filestech.agenda_tech.ui.util.ReminderNotificationsBlockedNotice
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import com.filestech.agenda_tech.ui.util.rememberReminderNotifications
 import com.filestech.agenda_tech.ui.util.displayName
 import timber.log.Timber
 import java.time.DayOfWeek
-import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
@@ -288,17 +282,14 @@ private fun EventEditorContent(
                         }
                     }
                     // Spelled out and filled rather than a bare check icon: "Enregistrer" leaves no
-                    // doubt about the action, and the solid green marks it as THE primary button.
+                    // doubt about the action, and the filled primary colour — the lock screen's Unlock,
+                    // the "+" button — marks it as THE primary button.
                     Button(
                         onClick = onSave,
                         // Audit AG-3 — sans ce garde, deux tapes rapides lancaient deux ecritures
                         // et un evenement neuf (id = 0) partait en DEUX INSERT. Le jumeau
                         // BackupScreen conditionne chacun de ses boutons de la meme facon.
                         enabled = !state.busy,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = BrandSuccess,
-                            contentColor = Color.White,
-                        ),
                         // Compact on purpose: in an app bar the button sits next to icons, and the
                         // Material default (24dp/8dp) makes it bulge out of that rhythm. The height is
                         // set explicitly because Button enforces a 40dp minimum — trimming the
@@ -633,31 +624,6 @@ private fun RecurrenceDropdown(
 }
 
 @Composable
-private fun DatePickerModal(
-    initialDate: LocalDate,
-    onConfirm: (LocalDate) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val initialMillis = initialDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-    val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                pickerState.selectedDateMillis?.let { millis ->
-                    onConfirm(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
-                }
-            }) { Text(stringResource(R.string.editor_ok)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.editor_cancel)) }
-        },
-    ) {
-        DatePicker(state = pickerState)
-    }
-}
-
-@Composable
 private fun TimePickerModal(
     initialTime: LocalTime,
     onConfirm: (Int, Int) -> Unit,
@@ -981,7 +947,9 @@ private fun CustomReminderDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { minutes?.let(onConfirm) }, enabled = valid) {
+            // Filled like every "Save" of the app (the editor's, the other dialogs'), so saving looks
+            // the same wherever it is offered; "Cancel" stays a text button.
+            Button(onClick = { minutes?.let(onConfirm) }, enabled = valid) {
                 Text(stringResource(R.string.action_save))
             }
         },

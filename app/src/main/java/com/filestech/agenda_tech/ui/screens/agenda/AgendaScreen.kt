@@ -8,11 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +28,7 @@ import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.ui.navigation.CalendarView
 import com.filestech.agenda_tech.ui.screens.timeline.TimelineItem
+import com.filestech.agenda_tech.ui.util.AddFab
 import com.filestech.agenda_tech.ui.util.EventRow
 import com.filestech.agenda_tech.ui.util.EventRowDetail
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
@@ -70,9 +67,10 @@ fun AgendaScreen(
             CenterAlignedTopAppBar(title = { Text(stringResource(R.string.view_agenda)) })
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { onAddEvent(viewModel.startDate) }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.month_add_event))
-            }
+            AddFab(
+                onClick = { onAddEvent(viewModel.startDate) },
+                contentDescription = stringResource(R.string.month_add_event),
+            )
         },
     ) { innerPadding ->
         if (state.days.isEmpty()) {

@@ -5,16 +5,15 @@ import java.time.LocalDate
 import java.time.YearMonth
 
 /**
- * One cell of the month grid. [eventColors] are the (capped) resolved ARGB colours of the day's
- * events for the indicator dots; [eventCount] is the true total (may exceed the dots shown).
+ * One cell of the month grid. [events] are every occurrence overlapping the day, all-day first then
+ * by start — the dots, the titles and the rows each draw what fits of the same list.
  */
 data class DayCellData(
     val date: LocalDate,
     val isInMonth: Boolean,
     val isToday: Boolean,
     val isSelected: Boolean,
-    val eventColors: List<Int>,
-    val eventCount: Int,
+    val events: List<OccurrenceData>,
 )
 
 /**
@@ -39,11 +38,18 @@ data class OccurrenceData(
 data class MonthUiState(
     val yearMonth: YearMonth,
     val firstDayOfWeek: DayOfWeek,
-    val weeks: List<List<DayCellData>>,
+    /**
+     * The grid of the shown month and of its two neighbours, keyed by month, so a swipe slides in a
+     * page that is already filled in.
+     */
+    val pages: Map<YearMonth, List<List<DayCellData>>>,
     val selectedDate: LocalDate,
     val selectedDayOccurrences: List<OccurrenceData>,
     val showWeekNumbers: Boolean,
     /** ISO week number for each of the 6 grid rows (parallel to [weeks]); shown when [showWeekNumbers]. */
     val weekNumbers: List<Int>,
     val isLoading: Boolean,
-)
+) {
+    /** The shown month's 6×7 grid. */
+    val weeks: List<List<DayCellData>> get() = pages.getValue(yearMonth)
+}

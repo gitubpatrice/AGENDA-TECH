@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.ui.screens.month
 
 import android.widget.Toast
+import com.filestech.agenda_tech.ui.util.AddFab
 import com.filestech.agenda_tech.ui.util.rememberAppResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,7 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.FileDownload
@@ -36,12 +38,13 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,28 +57,40 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.ImportLimits
 import com.filestech.agenda_tech.domain.birthday.displayTitle
+import com.filestech.agenda_tech.domain.settings.MonthDisplay
 import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.ui.ics.IcsResult
 import com.filestech.agenda_tech.ui.ics.IcsViewModel
 import com.filestech.agenda_tech.ui.navigation.CalendarView
+import com.filestech.agenda_tech.ui.theme.LogoShape
 import com.filestech.agenda_tech.ui.theme.BrandDanger
+import com.filestech.agenda_tech.ui.util.DatePickerModal
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import java.time.DayOfWeek
 import java.time.Instant
@@ -91,6 +106,7 @@ import java.util.Locale
 // A large virtual page window centred on the anchor month lets the pager scroll ~100 years either way.
 private const val PAGER_PAGE_COUNT = 2400
 private const val PAGER_ANCHOR_PAGE = PAGER_PAGE_COUNT / 2
+private const val MONTHS_PER_YEAR = 12
 
 @Composable
 fun MonthScreen(
@@ -105,6 +121,7 @@ fun MonthScreen(
     icsViewModel: IcsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val display by viewModel.display.collectAsStateWithLifecycle()
     val showRestorePrompt by viewModel.showRestorePrompt.collectAsStateWithLifecycle()
     val backupPrompt by viewModel.backupPrompt.collectAsStateWithLifecycle()
     val icsResult by icsViewModel.result.collectAsStateWithLifecycle()
@@ -146,12 +163,14 @@ fun MonthScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         MonthScreenContent(
             state = state,
+            display = display,
             onSelectView = onSelectView,
             onPreviousMonth = viewModel::onPreviousMonth,
             onNextMonth = viewModel::onNextMonth,
             onToday = viewModel::onToday,
             onShowMonth = viewModel::showMonth,
             onSelectDate = viewModel::onSelectDate,
+            onDisplayChange = viewModel::setDisplay,
             onAddEvent = onAddEvent,
             onOccurrenceClick = onOccurrenceClick,
             onExportIcs = { exportLauncher.launch("agenda-tech.ics") },
@@ -190,12 +209,14 @@ fun MonthScreen(
 @Composable
 private fun MonthScreenContent(
     state: MonthUiState,
+    display: MonthDisplay?,
     onSelectView: (CalendarView) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onToday: () -> Unit,
     onShowMonth: (YearMonth) -> Unit,
     onSelectDate: (LocalDate) -> Unit,
+    onDisplayChange: (MonthDisplay) -> Unit,
     onAddEvent: (LocalDate) -> Unit,
     onOccurrenceClick: (Long, Long) -> Unit,
     onExportIcs: () -> Unit,
@@ -211,6 +232,10 @@ private fun MonthScreenContent(
     onSnoozeBackupPrompt: () -> Unit,
 ) {
     val locale = rememberAppLocale()
+    var pickingDate by rememberSaveable { mutableStateOf(false) }
+    // Anchor the pager on the month shown when the screen first appeared; each page is that month ± an
+    // offset, so swiping slides smoothly to the adjacent month (follow-the-finger).
+    val anchorMonth = remember { state.yearMonth }
 
     CalendarScaffold(
         currentView = CalendarView.MONTH,
@@ -218,20 +243,38 @@ private fun MonthScreenContent(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    // The month name opens a date picker: a month a year away is one tap, not twelve swipes.
+                    // The arrow says the title can be tapped, which a title usually cannot.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(MaterialTheme.shapes.small)
+                            .clickable(
+                                onClickLabel = stringResource(R.string.month_pick_date),
+                                role = Role.Button,
+                            ) { pickingDate = true }
+                            .padding(end = 4.dp),
+                    ) {
                         Image(
                             painter = painterResource(R.drawable.app_logo),
                             contentDescription = null,
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(28.dp).clip(LogoShape),
                         )
                         Text(
                             text = monthLabel(state.yearMonth, locale),
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(start = 8.dp),
                         )
+                        Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
                     }
                 },
                 actions = {
+                    // Its place is kept while the setting loads, so the icons beside it do not shift.
+                    if (display != null) {
+                        MonthDisplayMenu(current = display, onSelect = onDisplayChange)
+                    } else {
+                        Spacer(Modifier.size(48.dp))
+                    }
                     IconButton(onClick = onOpenSearch) {
                         Icon(
                             imageVector = Icons.Outlined.Search,
@@ -248,15 +291,13 @@ private fun MonthScreenContent(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { onAddEvent(state.selectedDate) }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.month_add_event))
-            }
+            AddFab(
+                onClick = { onAddEvent(state.selectedDate) },
+                contentDescription = stringResource(R.string.month_add_event),
+            )
         },
     ) { innerPadding ->
         val today = remember { LocalDate.now(ZoneId.systemDefault()) }
-        // Anchor the pager on the month shown when the screen first appeared; each page is that
-        // month ± an offset, so swiping slides smoothly to the adjacent month (follow-the-finger).
-        val anchorMonth = remember { state.yearMonth }
         fun monthForPage(page: Int): YearMonth = anchorMonth.plusMonths((page - PAGER_ANCHOR_PAGE).toLong())
         fun pageForMonth(month: YearMonth): Int =
             PAGER_ANCHOR_PAGE + (month.year - anchorMonth.year) * 12 + (month.monthValue - anchorMonth.monthValue)
@@ -270,13 +311,37 @@ private fun MonthScreenContent(
         // Month changed elsewhere (Today, arrows, tapping an adjacent-month day) → move the pager.
         LaunchedEffect(state.yearMonth) {
             val target = pageForMonth(state.yearMonth)
-            if (pagerState.currentPage != target) pagerState.animateScrollToPage(target)
+            // The date picker is held within the pager's years, so this guard should never trip; it
+            // keeps a month the pager cannot reach from becoming an out-of-range page.
+            if (target in 0 until PAGER_PAGE_COUNT && pagerState.currentPage != target) {
+                pagerState.animateScrollToPage(target)
+            }
+        }
+
+        val haptic = LocalHapticFeedback.current
+        val latestDisplay by rememberUpdatedState(display)
+        val latestOnDisplayChange by rememberUpdatedState(onDisplayChange)
+        // With the titles, the grid fills the screen and has no list under it: a tap on a day opens the
+        // day over the grid. Saved, so coming back from the editor reopens the day just edited.
+        var daySheetOpen by rememberSaveable { mutableStateOf(false) }
+        // Selected first, so on coming back from the editor the grid shows the day the event went to.
+        val onDayLongClick: (LocalDate) -> Unit = { date ->
+            onSelectDate(date)
+            onAddEvent(date)
         }
 
         Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .pinchSteps { spread ->
+                    val current = latestDisplay ?: return@pinchSteps
+                    val next = if (spread) current.moreDetail() else current.lessDetail()
+                    if (next != current) {
+                        haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                        latestOnDisplayChange(next)
+                    }
+                },
         ) {
             // Mutually exclusive by construction: one needs an empty agenda, the other a full one.
             if (showRestorePrompt) {
@@ -329,85 +394,148 @@ private fun MonthScreenContent(
                     )
                 }
             }
-            WeekdayHeader(state.firstDayOfWeek, locale, state.showWeekNumbers)
-            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
-                val pageMonth = monthForPage(page)
-                // The settled month has its event dots from the ViewModel; the pages sliding in show
-                // the bare grid (dots fill in once that month settles) — keeps swiping cheap and fluid.
-                val weeks = if (pageMonth == state.yearMonth) {
-                    state.weeks
-                } else {
-                    MonthGrid.weeks(pageMonth, state.firstDayOfWeek).map { row ->
-                        row.map { date ->
-                            DayCellData(
-                                date = date,
-                                isInMonth = YearMonth.from(date) == pageMonth,
-                                isToday = date == today,
-                                isSelected = date == state.selectedDate,
-                                eventColors = emptyList(),
-                                eventCount = 0,
-                            )
-                        }
-                    }
-                }
-                MonthGridRows(
-                    weeks = weeks,
-                    showWeekNumbers = state.showWeekNumbers,
-                    onSelectDate = onSelectDate,
-                )
+            // Nothing is drawn below the navigation row until the display is known: a few milliseconds of
+            // empty space, rather than one layout and then the jump to another.
+            val shown = display ?: return@Column
+            // The rows carry their own weekday names.
+            if (shown != MonthDisplay.ROWS) {
+                WeekdayHeader(state.firstDayOfWeek, locale, state.showWeekNumbers)
             }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            Text(
-                text = dayLabel(state.selectedDate, locale),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-            SelectedDayOccurrences(
-                occurrences = state.selectedDayOccurrences,
-                locale = locale,
-                onOccurrenceClick = onOccurrenceClick,
+            HorizontalPager(
+                state = pagerState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .then(if (shown == MonthDisplay.DOTS) Modifier else Modifier.weight(1f)),
+                verticalAlignment = Alignment.Top,
+            ) { page ->
+                val pageMonth = monthForPage(page)
+                // The shown month and its two neighbours arrive filled in (see MonthViewModel); only a page
+                // further away — the pager crossing several months after "Today" — is drawn bare, for the
+                // instant it is on screen.
+                val weeks = state.pages[pageMonth] ?: bareWeeks(pageMonth, state, today)
+                when (shown) {
+                    MonthDisplay.DOTS -> MonthGridRows(
+                        weeks = weeks,
+                        showWeekNumbers = state.showWeekNumbers,
+                        locale = locale,
+                        onSelectDate = onSelectDate,
+                        onDayLongClick = onDayLongClick,
+                    )
+                    MonthDisplay.TITLES -> MonthTitlesGrid(
+                        weeks = weeks,
+                        showWeekNumbers = state.showWeekNumbers,
+                        locale = locale,
+                        onDayClick = { date ->
+                            onSelectDate(date)
+                            daySheetOpen = true
+                        },
+                        onDayLongClick = onDayLongClick,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    MonthDisplay.ROWS -> MonthRows(
+                        weeks = weeks,
+                        firstDayOfWeek = state.firstDayOfWeek,
+                        showWeekNumbers = state.showWeekNumbers,
+                        locale = locale,
+                        onDayClick = onSelectDate,
+                        onDayLongClick = onDayLongClick,
+                        onOccurrenceClick = onOccurrenceClick,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+            if (shown == MonthDisplay.DOTS) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Text(
+                    text = dayLabel(state.selectedDate, locale),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+                SelectedDayOccurrences(
+                    occurrences = state.selectedDayOccurrences,
+                    locale = locale,
+                    onOccurrenceClick = onOccurrenceClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                )
+            }
+        }
+        if (daySheetOpen && display == MonthDisplay.TITLES) {
+            DaySheet(
+                date = state.selectedDate,
+                occurrences = state.selectedDayOccurrences,
+                locale = locale,
+                onChangeDay = onSelectDate,
+                onAddEvent = onAddEvent,
+                onOccurrenceClick = onOccurrenceClick,
+                onDismiss = { daySheetOpen = false },
             )
         }
     }
+
+    if (pickingDate) {
+        DatePickerModal(
+            initialDate = state.selectedDate,
+            onConfirm = { date ->
+                pickingDate = false
+                onSelectDate(date)
+            },
+            onDismiss = { pickingDate = false },
+            // Only the years the pager can show: the picker's own range starts in 1900, about 25 years
+            // before the first page, and such a date sent the pager out of range (external review).
+            yearRange = pagerYears(anchorMonth),
+        )
+    }
 }
+
+/** The whole years the pager covers around [anchor], within the picker's own range. */
+private fun pagerYears(anchor: YearMonth): IntRange {
+    val years = PAGER_ANCHOR_PAGE / MONTHS_PER_YEAR - 1
+    val default = DatePickerDefaults.YearRange
+    return maxOf(anchor.year - years, default.first)..minOf(anchor.year + years, default.last)
+}
+
+/** A month the ViewModel has not read (more than one away from the shown one): the dates alone. */
+private fun bareWeeks(month: YearMonth, state: MonthUiState, today: LocalDate): List<List<DayCellData>> =
+    MonthGrid.weeks(month, state.firstDayOfWeek).map { row ->
+        row.map { date ->
+            DayCellData(
+                date = date,
+                isInMonth = YearMonth.from(date) == month,
+                isToday = date == today,
+                isSelected = date == state.selectedDate,
+                events = emptyList(),
+            )
+        }
+    }
 
 /** The 6×7 day grid for one month page (ISO week numbers from the mid-week cell when enabled). */
 @Composable
 private fun MonthGridRows(
     weeks: List<List<DayCellData>>,
     showWeekNumbers: Boolean,
+    locale: Locale,
     onSelectDate: (LocalDate) -> Unit,
+    onDayLongClick: (LocalDate) -> Unit,
 ) {
+    val addLabel = stringResource(R.string.month_add_event)
+    // 56 dp at the default text size; taller when the text is enlarged, so the grown circle keeps the
+    // dots below it instead of pushing them out of the cell.
+    val cellHeight = maxOf(
+        DOTS_CELL_HEIGHT,
+        dayNumberDiameter(DOTS_NUMBER_SIZE, MaterialTheme.typography.labelLarge) + DOTS_CELL_HEIGHT - DOTS_NUMBER_SIZE,
+    )
     Column(modifier = Modifier.fillMaxWidth()) {
         weeks.forEach { week ->
             Row(modifier = Modifier.fillMaxWidth()) {
                 if (showWeekNumbers) {
                     val weekNumber = week[MonthGrid.DAYS_PER_WEEK / 2].date.get(WeekFields.ISO.weekOfWeekBasedYear())
-                    WeekNumberCell(weekNumber)
+                    WeekNumberCell(weekNumber, Modifier.height(cellHeight))
                 }
-                week.forEach { cell -> DayCell(cell = cell, onClick = onSelectDate) }
+                week.forEach { cell -> DayCell(cell, cellHeight, locale, addLabel, onSelectDate, onDayLongClick) }
             }
         }
-    }
-}
-
-@Composable
-private fun WeekNumberCell(weekNumber: Int) {
-    Box(
-        modifier = Modifier
-            .width(24.dp)
-            .height(56.dp),
-        contentAlignment = Alignment.TopCenter,
-    ) {
-        Text(
-            text = weekNumber.toString(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 6.dp),
-        )
     }
 }
 
@@ -415,7 +543,7 @@ private fun WeekNumberCell(weekNumber: Int) {
 private fun WeekdayHeader(firstDayOfWeek: DayOfWeek, locale: Locale, showWeekNumbers: Boolean) {
     Row(modifier = Modifier.fillMaxWidth()) {
         if (showWeekNumbers) {
-            Box(modifier = Modifier.width(24.dp))
+            Box(modifier = Modifier.width(weekNumberWidth()))
         }
         MonthGrid.weekdayHeaders(firstDayOfWeek).forEach { dow ->
             Text(
@@ -432,60 +560,42 @@ private fun WeekdayHeader(firstDayOfWeek: DayOfWeek, locale: Locale, showWeekNum
 }
 
 @Composable
-private fun RowScope.DayCell(cell: DayCellData, onClick: (LocalDate) -> Unit) {
-    val numberColor = when {
-        cell.isToday -> MaterialTheme.colorScheme.onPrimary
-        !cell.isInMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-        else -> MaterialTheme.colorScheme.onSurface
-    }
+private fun RowScope.DayCell(
+    cell: DayCellData,
+    height: Dp,
+    locale: Locale,
+    addLabel: String,
+    onClick: (LocalDate) -> Unit,
+    onLongClick: (LocalDate) -> Unit,
+) {
+    // The dots say nothing to a screen reader: the count is said in words with the date.
+    val description = dayDescription(cell, locale, withCount = true)
     Column(
         modifier = Modifier
             .weight(1f)
-            .height(56.dp)
+            .height(height)
             .clip(MaterialTheme.shapes.small)
-            .then(
-                if (cell.isSelected) {
-                    Modifier.background(MaterialTheme.colorScheme.primaryContainer)
-                } else {
-                    Modifier
-                },
+            .selectedDayOutline(cell.isSelected, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
+            .dayGestures(
+                onClick = { onClick(cell.date) },
+                onLongClick = { onLongClick(cell.date) },
+                longClickLabel = addLabel,
             )
-            .clickable { onClick(cell.date) }
+            .semantics {
+                contentDescription = description
+                selected = cell.isSelected
+            }
             .padding(top = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(26.dp)
-                .clip(CircleShape)
-                .then(
-                    if (cell.isToday) Modifier.background(MaterialTheme.colorScheme.primary) else Modifier,
-                ),
-        ) {
-            Text(
-                text = cell.date.dayOfMonth.toString(),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = if (cell.isToday) FontWeight.Bold else FontWeight.Normal,
-                color = numberColor,
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            cell.eventColors.forEach { argb ->
-                Box(
-                    modifier = Modifier
-                        .size(5.dp)
-                        .clip(CircleShape)
-                        .background(Color(argb)),
-                )
-            }
-        }
+        DayNumber(cell, size = DOTS_NUMBER_SIZE, style = MaterialTheme.typography.labelLarge)
+        EventDots(cell.events)
     }
 }
 
 @Composable
-private fun SelectedDayOccurrences(
+internal fun SelectedDayOccurrences(
     occurrences: List<OccurrenceData>,
     locale: Locale,
     onOccurrenceClick: (Long, Long) -> Unit,
@@ -606,7 +716,7 @@ private fun monthLabel(yearMonth: YearMonth, locale: Locale): String {
     return "$month ${yearMonth.year}"
 }
 
-private fun dayLabel(date: LocalDate, locale: Locale): String =
+internal fun dayLabel(date: LocalDate, locale: Locale): String =
     date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale))
         .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
 
@@ -673,7 +783,9 @@ private fun PromptCard(
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(onClick = onDismiss) { Text(dismissLabel) }
-                TextButton(onClick = onAction) { Text(actionLabel) }
+                // Filled like every main action of the app (Unlock, Save, the "+"): the offer is the
+                // point of the card, "later" only its way out.
+                Button(onClick = onAction) { Text(actionLabel) }
             }
         }
     }
@@ -682,3 +794,6 @@ private fun PromptCard(
 /** Opacite du voile pose pendant un import/export `.ics` : assez sombre pour dire « attendez »,
  * assez clair pour que l'agenda reste reconnaissable derriere. */
 private const val SCRIM_ALPHA = 0.32f
+
+private val DOTS_CELL_HEIGHT = 56.dp
+private val DOTS_NUMBER_SIZE = 26.dp

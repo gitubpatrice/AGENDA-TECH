@@ -18,9 +18,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +49,7 @@ import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.ui.theme.BrandDanger
+import com.filestech.agenda_tech.ui.util.AddFab
 import com.filestech.agenda_tech.ui.util.displayName
 
 @Composable
@@ -76,12 +76,13 @@ fun CalendarsScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                editing = null
-                showDialog = true
-            }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.calendar_add))
-            }
+            AddFab(
+                onClick = {
+                    editing = null
+                    showDialog = true
+                },
+                contentDescription = stringResource(R.string.calendar_add),
+            )
         },
     ) { innerPadding ->
         LazyColumn(
@@ -252,7 +253,9 @@ private fun CalendarEditDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            // Filled like every "Save" of the app (the editor's, the other dialogs'), so saving looks
+            // the same wherever it is offered; "Cancel" stays a text button.
+            Button(
                 onClick = { onSave(name.trim(), color) },
                 enabled = name.isNotBlank() && !busy,
             ) {

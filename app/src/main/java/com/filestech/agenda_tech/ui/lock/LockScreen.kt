@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.ui.theme.LogoShape
 import com.filestech.agenda_tech.security.StrongBiometrics
 
 /** Minimum PIN length, shared with the settings PIN dialog. */
@@ -75,7 +77,7 @@ fun LockScreen(
             Image(
                 painter = painterResource(R.drawable.app_logo),
                 contentDescription = null,
-                modifier = Modifier.size(72.dp),
+                modifier = Modifier.size(72.dp).clip(LogoShape),
             )
             Text(
                 text = stringResource(R.string.app_name),

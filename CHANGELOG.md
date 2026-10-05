@@ -7,6 +7,15 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ### Added
 
+- **Three ways to show the month**, chosen from the top bar or by pinching the month: *dots*, as
+  before; *titles* inside the grid, where a lone event uses every free line of its day instead of
+  being cut after a few letters; and *one row per day*, with every title whole and the free days kept
+  in place. In the titles view a tap opens the day over the month, and a swipe moves to the next day
+  without closing it. Asked by a user who could not see what each day held without tapping it.
+- **Long-press a day to create an event on it**, in all three views, and **tap the month name to jump
+  to any date**.
+- **The month speaks to screen readers**: each day announces its full date and how many events it
+  holds, instead of a bare number.
 - **German, Italian and Spanish**, alongside English and French: every screen, notification and
   widget, the F-Droid listing, the privacy policy and the new terms of use. Machine-assisted and not
   yet reviewed by a native speaker — corrections welcome, see `TRANSLATING.md`.
@@ -15,8 +24,21 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 - **Terms of use** (`TERMS.md`), linked from About. For them and for the privacy policy, the French
   version prevails; the policy now names its publisher and a contact address.
 
+### Changed
+
+- **The main action of each screen is a filled button in the app's blue**: the "+" button, Save
+  (green until now), the backup banner, "See updates" in About.
+- **The selected day is outlined** rather than filled, in the three month views.
+- **Swiping to the next month slides in a month already filled in**: the neighbouring months are
+  read with the one shown.
+- **The splash logo has rounded corners**; the splash's circle clipped them.
+
 ### Fixed
 
+- **At the largest text sizes, two-digit day numbers were cut** ("1" for the 12th), and so were
+  week numbers.
+- **A day with more than four events showed four dots and nothing else**; a "+" now says there are
+  more.
 - **The first calendar kept the language the app was first opened in.** "Perso" stayed "Perso" on a
   German screen, because the name was written once at first run. It is now shown in the current
   language, on existing installs too, as long as it still has its original name. A calendar you named
@@ -27,6 +49,26 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ### Français
 
+- **Trois façons d'afficher le mois**, au choix dans la barre du haut ou en pinçant le mois : les
+  *points*, comme avant ; les *titres* dans la grille, où un événement seul occupe toutes les lignes
+  libres de sa case au lieu d'être coupé après quelques lettres ; et *une ligne par jour*, titres
+  entiers, jours libres conservés. En mode titres, un tap ouvre le jour par-dessus le mois, et un
+  glissement passe au jour suivant sans le refermer. Demandé par un utilisateur qui ne voyait pas ce
+  que contenait chaque jour sans le toucher.
+- **Appui long sur un jour pour y créer un événement**, dans les trois affichages, et **tap sur le nom
+  du mois pour aller à n'importe quelle date**.
+- **Le mois se lit avec un lecteur d'écran** : chaque jour annonce sa date complète et son nombre
+  d'événements, au lieu d'un simple chiffre.
+- **L'action principale de chaque écran est un bouton plein, du bleu de l'application** : le « + »,
+  Enregistrer (vert jusqu'ici), le bandeau de sauvegarde, « Voir les mises à jour » dans À propos.
+- **Le jour sélectionné est entouré** plutôt que surligné, dans les trois affichages.
+- **Glisser au mois suivant fait arriver un mois déjà rempli** : les mois voisins sont lus avec celui
+  qui est affiché.
+- **Le logo de démarrage a ses coins arrondis** ; le cercle de l'écran de démarrage les coupait.
+- **Aux plus grandes tailles de texte, les numéros de jour à deux chiffres étaient coupés** (« 1 » pour
+  le 12), les numéros de semaine aussi.
+- **Un jour de plus de quatre événements montrait quatre points et rien d'autre** ; un « + » signale
+  désormais les suivants.
 - **Allemand, italien et espagnol**, en plus de l'anglais et du français : tous les écrans, les
   notifications et le widget, la fiche F-Droid, la politique de confidentialité et les nouvelles
   conditions d'utilisation. Traductions assistées par machine, pas encore relues par un locuteur

@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -344,7 +345,9 @@ private fun SetPinDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(pin) }, enabled = valid) {
+            // Filled like every "Save" of the app (the editor's, the other dialogs'), so saving looks
+            // the same wherever it is offered; "Cancel" stays a text button.
+            Button(onClick = { onConfirm(pin) }, enabled = valid) {
                 Text(stringResource(R.string.action_save))
             }
         },

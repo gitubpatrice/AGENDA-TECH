@@ -8,6 +8,7 @@ import com.filestech.agenda_tech.domain.recurrence.EventOccurrence
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
+import com.filestech.agenda_tech.domain.settings.MonthDisplay
 import com.filestech.agenda_tech.domain.settings.toDayOfWeek
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -67,19 +69,39 @@ class MonthViewModel @Inject constructor(
         .map { it.weekStart to it.showWeekNumbers }
         .distinctUntilChanged()
 
+    /**
+     * How the month is drawn — kept out of [uiState] on purpose. [uiState] waits for the database, and
+     * opening it took up to three seconds on the S9 after a PIN unlock: someone who had chosen the
+     * titles saw the dots layout all that time, then the jump. The display comes from the settings
+     * alone, read in milliseconds. Null until then, so the screen draws no layout rather than a wrong one.
+     */
+    val display: StateFlow<MonthDisplay?> = settingsRepository.settings
+        .map { it.monthDisplay }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
+    // The two neighbouring months are read along with the shown one, so a swipe slides in a page that is
+    // already filled in. With dots, a page filling itself once it settles went unnoticed; with titles in
+    // the grid it is plainly visible.
     @OptIn(ExperimentalCoroutinesApi::class)
     private val windowOccurrences = combine(displayedMonth, firstDayOfWeekFlow) { month, firstDay ->
         month to firstDay
     }.flatMapLatest { (month, firstDay) ->
-        val (startDate, endDate) = MonthGrid.gridRange(month, firstDay)
+        val startDate = MonthGrid.gridRange(month.minusMonths(1), firstDay).first
+        val endDate = MonthGrid.gridRange(month.plusMonths(1), firstDay).second
         observeOccurrences(startDate.toStartOfDayUtc(), endDate.toStartOfDayUtc())
     }
 
+    // The two database sources start empty, once, when the screen starts collecting: the grid is then
+    // drawn as soon as the settings are read — with the user's first day of the week — and the events
+    // follow when the database has opened. Waiting for it drew the locale's first day for the seconds
+    // the database took after a PIN unlock, then the jump to the user's (external review, 2026-10-05).
+    // Applied to the outer flow, not to each month's query, so a swipe never empties the grid.
     val uiState: StateFlow<MonthUiState> = combine(
         displayedMonth,
         selectedDate,
-        windowOccurrences,
-        calendarRepository.observeAll(),
+        windowOccurrences.onStart { emit(emptyList()) },
+        calendarRepository.observeAll().onStart { emit(emptyList()) },
         monthSettingsFlow,
     ) { month, selected, occurrences, calendars, settingsPair ->
         buildState(
@@ -174,13 +196,9 @@ class MonthViewModel @Inject constructor(
         settingsRepository.update { it.copy(backupPromptSnoozedUntilUtcMillis = until) }
     }
 
-    fun onPreviousMonth() {
-        displayedMonth.value = displayedMonth.value.minusMonths(1)
-    }
+    fun onPreviousMonth() = moveTo(displayedMonth.value.minusMonths(1))
 
-    fun onNextMonth() {
-        displayedMonth.value = displayedMonth.value.plusMonths(1)
-    }
+    fun onNextMonth() = moveTo(displayedMonth.value.plusMonths(1))
 
     fun onToday() {
         displayedMonth.value = YearMonth.now(zone)
@@ -189,7 +207,26 @@ class MonthViewModel @Inject constructor(
 
     /** Jump straight to a month (used by the swipe pager once it settles on a page). */
     fun showMonth(month: YearMonth) {
-        if (displayedMonth.value != month) displayedMonth.value = month
+        if (displayedMonth.value != month) moveTo(month)
+    }
+
+    /**
+     * Shows [month] and brings the selection into it: today in the current month, the 1st in any
+     * other. Left behind, the selected day kept its list under a month it no longer belonged to, and
+     * two months away — outside the window read — that list said "no events" for a day that had some
+     * (external review, 2026-10-05). The 1st rather than the same day of the month, so the rows open
+     * at the top of the month they show.
+     */
+    private fun moveTo(month: YearMonth) {
+        if (YearMonth.from(selectedDate.value) != month) {
+            selectedDate.value = if (month == YearMonth.now(zone)) LocalDate.now(zone) else month.atDay(1)
+        }
+        displayedMonth.value = month
+    }
+
+    /** Remembered across launches: the button row and the pinch both land here. */
+    fun setDisplay(display: MonthDisplay) = viewModelScope.launch {
+        settingsRepository.update { it.copy(monthDisplay = display) }
     }
 
     /** Selecting a leading/trailing cell that belongs to an adjacent month navigates to it. */
@@ -210,33 +247,9 @@ class MonthViewModel @Inject constructor(
     ): MonthUiState {
         val today = LocalDate.now(zone)
 
-        val weekRows = MonthGrid.weeks(month, firstDayOfWeek)
-        val weeks = weekRows.map { week ->
-            week.map { date ->
-                // FIAB-2 — dots must appear on every day an event overlaps, not only its start day,
-                // so multi-day / all-day-span events (e.g. a 2-day holiday) show on each covered cell.
-                val dayStart = date.toStartOfDayUtc()
-                val dayEnd = date.plusDays(1).toStartOfDayUtc()
-                val dayOccurrences = occurrences.filter {
-                    it.startUtcMillis < dayEnd && it.endUtcMillis > dayStart
-                }
-                DayCellData(
-                    date = date,
-                    isInMonth = YearMonth.from(date) == month,
-                    isToday = date == today,
-                    isSelected = date == selected,
-                    eventColors = dayOccurrences.take(MAX_DOTS).map { colorOf(it, colorByCalendarId) },
-                    eventCount = dayOccurrences.size,
-                )
-            }
-        }
-        // ISO week number, read from the mid-week cell so it's stable whatever the first day is.
-        val weekNumbers = weekRows.map { it[MID_WEEK_INDEX].get(WeekFields.ISO.weekOfWeekBasedYear()) }
-
-        val selectedStart = selected.toStartOfDayUtc()
-        val selectedEnd = selected.plusDays(1).toStartOfDayUtc()
-        val selectedDayOccurrences = occurrences
-            .filter { it.startUtcMillis < selectedEnd && it.endUtcMillis > selectedStart }
+        // Converted and sorted once for the whole window; every day below is a filter of this list, so
+        // the dots, the titles, the rows and the selected day's list all agree on order and content.
+        val sorted = occurrences
             .sortedWith(compareBy({ !it.event.allDay }, { it.startUtcMillis }))
             .map {
                 OccurrenceData(
@@ -250,16 +263,44 @@ class MonthViewModel @Inject constructor(
                 )
             }
 
+        val pages = PAGE_OFFSETS.associate { offset ->
+            val pageMonth = month.plusMonths(offset)
+            pageMonth to MonthGrid.weeks(pageMonth, firstDayOfWeek).map { week ->
+                week.map { date ->
+                    DayCellData(
+                        date = date,
+                        isInMonth = YearMonth.from(date) == pageMonth,
+                        isToday = date == today,
+                        isSelected = date == selected,
+                        events = sorted.overlapping(date),
+                    )
+                }
+            }
+        }
+        // ISO week number, read from the mid-week cell so it's stable whatever the first day is.
+        val weekNumbers = pages.getValue(month)
+            .map { it[MID_WEEK_INDEX].date.get(WeekFields.ISO.weekOfWeekBasedYear()) }
+
         return MonthUiState(
             yearMonth = month,
             firstDayOfWeek = firstDayOfWeek,
-            weeks = weeks,
+            pages = pages,
             selectedDate = selected,
-            selectedDayOccurrences = selectedDayOccurrences,
+            selectedDayOccurrences = sorted.overlapping(selected),
             showWeekNumbers = showWeekNumbers,
             weekNumbers = weekNumbers,
             isLoading = isLoading,
         )
+    }
+
+    /**
+     * FIAB-2 — every occurrence that overlaps [date], not only those starting on it, so a multi-day or
+     * all-day-span event (a 2-day holiday) shows on each day it covers.
+     */
+    private fun List<OccurrenceData>.overlapping(date: LocalDate): List<OccurrenceData> {
+        val dayStart = date.toStartOfDayUtc()
+        val dayEnd = date.plusDays(1).toStartOfDayUtc()
+        return filter { it.startUtcMillis < dayEnd && it.endUtcMillis > dayStart }
     }
 
     private fun colorOf(occurrence: EventOccurrence, colorByCalendarId: Map<Long, Int>): Int =
@@ -287,7 +328,9 @@ class MonthViewModel @Inject constructor(
         const val SNOOZE_DAYS = 14L
 
         const val STOP_TIMEOUT_MS = 5_000L
-        const val MAX_DOTS = 4
         const val MID_WEEK_INDEX = 3
+
+        /** The shown month and its two neighbours — see [windowOccurrences]. */
+        private val PAGE_OFFSETS = -1L..1L
     }
 }

@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The logo as the splash screen should draw it: inside the circular safe zone, so nothing clips it.
+  The logo as the splash screen should draw it: rounded, and whole.
 
-  WHY THIS FILE EXISTS
-  `ic_launcher_foreground` is a rounded square that fills its whole canvas — which is right for the
-  launcher, where the system mask is a squircle on most devices and the mark reads edge to edge (the
-  dock shows exactly that). The splash is not the launcher: it draws the icon inside a CIRCLE, so the
-  four corners of a full-bleed square are cut off and the brand mark arrives on screen as a disc.
-  Measured on the Galaxy S9 before this change.
+  WHAT THE SPLASH DOES TO ITS ICON
+  It shows the icon inside a CIRCLE whose diameter is 2/3 of the icon (Android documents 192 dp for a
+  288 dp icon without background; the androidx compat library applies the same rule below Android 12).
+  Anything outside that circle is clipped.
 
-  The fix is geometry, not a new asset. A square inscribed in a circle has a side of 1/sqrt(2) of the
-  diameter, i.e. about 71 % — so an inset of ~15 % per side is the mathematical minimum. 16 % is used
-  here for a margin, and because it is the value the rest of the portfolio already uses for the same
-  reason (Notes Tech insets its adaptive foreground by 16 %).
+  WHY NOT `ic_launcher_foreground` AS IT IS
+  Its square is barely rounded (about 3 % of its side): on the home screen the launcher mask does the
+  rounding. The splash has no such mask. The first fix inset that square by 16 %, computed against a
+  circle as wide as the whole canvas — but the visible circle is 2/3 of it, so the corners still
+  overflowed by about 6.6 dp and were clipped by a shallow arc that read as cut corners (seen on the
+  Galaxy S9, 2026-10-05).
 
-  Deliberately NOT applied to `mipmap/ic_launcher`: the launcher mask is a squircle, the full-bleed
-  mark fits it, and insetting there would shrink the icon on the home screen for no reason. One asset,
-  two framings, each sized for the shape that will actually clip it.
+  WHAT IS USED INSTEAD
+  `splash_logo`, built by `tools/make-splash-logo.py` from the launcher artwork: the same square,
+  with its corners rounded at 13 % of its side — the rounding of the SMS Tech logo, so the apps open
+  alike. A rounded square of side s reaches 0.65 s from its centre; to stay within the circle
+  (radius 1/3 of the icon), s may be at most 51 % of the icon. An inset of 26 % per side gives 48 %,
+  so the farthest point sits 4.7 dp inside the circle on a 288 dp icon.
+
+  `mipmap/ic_launcher` is deliberately left alone: the launcher masks it itself.
 -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/ic_launcher_foreground"
-    android:inset="16%" />
+    android:drawable="@drawable/splash_logo"
+    android:inset="26%" />
