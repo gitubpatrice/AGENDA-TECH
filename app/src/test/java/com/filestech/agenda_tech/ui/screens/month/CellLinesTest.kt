@@ -90,4 +90,14 @@ class CellLinesTest {
         assertThat(plan.linesPerEvent).isEmpty()
         assertThat(plan.hidden).isEqualTo(1)
     }
+
+    @Test
+    fun `with as many events as lines or more, how long the titles are changes nothing`() {
+        // What lets the grid skip measuring the titles of a busy day (MonthTitlesGrid.CellTitles): if
+        // this ever stopped holding, a cell would plan its lines from placeholder lengths.
+        for ((count, lines) in listOf(3 to 3, 5 to 3, 4 to 1)) {
+            assertThat(CellLines.plan(List(count) { 1 }, lines))
+                .isEqualTo(CellLines.plan(List(count) { 7 }, lines))
+        }
+    }
 }

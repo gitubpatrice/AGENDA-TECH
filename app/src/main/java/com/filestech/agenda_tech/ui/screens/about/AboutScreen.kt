@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.SystemUpdate
+import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material3.Card
@@ -561,6 +562,11 @@ private fun features(): List<Feature> = listOf(
         Icons.Outlined.DarkMode,
         stringResource(R.string.about_feat_theme_label),
         stringResource(R.string.about_feat_theme_desc),
+    ),
+    Feature(
+        Icons.Outlined.Translate,
+        stringResource(R.string.about_feat_languages_label),
+        stringResource(R.string.about_feat_languages_desc),
     ),
 )
 

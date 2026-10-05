@@ -240,6 +240,8 @@
     <string name="about_feat_encryption_desc">Die ganze Datenbank ist mit AES-256 verschlüsselt; der Schlüssel verlässt nie die sichere Hardware des Geräts.</string>
     <string name="about_feat_theme_label">Helles und dunkles Design</string>
     <string name="about_feat_theme_desc">Folgt dem System oder wird festgelegt. Kalenderwochen, erster Wochentag, Standardfarbe.</string>
+    <string name="about_feat_languages_label">Fünf Sprachen</string>
+    <string name="about_feat_languages_desc">Englisch, Französisch, Deutsch, Italienisch und Spanisch — ab Android 13 pro App wählbar.</string>
 
     <!-- About · Security -->
     <string name="about_security_title">Sicherheit</string>

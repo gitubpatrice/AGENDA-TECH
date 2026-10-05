@@ -242,6 +242,8 @@
     <string name="about_feat_encryption_desc">The whole database is AES-256 encrypted; the key never leaves the device\'s secure hardware.</string>
     <string name="about_feat_theme_label">Light and dark themes</string>
     <string name="about_feat_theme_desc">Follows the system, or force one. Week numbers, first day of week, default colour.</string>
+    <string name="about_feat_languages_label">Five languages</string>
+    <string name="about_feat_languages_desc">English, French, German, Italian and Spanish — chosen per app from Android 13.</string>
 
     <!-- About · Security -->
     <string name="about_security_title">Security</string>

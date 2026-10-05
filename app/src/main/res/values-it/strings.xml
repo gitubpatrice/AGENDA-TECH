@@ -250,6 +250,8 @@
     <string name="about_feat_encryption_desc">L\'intero database è cifrato AES-256; la chiave non lascia mai l\'hardware sicuro del dispositivo.</string>
     <string name="about_feat_theme_label">Tema chiaro e scuro</string>
     <string name="about_feat_theme_desc">Segue il sistema, oppure lo imponga. Numeri delle settimane, primo giorno della settimana, colore predefinito.</string>
+    <string name="about_feat_languages_label">Cinque lingue</string>
+    <string name="about_feat_languages_desc">Inglese, francese, tedesco, italiano e spagnolo — la lingua dell\'app si sceglie da Android 13.</string>
 
     <!-- About · Security -->
     <string name="about_security_title">Sicurezza</string>
