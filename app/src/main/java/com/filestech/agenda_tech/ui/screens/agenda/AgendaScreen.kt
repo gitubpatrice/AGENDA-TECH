@@ -48,7 +48,7 @@ fun AgendaScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val locale = rememberAppLocale()
-    val zone = ZoneId.systemDefault()
+    val zone = state.zone
     val listState = rememberLazyListState()
 
     // The window spans a year of past events; open the list at today rather than a year ago.

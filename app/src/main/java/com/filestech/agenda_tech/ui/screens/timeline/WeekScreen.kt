@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +50,8 @@ fun WeekScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val locale = rememberAppLocale()
+    // The first day of the week follows the language the screen is drawn in (see WeekViewModel.appLocale).
+    LaunchedEffect(locale) { viewModel.onLocaleChange(locale) }
     val addTargetDate = state.days.firstOrNull { it.isToday }?.date ?: state.weekStart
 
     CalendarScaffold(

@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.ui.screens.agenda
 
 import app.cash.turbine.test
+import com.filestech.agenda_tech.core.time.FakeDeviceZone
 import com.filestech.agenda_tech.core.time.FarZones
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.Event
@@ -16,6 +17,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import java.time.LocalDate
@@ -57,6 +59,7 @@ class AgendaViewModelTest {
         val vm = AgendaViewModel(
             ObserveOccurrencesInRangeUseCase(eventRepo, calendarRepo, RecurrenceExpander(), dispatcher),
             calendarRepo,
+            FakeDeviceZone(zone),
         )
 
         vm.uiState.test {
@@ -66,6 +69,40 @@ class AgendaViewModelTest {
             // A tap hands the editor the instant the occurrence is known by, not its place here.
             assertThat(days.single().items.single().occurrenceStartUtcMillis)
                 .isEqualTo(eventRepo.rows.getValue(1).startUtcMillis)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `an open agenda follows a change of time zone`() = runTest(dispatcher) {
+        // 01:00 in Paris is 19:00 the day before in New York: the list must move the event there once
+        // the phone is, not when the process happens to end.
+        val paris = ZoneId.of("Europe/Paris")
+        val deviceZone = FakeDeviceZone(paris)
+        val day = LocalDate.now(paris).plusDays(10)
+        val start = day.atTime(1, 0).atZone(paris).toInstant().toEpochMilli()
+        eventRepo.rows[1] = Event(
+            id = 1,
+            calendarId = 1,
+            title = "Early",
+            startUtcMillis = start,
+            endUtcMillis = start + 3_600_000,
+            timeZoneId = paris.id,
+        )
+        val vm = AgendaViewModel(
+            ObserveOccurrencesInRangeUseCase(eventRepo, calendarRepo, RecurrenceExpander(), dispatcher),
+            calendarRepo,
+            deviceZone,
+        )
+
+        vm.uiState.test {
+            testScheduler.advanceUntilIdle()
+            assertThat(expectMostRecentItem().days.map { it.date }).containsExactly(day)
+
+            deviceZone.zone.value = ZoneId.of("America/New_York")
+            testScheduler.advanceUntilIdle()
+
+            assertThat(expectMostRecentItem().days.map { it.date }).containsExactly(day.minusDays(1))
             cancelAndIgnoreRemainingEvents()
         }
     }

@@ -3,6 +3,7 @@ package com.filestech.agenda_tech.ui.screens.month
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 
 /**
  * One cell of the month grid. [events] are every occurrence overlapping the day, all-day first then
@@ -42,6 +43,12 @@ data class OccurrenceData(
  * dates are raw `java.time` values the Composable formats with the viewer's locale.
  */
 data class MonthUiState(
+    /**
+     * The zone the state was built in — its days, its "today", and the clock times the screen formats
+     * (`MonthScreen` provides it as `LocalDeviceZone`). Carried rather than read again by the screen: a
+     * state replayed after a change of zone must be drawn in the zone it was counted in.
+     */
+    val zone: ZoneId,
     val yearMonth: YearMonth,
     val firstDayOfWeek: DayOfWeek,
     /**

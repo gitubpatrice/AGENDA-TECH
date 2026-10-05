@@ -5,6 +5,7 @@ import androidx.glance.appwidget.updateAll
 import com.filestech.agenda_tech.core.di.ApplicationScope
 import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
+import com.filestech.agenda_tech.widget.AgendaIconWidget
 import com.filestech.agenda_tech.widget.AgendaWidget
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -85,15 +86,31 @@ class AgendaChangeNotifier @Inject constructor(
      * suivre, mais relire tous les rappels ne servirait à rien.
      */
     fun onAgendaChanged(rearmReminders: Boolean = true) {
-        appScope.launch {
-            running.withLock {
-                if (rearmReminders) {
-                    guarded("re-arming reminders") {
-                        withContext(io) { reminderScheduler.get().rescheduleAll() }
-                    }
+        appScope.launch { applyChange(rearmReminders) }
+    }
+
+    /**
+     * After a change of the phone's time zone: every reminder re-armed (an all-day one rings at the
+     * phone's midnight), and both widgets redrawn — the agenda's days and the icon's date are the
+     * phone's, and they otherwise waited up to half an hour for their next scheduled update.
+     *
+     * Awaited rather than launched: the caller is a broadcast receiver, which holds `goAsync()` until
+     * the work is done — launched and forgotten, the process can be reclaimed as soon as `onReceive`
+     * returns.
+     */
+    suspend fun onTimeZoneChanged() {
+        applyChange(rearmReminders = true)
+        guarded("date widget refresh") { AgendaIconWidget().updateAll(context) }
+    }
+
+    private suspend fun applyChange(rearmReminders: Boolean) {
+        running.withLock {
+            if (rearmReminders) {
+                guarded("re-arming reminders") {
+                    withContext(io) { reminderScheduler.get().rescheduleAll() }
                 }
-                guarded("widget refresh") { AgendaWidget().updateAll(context) }
             }
+            guarded("widget refresh") { AgendaWidget().updateAll(context) }
         }
     }
 

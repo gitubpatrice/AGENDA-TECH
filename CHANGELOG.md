@@ -36,14 +36,21 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 ### Fixed
 
 - **An all-day event created in another time zone spilled onto two days.** Its days were read on the
-  phone's clock: after a journey, or for a calendar file written elsewhere, a holiday showed on two
-  days in the month, week and day views, was listed the day before in the agenda and showed a day
+  phone's clock: after a journey, or after restoring a backup made in another time zone, a holiday
+  showed on two days in the month, week and day views, was listed the day before in the agenda and showed a day
   late in the widget. Opening it and saving without a change moved it by a day. Its dates are now read
   in the zone it was created in, everywhere, and its reminders ring at the phone's midnight. Also in
   1.1.1.
 - **One day of an all-day series could open ending the day before it began**, when summer time started
   or ended in the series, and saving it stored a day of no length. Its end is now counted the way the
   calendar views count it, and an all-day end before the start is refused. Found by external review.
+- **An open app kept the old time zone after a journey**: times, days and "today" stayed those of the
+  zone it was opened in until it was closed, and the widget waited up to half an hour. The screens, the
+  widgets and the reminders now follow a change of time zone at once. Also in 1.1.1.
+- **After changing the app's language, the week kept the old language's first day** — a German month
+  starting on Sunday — until the app was closed.
+- **An all-day reminder showed a clock time** (00:00, or another hour after a journey); it no longer
+  does.
 - **Coming back to the month could show the next one.** After swiping to another month, a visit to
   Settings, the editor or search came back one month further — every time.
 - **At the largest text sizes, two-digit day numbers were cut** ("1" for the 12th), and so were
@@ -83,8 +90,8 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 - **Un jour de plus de quatre événements montrait quatre points et rien d'autre** ; un « + » signale
   désormais les suivants.
 - **Une journée entière créée dans un autre fuseau horaire débordait sur deux jours.** Ses dates étaient
-  lues à l'heure du téléphone : après un voyage, ou pour un fichier d'agenda écrit ailleurs, un jour
-  férié s'affichait sur deux jours dans les vues mois, semaine et jour, figurait la veille dans
+  lues à l'heure du téléphone : après un voyage, ou après la restauration d'une sauvegarde faite dans
+  un autre fuseau, un jour férié s'affichait sur deux jours dans les vues mois, semaine et jour, figurait la veille dans
   l'agenda et un jour trop tard dans le widget. L'ouvrir et l'enregistrer sans rien changer le
   déplaçait d'un jour. Ses dates sont désormais lues partout dans le fuseau où elle a été créée, et ses
   rappels sonnent à minuit, heure du téléphone. Présent aussi dans la 1.1.1.
@@ -92,6 +99,14 @@ versions selon [SemVer](https://semver.org/lang/fr/).
   autour d'un changement d'heure, et l'enregistrer créait une journée de durée nulle. Sa fin est
   désormais comptée comme dans les vues du calendrier, et une fin antérieure au début est refusée.
   Trouvé par une relecture externe.
+- **L'application ouverte gardait l'ancien fuseau après un voyage** : heures, jours et « aujourd'hui »
+  restaient ceux du fuseau d'ouverture jusqu'à sa fermeture, et le widget attendait jusqu'à une
+  demi-heure. Les écrans, les widgets et les rappels suivent désormais aussitôt un changement de
+  fuseau. Présent aussi dans la 1.1.1.
+- **Après un changement de langue de l'application, la semaine gardait le premier jour de l'ancienne**
+  — un mois allemand commençant le dimanche — jusqu'à la fermeture de l'application.
+- **Le rappel d'une journée entière affichait une heure** (00:00, ou une autre après un voyage) ; ce
+  n'est plus le cas.
 - **Allemand, italien et espagnol**, en plus de l'anglais et du français : tous les écrans, les
   notifications et le widget, la fiche F-Droid, la politique de confidentialité et les nouvelles
   conditions d'utilisation. Traductions assistées par machine, pas encore relues par un locuteur

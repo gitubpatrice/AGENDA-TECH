@@ -123,19 +123,23 @@ class RecurrenceExpander @Inject constructor() {
      * Walks the sequence rather than calling [expand]: it keeps only one instant instead of
      * materialising the whole past series. Terminates on an open-ended rule too, since the starts are
      * ascending and stop being taken once they reach [beforeUtcMillis].
+     *
+     * [accept] narrows the answer to the occurrences it takes, as in [firstOccurrenceStart]: search
+     * dates an all-day series by where its occurrences begin on the phone's calendar.
      */
     fun lastOccurrenceStartBefore(
         event: Event,
         beforeUtcMillis: Long,
         extraExcludedStartsUtcMillis: Set<Long> = emptySet(),
         budget: ExpansionBudget? = null,
+        accept: (Long) -> Boolean = { true },
     ): Long? {
         val rule = event.recurrence
-            ?: return event.startUtcMillis.takeIf { it < beforeUtcMillis }
+            ?: return event.startUtcMillis.takeIf { it < beforeUtcMillis && accept(it) }
         val zone = resolveZone(event.timeZoneId)
         return occurrenceStarts(event, rule, zone, extraExcludedStartsUtcMillis, budget)
             .takeWhile { it < beforeUtcMillis }
-            .lastOrNull()
+            .lastOrNull(accept)
     }
 
     /**

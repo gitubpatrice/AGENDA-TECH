@@ -4,8 +4,10 @@ import com.filestech.agenda_tech.core.text.SearchText
 import com.filestech.agenda_tech.core.di.DefaultDispatcher
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.Event
+import com.filestech.agenda_tech.domain.recurrence.ALL_DAY_PLACEMENT_BOUND_MILLIS
 import com.filestech.agenda_tech.domain.recurrence.ExpansionBudget
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
+import com.filestech.agenda_tech.domain.recurrence.shownStartUtcMillis
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.search.EventSearchHit
@@ -13,6 +15,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
+import java.time.ZoneId
 import javax.inject.Inject
 
 /**
@@ -42,11 +45,13 @@ class SearchEventsUseCase @Inject constructor(
     /**
      * Streams the hits for each emitted query. Debouncing belongs to the caller.
      *
-     * [nowUtcMillis] is a parameter rather than a direct clock read so a test can pin "now" and
-     * assert the upcoming/past split deterministically.
+     * [zones] is the phone's zone as it changes: a change re-runs the search, whose upcoming/past split
+     * and order depend on it for all-day events. [nowUtcMillis] is a parameter rather than a direct
+     * clock read so a test can pin "now" and assert that split deterministically.
      */
     operator fun invoke(
         queries: Flow<String>,
+        zones: Flow<ZoneId>,
         nowUtcMillis: () -> Long = System::currentTimeMillis,
     ): Flow<List<EventSearchHit>> {
         val corpus = combine(
@@ -55,8 +60,8 @@ class SearchEventsUseCase @Inject constructor(
             eventRepository.observeOverrides(),
         ) { events, calendars, overrides -> buildCorpus(events, calendars, overrides) }
 
-        return combine(corpus, queries) { entries, query ->
-            search(entries, query, nowUtcMillis())
+        return combine(corpus, queries, zones) { entries, query, zone ->
+            search(entries, query, nowUtcMillis(), zone)
         }.flowOn(defaultDispatcher)
     }
 
@@ -114,7 +119,7 @@ class SearchEventsUseCase @Inject constructor(
         ).joinToString("\n"),
     )
 
-    private fun search(entries: List<Entry>, query: String, nowUtcMillis: Long): List<EventSearchHit> {
+    private fun search(entries: List<Entry>, query: String, nowUtcMillis: Long, zone: ZoneId): List<EventSearchHit> {
         val needle = SearchText.fold(query.trim())
         // An empty query returns nothing, never everything: dumping the whole agenda the moment the
         // field is focused would bury the one thing being looked for.
@@ -132,14 +137,15 @@ class SearchEventsUseCase @Inject constructor(
 
         val hits = entries.mapNotNull { entry ->
             if (!entry.haystack.contains(needle)) return@mapNotNull null
-            dateHit(entry, nowUtcMillis, budget)
+            dateHit(entry, nowUtcMillis, zone, budget)
         }
 
         // Upcoming first, soonest first — "when is my dentist?". Then the past, most recent first —
-        // "when *was* it?". Those are the two questions people search an agenda with.
+        // "when *was* it?". Those are the two questions people search an agenda with. Ordered by where
+        // each occurrence begins on the phone's calendar, as the views order them.
         val (upcoming, past) = hits.partition { it.isUpcoming }
-        return upcoming.sortedBy { it.occurrenceStartUtcMillis } +
-            past.sortedByDescending { it.occurrenceStartUtcMillis }
+        val shownStart = { hit: EventSearchHit -> hit.event.shownStartUtcMillis(hit.occurrenceStartUtcMillis, zone) }
+        return upcoming.sortedBy(shownStart) + past.sortedByDescending(shownStart)
     }
 
     /**
@@ -147,14 +153,18 @@ class SearchEventsUseCase @Inject constructor(
      * the series is over. Falling back to the master's base start would date a weekly meeting to the
      * day it was created.
      */
-    private fun dateHit(entry: Entry, nowUtcMillis: Long, budget: ExpansionBudget): EventSearchHit? {
-        expander.nextOccurrenceStart(entry.event, nowUtcMillis, entry.excludedStarts, budget)?.let { next ->
-            return EventSearchHit(entry.event, entry.calendar, next, isUpcoming = true)
-        }
-        expander.lastOccurrenceStartBefore(entry.event, nowUtcMillis, entry.excludedStarts, budget)
-            ?.let { last ->
-                return EventSearchHit(entry.event, entry.calendar, last, isUpcoming = false)
-            }
+    private fun dateHit(entry: Entry, nowUtcMillis: Long, zone: ZoneId, budget: ExpansionBudget): EventSearchHit? {
+        val event = entry.event
+        // Upcoming means "begins after now on the phone's calendar". For an all-day occurrence that is
+        // the phone's midnight of its date, up to the bound away from its stored start once the phone
+        // has left its zone (AllDayPlacement): compared by stored start, tomorrow's bin day after a
+        // flight west was dated to the week after. The walk therefore starts and ends that much wider.
+        val margin = if (event.allDay) ALL_DAY_PLACEMENT_BOUND_MILLIS else 0L
+        val beginsAfterNow = { start: Long -> event.shownStartUtcMillis(start, zone) >= nowUtcMillis }
+        expander.firstOccurrenceStart(event, nowUtcMillis - margin, entry.excludedStarts, budget, beginsAfterNow)
+            ?.let { next -> return EventSearchHit(event, entry.calendar, next, isUpcoming = true) }
+        expander.lastOccurrenceStartBefore(event, nowUtcMillis + margin, entry.excludedStarts, budget) { !beginsAfterNow(it) }
+            ?.let { last -> return EventSearchHit(event, entry.calendar, last, isUpcoming = false) }
         // Neither ahead nor behind: every occurrence was excluded (EXDATE), the series has no instance
         // left to point at — or the pass budget ran out. Nothing truthful to show either way.
         return null

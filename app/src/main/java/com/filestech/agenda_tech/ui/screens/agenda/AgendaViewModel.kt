@@ -2,14 +2,18 @@ package com.filestech.agenda_tech.ui.screens.agenda
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.filestech.agenda_tech.core.time.DeviceZone
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import com.filestech.agenda_tech.ui.screens.timeline.TimelineItem
 import com.filestech.agenda_tech.ui.screens.timeline.toTimelineItems
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.Instant
 import java.time.LocalDate
@@ -25,6 +29,8 @@ data class AgendaDay(
 data class AgendaUiState(
     val days: List<AgendaDay>,
     val isLoading: Boolean,
+    /** The zone the days were counted in, which the screen formats the clock times in. */
+    val zone: ZoneId,
 )
 
 /**
@@ -36,9 +42,11 @@ data class AgendaUiState(
 class AgendaViewModel @Inject constructor(
     observeOccurrences: ObserveOccurrencesInRangeUseCase,
     calendarRepository: CalendarRepository,
+    private val deviceZone: DeviceZone,
 ) : ViewModel() {
 
-    private val zone: ZoneId = ZoneId.systemDefault()
+    /** The phone's zone now — see [DeviceZone]: read once, the list kept its first zone after a journey. */
+    private val zone: ZoneId get() = deviceZone.zone.value
 
     /**
      * Aujourd'hui, relu a CHAQUE acces (audit, gravite faible).
@@ -53,18 +61,24 @@ class AgendaViewModel @Inject constructor(
      */
     val startDate: LocalDate get() = LocalDate.now(zone)
 
-    private val windowStart =
-        LocalDate.now(zone).minusDays(PAST_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
-    private val windowEnd =
-        LocalDate.now(zone).plusDays(FUTURE_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
+    // The window is read again when the zone changes, and each list is grouped in the zone it was read in.
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val windowOccurrences = deviceZone.zone.flatMapLatest { windowZone ->
+        val today = LocalDate.now(windowZone)
+        observeOccurrences(
+            today.minusDays(PAST_DAYS).atStartOfDay(windowZone).toInstant().toEpochMilli(),
+            today.plusDays(FUTURE_DAYS).atStartOfDay(windowZone).toInstant().toEpochMilli(),
+            windowZone,
+        ).map { occurrences -> windowZone to occurrences }
+    }
 
     val uiState: StateFlow<AgendaUiState> = combine(
-        observeOccurrences(windowStart, windowEnd, zone),
+        windowOccurrences,
         calendarRepository.observeAll(),
-    ) { occurrences, calendars ->
-        val items = occurrences.toTimelineItems(calendars.associate { it.id to it.color.argb }, zone)
+    ) { (listZone, occurrences), calendars ->
+        val items = occurrences.toTimelineItems(calendars.associate { it.id to it.color.argb }, listZone)
         val days = items
-            .groupBy { Instant.ofEpochMilli(it.startUtcMillis).atZone(zone).toLocalDate() }
+            .groupBy { Instant.ofEpochMilli(it.startUtcMillis).atZone(listZone).toLocalDate() }
             .toSortedMap()
             .map { (date, dayItems) ->
                 AgendaDay(
@@ -72,11 +86,11 @@ class AgendaViewModel @Inject constructor(
                     items = dayItems.sortedWith(compareBy({ !it.allDay }, { it.startUtcMillis })),
                 )
             }
-        AgendaUiState(days = days, isLoading = false)
+        AgendaUiState(days = days, isLoading = false, zone = listZone)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-        initialValue = AgendaUiState(days = emptyList(), isLoading = true),
+        initialValue = AgendaUiState(days = emptyList(), isLoading = true, zone = zone),
     )
 
     private companion object {
