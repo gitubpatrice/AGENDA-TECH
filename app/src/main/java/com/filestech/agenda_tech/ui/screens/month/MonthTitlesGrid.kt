@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.ui.screens.month
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -16,12 +17,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -35,7 +34,6 @@ import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.filestech.agenda_tech.R
@@ -170,7 +168,7 @@ private fun CellTitles(
         // In pixels, rounded padding by padding exactly as the layout rounds them: a width one pixel
         // off is enough to wrap a title at another word than the one it is drawn at.
         val textWidthPx = with(density) {
-            constraints.maxWidth - CHIP_MARGIN.roundToPx() - CHIP_TEXT_START.roundToPx() - CHIP_TEXT_END.roundToPx()
+            constraints.maxWidth - 2 * CHIP_MARGIN.roundToPx() - 2 * CHIP_TEXT_PADDING.roundToPx()
         }.coerceAtLeast(1)
         val needs = remember(labels, textWidthPx, style, density) {
             labels.map { label ->
@@ -186,7 +184,7 @@ private fun CellTitles(
         val inlineTitleFits = !plan.moreInline || remember(plan.hidden, textWidthPx, style, density) {
             val more = measurer.measure("+${plan.hidden}", style, maxLines = 1).size.width
             val threeChars = measurer.measure(MIN_INLINE_TITLE, style, maxLines = 1).size.width
-            textWidthPx - more - with(density) { CHIP_TEXT_START.roundToPx() } >= threeChars
+            textWidthPx - more - with(density) { CHIP_TEXT_PADDING.roundToPx() } >= threeChars
         }
 
         when {
@@ -215,18 +213,22 @@ private fun MoreEvents(hidden: Int, style: TextStyle) {
         style = style,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
-            // Lined up with the titles' text: past the bar's margin, the bar and its gap.
-            .padding(start = CHIP_MARGIN + CHIP_TEXT_START)
+            // Lined up with the titles' text.
+            .padding(start = CHIP_MARGIN + CHIP_TEXT_PADDING)
             .semantics { contentDescription = more },
     )
 }
 
 /**
- * One title in the text colour, with its event's colour as a bar on its left edge — the look of the
- * rows display and of the day list, so the three agree. Tried and dropped on the device: a tint of the
- * event's colour behind every title (a grid of pale blocks, darker still behind all-day events), and
- * text in the event's colour (a green calendar's title in green, a yellow one unreadable on white).
- * All-day events come first in the cell, as in the day list.
+ * One title on a solid block of its event's colour — the colour of its calendar, or the one chosen in
+ * the editor, so calendars stay apart. The text is white on dark colours and near-black on light ones,
+ * whichever reads better: white on the palette's yellow, coral or sky blue falls to 1.7–3.4:1.
+ * A day of another month gets the pale blue of the bottom bar's active item (the theme's secondary
+ * container) whatever its event's colour, with the secondary text colour: it reads as belonging to
+ * another month, and the palette stays out of the way.
+ *
+ * Tried and dropped on the device: a pale tint behind dark text, a stronger one behind all-day events
+ * (read as dark blocks), and a colour bar beside the text. All-day events come first in the cell.
  */
 @Composable
 private fun TitleChip(
@@ -237,31 +239,23 @@ private fun TitleChip(
     faded: Boolean,
     modifier: Modifier,
 ) {
-    val color = Color(event.colorArgb)
+    val block = if (faded) MaterialTheme.colorScheme.secondaryContainer else Color(event.colorArgb)
+    val text = when {
+        faded -> MaterialTheme.colorScheme.onSurfaceVariant
+        block.luminance() < WHITE_TEXT_BELOW_LUMINANCE -> Color.White
+        else -> DARK_TEXT
+    }
     Text(
         text = label,
         style = style,
-        color = MaterialTheme.colorScheme.onSurface,
+        color = text,
         maxLines = maxLines,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier
-            .alpha(if (faded) OUT_OF_MONTH_TITLE_ALPHA else 1f)
-            // Keeps the bar off the cell's border line, which it brushed at 1 dp (seen on the device).
-            .padding(start = CHIP_MARGIN)
-            // Each bar stops short of its title's top and bottom: with no tint left to separate them,
-            // touching bars read as one, and two titles in a cell as a single longer one.
-            .drawBehind {
-                val inset = CHIP_BAR_INSET.toPx()
-                val barWidth = CHIP_BAR_WIDTH.toPx()
-                // On the side the text starts from, which is the right in a right-to-left layout.
-                val x = if (layoutDirection == LayoutDirection.Rtl) size.width - barWidth else 0f
-                drawRect(
-                    color,
-                    topLeft = Offset(x, inset),
-                    size = Size(barWidth, (size.height - 2 * inset).coerceAtLeast(0f)),
-                )
-            }
-            .padding(start = CHIP_TEXT_START, end = CHIP_TEXT_END),
+            .padding(horizontal = CHIP_MARGIN)
+            .clip(CHIP_SHAPE)
+            .background(block)
+            .padding(horizontal = CHIP_TEXT_PADDING),
     )
 }
 
@@ -283,11 +277,16 @@ private fun cellTitleStyle(): TextStyle =
 private val CELL_PADDING = 1.dp
 private val SELECTED_SHAPE = RoundedCornerShape(3.dp)
 private val CHIP_GAP = 2.dp
-private val CHIP_BAR_WIDTH = 2.dp
-private val CHIP_BAR_INSET = 1.dp
-private val CHIP_MARGIN = 2.dp
-private val CHIP_TEXT_START = 4.dp
-private val CHIP_TEXT_END = 1.dp
+private val CHIP_SHAPE = RoundedCornerShape(3.dp)
+private val CHIP_MARGIN = 1.dp
+private val CHIP_TEXT_PADDING = 3.dp
+
+/**
+ * Below this luminance a block takes white text, above it dark text: the crossing point where both
+ * give the same contrast (about 4.6:1), so the chosen one is never below that.
+ */
+private const val WHITE_TEXT_BELOW_LUMINANCE = 0.179f
+private val DARK_TEXT = Color(0xFF1B1B1F)
 private val TIME_MIN_CELL_WIDTH = 88.dp
 
 /** The shortest piece of a title worth showing beside "+2": three characters, ellipsis included. */
