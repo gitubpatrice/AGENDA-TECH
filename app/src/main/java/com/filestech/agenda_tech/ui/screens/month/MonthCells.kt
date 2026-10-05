@@ -153,6 +153,13 @@ internal const val MAX_DOTS = 4
 /** Days of the neighbouring months are drawn faded, as on a paper calendar. */
 internal const val OUT_OF_MONTH_ALPHA = 0.4f
 
+/**
+ * Their event titles are faded less: they are information, and at 0.4 they fell to a contrast of
+ * 2.5:1 (light theme) — under any readability floor. At 0.65 they reach about 5.3:1 and still read as
+ * belonging to another month (pre-release audit, 2026-10-05).
+ */
+internal const val OUT_OF_MONTH_TITLE_ALPHA = 0.65f
+
 private val WEEK_NUMBER_WIDTH = 24.dp
 private val SELECTED_DAY_BORDER = 2.dp
 

@@ -55,6 +55,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -233,9 +235,14 @@ private fun MonthScreenContent(
 ) {
     val locale = rememberAppLocale()
     var pickingDate by rememberSaveable { mutableStateOf(false) }
-    // Anchor the pager on the month shown when the screen first appeared; each page is that month ± an
-    // offset, so swiping slides smoothly to the adjacent month (follow-the-finger).
-    val anchorMonth = remember { state.yearMonth }
+    // A request to bring a day into view in the rows display — "Today", the date picker. A counter and
+    // its target rather than the selection itself: see MonthRows.
+    var scrollRequest by rememberSaveable { mutableIntStateOf(0) }
+    var scrollTargetDay by rememberSaveable { mutableLongStateOf(LocalDate.now().toEpochDay()) }
+    val requestScrollTo: (LocalDate) -> Unit = { date ->
+        scrollTargetDay = date.toEpochDay()
+        scrollRequest++
+    }
 
     CalendarScaffold(
         currentView = CalendarView.MONTH,
@@ -298,10 +305,6 @@ private fun MonthScreenContent(
         },
     ) { innerPadding ->
         val today = remember { LocalDate.now(ZoneId.systemDefault()) }
-        fun monthForPage(page: Int): YearMonth = anchorMonth.plusMonths((page - PAGER_ANCHOR_PAGE).toLong())
-        fun pageForMonth(month: YearMonth): Int =
-            PAGER_ANCHOR_PAGE + (month.year - anchorMonth.year) * 12 + (month.monthValue - anchorMonth.monthValue)
-
         val pagerState = rememberPagerState(initialPage = pageForMonth(state.yearMonth)) { PAGER_PAGE_COUNT }
 
         // Pager settled on a page → tell the ViewModel which month is now shown.
@@ -386,7 +389,10 @@ private fun MonthScreenContent(
                         contentDescription = stringResource(R.string.month_previous),
                     )
                 }
-                TextButton(onClick = onToday) { Text(stringResource(R.string.month_today)) }
+                TextButton(onClick = {
+                    onToday()
+                    requestScrollTo(LocalDate.now(ZoneId.systemDefault()))
+                }) { Text(stringResource(R.string.month_today)) }
                 IconButton(onClick = onNextMonth) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -436,6 +442,8 @@ private fun MonthScreenContent(
                         weeks = weeks,
                         firstDayOfWeek = state.firstDayOfWeek,
                         showWeekNumbers = state.showWeekNumbers,
+                        scrollRequest = scrollRequest,
+                        scrollTarget = LocalDate.ofEpochDay(scrollTargetDay),
                         locale = locale,
                         onDayClick = onSelectDate,
                         onDayLongClick = onDayLongClick,
@@ -480,21 +488,36 @@ private fun MonthScreenContent(
             onConfirm = { date ->
                 pickingDate = false
                 onSelectDate(date)
+                requestScrollTo(date)
             },
             onDismiss = { pickingDate = false },
-            // Only the years the pager can show: the picker's own range starts in 1900, about 25 years
-            // before the first page, and such a date sent the pager out of range (external review).
-            yearRange = pagerYears(anchorMonth),
+            // Only the years the pager can show (external review: a date beyond them sent the pager out
+            // of range).
+            yearRange = PAGER_YEARS,
         )
     }
 }
 
-/** The whole years the pager covers around [anchor], within the picker's own range. */
-private fun pagerYears(anchor: YearMonth): IntRange {
-    val years = PAGER_ANCHOR_PAGE / MONTHS_PER_YEAR - 1
-    val default = DatePickerDefaults.YearRange
-    return maxOf(anchor.year - years, default.first)..minOf(anchor.year + years, default.last)
-}
+/**
+ * Page and month, on a FIXED reference: January 2000 on the middle page, so the 2400 pages run from
+ * January 1900 to December 2099. The reference used to be the month shown when the screen appeared —
+ * but the pager saves its page across a trip to another screen, and the reference was taken again on
+ * the way back: after a swipe to November, a visit to Settings came back on December, one month
+ * further at every return (pre-release audit, 2026-10-05; the defect was already in 1.1.1).
+ */
+private fun monthForPage(page: Int): YearMonth = PAGER_REFERENCE.plusMonths((page - PAGER_ANCHOR_PAGE).toLong())
+
+private fun pageForMonth(month: YearMonth): Int =
+    PAGER_ANCHOR_PAGE + (month.year - PAGER_REFERENCE.year) * MONTHS_PER_YEAR +
+        (month.monthValue - PAGER_REFERENCE.monthValue)
+
+private val PAGER_REFERENCE: YearMonth = YearMonth.of(2000, 1)
+
+/** The years the pager covers, within the date picker's own range. */
+private val PAGER_YEARS: IntRange = IntRange(
+    monthForPage(0).year.coerceAtLeast(DatePickerDefaults.YearRange.first),
+    monthForPage(PAGER_PAGE_COUNT - 1).year.coerceAtMost(DatePickerDefaults.YearRange.last),
+)
 
 /** A month the ViewModel has not read (more than one away from the shown one): the dates alone. */
 private fun bareWeeks(month: YearMonth, state: MonthUiState, today: LocalDate): List<List<DayCellData>> =

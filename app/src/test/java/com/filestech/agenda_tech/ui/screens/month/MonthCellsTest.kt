@@ -215,6 +215,27 @@ class MonthCellsTest {
     }
 
     @Test
+    fun `coming back to the month keeps its events while they are read again`() = runTest(dispatcher) {
+        // The flows restart when the screen returns after the stop timeout; starting them from an empty
+        // list blanked the grid until the query answered — a blink on every return from the editor.
+        val day = month.atDay(10)
+        seed(1, "Morning", millis(day, 9), millis(day, 10))
+        val vm = viewModel()
+        assertThat(vm.state(testScheduler).cell(day).events).isNotEmpty()
+
+        testScheduler.advanceTimeBy(MonthViewModel.STOP_TIMEOUT_MS + 1_000)
+
+        vm.uiState.test {
+            val states = mutableListOf(awaitItem())
+            testScheduler.advanceUntilIdle()
+            cancelAndConsumeRemainingEvents().forEach { event ->
+                if (event is app.cash.turbine.Event.Item) states += event.value
+            }
+            states.forEach { assertThat(it.cell(day).events.map { e -> e.title }).containsExactly("Morning") }
+        }
+    }
+
+    @Test
     fun `moving to another month selects its first day`() = runTest(dispatcher) {
         // Left on a day of the previous month, the selection kept a list under a month it no longer
         // belonged to — and two months away, outside the window read, that list was empty.

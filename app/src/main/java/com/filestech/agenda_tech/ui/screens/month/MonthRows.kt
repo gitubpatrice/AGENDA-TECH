@@ -22,6 +22,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +66,8 @@ internal fun MonthRows(
     weeks: List<List<DayCellData>>,
     firstDayOfWeek: DayOfWeek,
     showWeekNumbers: Boolean,
+    scrollRequest: Int,
+    scrollTarget: LocalDate,
     locale: Locale,
     onDayClick: (LocalDate) -> Unit,
     onDayLongClick: (LocalDate) -> Unit,
@@ -98,12 +104,18 @@ internal fun MonthRows(
         with(density) { widest.toDp() } + WEEKDAY_GAP
     }
 
-    // A day selected from elsewhere — "Today", the date picker — is brought into view; a tap on a
-    // visible row moves nothing.
-    val selectedIndex = days.indexOfFirst { it.isSelected }
-    LaunchedEffect(selectedIndex) {
-        if (selectedIndex >= 0 && listState.layoutInfo.visibleItemsInfo.none { it.index == selectedIndex }) {
-            listState.animateScrollToItem((selectedIndex - 1).coerceAtLeast(0))
+    // A day is brought into view when asked — "Today", the date picker — and only then. Following the
+    // selection instead ran again on every return to the page, throwing away the position restored
+    // after the editor, and "Today" did nothing when today was already selected, since nothing
+    // changed (pre-release audit, 2026-10-05). The request carries its date, so it does not depend on
+    // the order in which the new selection and the request reach the screen.
+    var handledRequest by rememberSaveable { mutableIntStateOf(scrollRequest) }
+    LaunchedEffect(scrollRequest) {
+        if (scrollRequest == handledRequest) return@LaunchedEffect
+        handledRequest = scrollRequest
+        val index = days.indexOfFirst { it.date == scrollTarget }
+        if (index >= 0 && listState.layoutInfo.visibleItemsInfo.none { it.index == index }) {
+            listState.animateScrollToItem((index - 1).coerceAtLeast(0))
         }
     }
 

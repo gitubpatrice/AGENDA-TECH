@@ -35,6 +35,8 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ### Fixed
 
+- **Coming back to the month could show the next one.** After swiping to another month, a visit to
+  Settings, the editor or search came back one month further — every time.
 - **At the largest text sizes, two-digit day numbers were cut** ("1" for the 12th), and so were
   week numbers.
 - **A day with more than four events showed four dots and nothing else**; a "+" now says there are
@@ -65,6 +67,8 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 - **Glisser au mois suivant fait arriver un mois déjà rempli** : les mois voisins sont lus avec celui
   qui est affiché.
 - **Le logo de démarrage a ses coins arrondis** ; le cercle de l'écran de démarrage les coupait.
+- **Revenir au mois pouvait afficher le suivant.** Après un glissement vers un autre mois, un passage
+  par les réglages, l'éditeur ou la recherche ramenait un mois plus loin — à chaque fois.
 - **Aux plus grandes tailles de texte, les numéros de jour à deux chiffres étaient coupés** (« 1 » pour
   le 12), les numéros de semaine aussi.
 - **Un jour de plus de quatre événements montrait quatre points et rien d'autre** ; un « + » signale

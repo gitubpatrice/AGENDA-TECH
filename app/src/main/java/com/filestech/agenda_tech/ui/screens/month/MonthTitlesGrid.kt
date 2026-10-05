@@ -244,7 +244,7 @@ private fun TitleChip(
         maxLines = maxLines,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier
-            .alpha(if (faded) OUT_OF_MONTH_ALPHA else 1f)
+            .alpha(if (faded) OUT_OF_MONTH_TITLE_ALPHA else 1f)
             // Each bar stops short of its title's top and bottom: with no tint left to separate them,
             // touching bars read as one, and two titles in a cell as a single longer one.
             .drawBehind {

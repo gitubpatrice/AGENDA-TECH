@@ -3,6 +3,7 @@ package com.filestech.agenda_tech.ui.screens.month
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.recurrence.EventOccurrence
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -92,16 +94,23 @@ class MonthViewModel @Inject constructor(
         observeOccurrences(startDate.toStartOfDayUtc(), endDate.toStartOfDayUtc())
     }
 
-    // The two database sources start empty, once, when the screen starts collecting: the grid is then
-    // drawn as soon as the settings are read — with the user's first day of the week — and the events
-    // follow when the database has opened. Waiting for it drew the locale's first day for the seconds
-    // the database took after a PIN unlock, then the jump to the user's (external review, 2026-10-05).
+    // The last values the two database sources gave, replayed whenever they start again.
+    private var lastOccurrences: List<EventOccurrence> = emptyList()
+    private var lastCalendars: List<Calendar> = emptyList()
+
+    // The two database sources start with their last values: the grid is then drawn as soon as the
+    // settings are read — with the user's first day of the week — and the events follow from the
+    // database. Waiting for it drew the locale's first day for the seconds the database took after a
+    // PIN unlock, then the jump to the user's (external review, 2026-10-05). The LAST values and not an
+    // empty list: these flows restart each time the screen comes back after five seconds away, and an
+    // empty start blanked the grid on every return from the editor (pre-release audit, same day). On
+    // the very first start there is nothing to replay, which is what lets the grid appear early.
     // Applied to the outer flow, not to each month's query, so a swipe never empties the grid.
     val uiState: StateFlow<MonthUiState> = combine(
         displayedMonth,
         selectedDate,
-        windowOccurrences.onStart { emit(emptyList()) },
-        calendarRepository.observeAll().onStart { emit(emptyList()) },
+        windowOccurrences.onEach { lastOccurrences = it }.onStart { emit(lastOccurrences) },
+        calendarRepository.observeAll().onEach { lastCalendars = it }.onStart { emit(lastCalendars) },
         monthSettingsFlow,
     ) { month, selected, occurrences, calendars, settingsPair ->
         buildState(
