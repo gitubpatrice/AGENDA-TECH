@@ -170,7 +170,7 @@ private fun CellTitles(
         // In pixels, rounded padding by padding exactly as the layout rounds them: a width one pixel
         // off is enough to wrap a title at another word than the one it is drawn at.
         val textWidthPx = with(density) {
-            constraints.maxWidth - CHIP_TEXT_START.roundToPx() - CHIP_TEXT_END.roundToPx()
+            constraints.maxWidth - CHIP_MARGIN.roundToPx() - CHIP_TEXT_START.roundToPx() - CHIP_TEXT_END.roundToPx()
         }.coerceAtLeast(1)
         val needs = remember(labels, textWidthPx, style, density) {
             labels.map { label ->
@@ -215,7 +215,8 @@ private fun MoreEvents(hidden: Int, style: TextStyle) {
         style = style,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
-            .padding(start = CHIP_TEXT_START)
+            // Lined up with the titles' text: past the bar's margin, the bar and its gap.
+            .padding(start = CHIP_MARGIN + CHIP_TEXT_START)
             .semantics { contentDescription = more },
     )
 }
@@ -245,6 +246,8 @@ private fun TitleChip(
         overflow = TextOverflow.Ellipsis,
         modifier = modifier
             .alpha(if (faded) OUT_OF_MONTH_TITLE_ALPHA else 1f)
+            // Keeps the bar off the cell's border line, which it brushed at 1 dp (seen on the device).
+            .padding(start = CHIP_MARGIN)
             // Each bar stops short of its title's top and bottom: with no tint left to separate them,
             // touching bars read as one, and two titles in a cell as a single longer one.
             .drawBehind {
@@ -282,6 +285,7 @@ private val SELECTED_SHAPE = RoundedCornerShape(3.dp)
 private val CHIP_GAP = 2.dp
 private val CHIP_BAR_WIDTH = 2.dp
 private val CHIP_BAR_INSET = 1.dp
+private val CHIP_MARGIN = 2.dp
 private val CHIP_TEXT_START = 4.dp
 private val CHIP_TEXT_END = 1.dp
 private val TIME_MIN_CELL_WIDTH = 88.dp
