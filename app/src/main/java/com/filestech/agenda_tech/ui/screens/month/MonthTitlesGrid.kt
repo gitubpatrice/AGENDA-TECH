@@ -170,14 +170,22 @@ private fun CellTitles(
         val textWidthPx = with(density) {
             constraints.maxWidth - 2 * CHIP_MARGIN.roundToPx() - 2 * CHIP_TEXT_PADDING.roundToPx()
         }.coerceAtLeast(1)
-        val needs = remember(labels, textWidthPx, style, density) {
-            labels.map { label ->
-                measurer.measure(label, style, constraints = Constraints(maxWidth = textWidthPx)).lineCount
-            }
-        }
         val lineHeightPx = with(density) { style.lineHeight.toPx() }
         val gapPx = with(density) { CHIP_GAP.toPx() }
         val lines = ((constraints.maxHeight + gapPx) / (lineHeightPx + gapPx)).toInt()
+        // Measured only when the cell has lines to spare: with as many events as lines or more, every
+        // title shown gets one line whatever its length (CellLines.plan), and measuring them decided
+        // nothing. On a busy agenda that was every title of every day — about 670 measurements for one
+        // page of 16 events a day, a 100–150 ms stall on the S9 each time a month settled.
+        val needs = remember(labels, textWidthPx, style, density, lines) {
+            if (labels.size >= lines) {
+                List(labels.size) { 1 }
+            } else {
+                labels.map { label ->
+                    measurer.measure(label, style, constraints = Constraints(maxWidth = textWidthPx)).lineCount
+                }
+            }
+        }
         val plan = CellLines.plan(needs, lines)
         // On a single shared line, "+2" leaves the title what is left of the width. Below three
         // characters it showed only "…" (seen at 200 % text): the dots say more than that.
