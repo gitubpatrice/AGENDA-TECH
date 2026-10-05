@@ -5,7 +5,7 @@ Esiste perché il suo calendario non debba vivere altrove che sul suo telefono. 
 <b>Funzionalità</b>
 
 <ul>
-<li>Quattro viste — Mese (scorrimento tra i mesi), Settimana, Giorno ed elenco Agenda</li>
+<li>Quattro viste — Mese (scorrimento tra i mesi; punti, titoli nella griglia o una riga al giorno, con un pizzico), Settimana, Giorno ed elenco Agenda</li>
 <li>Eventi — tutto il giorno, descrizione, colore per evento, indirizzo postale e coordinate GPS che si aprono nella sua app di mappe (senza autorizzazione di posizione)</li>
 <li>Eventi ricorrenti (RFC 5545) — ogni giorno, ogni settimana nei giorni scelti, ogni mese, ogni anno; fine dopo N occorrenze o a una data; modifica o eliminazione di una singola occorrenza</li>
 <li>Promemoria — sveglie esatte, riprogrammate dopo un riavvio, anticipo libero, il suo suono e un pulsante «Posticipa di 10 min» nella notifica</li>

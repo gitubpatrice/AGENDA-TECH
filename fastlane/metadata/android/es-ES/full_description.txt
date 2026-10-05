@@ -5,7 +5,7 @@ Existe para que su calendario no tenga que vivir en ningún otro sitio que su te
 <b>Funciones</b>
 
 <ul>
-<li>Cuatro vistas — Mes (deslizar entre meses), Semana, Día y lista Agenda</li>
+<li>Cuatro vistas — Mes (deslizar entre meses; puntos, títulos en la cuadrícula o una fila por día, con un pellizco), Semana, Día y lista Agenda</li>
 <li>Eventos — todo el día, descripción, color por evento, dirección postal y coordenadas GPS que se abren en su app de mapas (sin permiso de ubicación)</li>
 <li>Eventos periódicos (RFC 5545) — diarios, semanales en los días elegidos, mensuales, anuales; fin tras N repeticiones o en una fecha; editar o eliminar una sola repetición</li>
 <li>Recordatorios — alarmas exactas, reprogramadas tras un reinicio, antelación libre, su propio sonido y un botón «Posponer 10 min» en la notificación</li>

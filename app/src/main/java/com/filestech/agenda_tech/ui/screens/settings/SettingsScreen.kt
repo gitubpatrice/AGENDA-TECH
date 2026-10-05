@@ -72,6 +72,7 @@ import com.filestech.agenda_tech.domain.settings.AppSettings
 import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.domain.settings.WeekStart
 import com.filestech.agenda_tech.ui.util.rememberReminderNotifications
+import com.filestech.agenda_tech.ui.util.reminderLabel
 
 private val DURATION_OPTIONS = listOf(15, 30, 45, 60, 90, 120, 240)
 private val REMINDER_OPTIONS = listOf(AppSettings.NO_DEFAULT_REMINDER, 0, 5, 10, 15, 30, 60, 24 * 60)
@@ -590,13 +591,6 @@ private fun durationLabel(context: Context, minutes: Int): String = when {
     else -> context.getString(R.string.duration_minutes, minutes)
 }
 
-private fun reminderLabel(context: Context, minutes: Int): String = when {
-    minutes < 0 -> context.getString(R.string.reminder_off)
-    minutes == 0 -> context.getString(R.string.reminder_at_time)
-    minutes % (24 * 60) == 0 -> context.getString(R.string.reminder_days, minutes / (24 * 60))
-    minutes % 60 == 0 -> context.getString(R.string.reminder_hours, minutes / 60)
-    else -> context.getString(R.string.reminder_minutes, minutes)
-}
 
 /**
  * Releases the persistable read grant we hold on [previousUri], unless it is the one we are [keeping].

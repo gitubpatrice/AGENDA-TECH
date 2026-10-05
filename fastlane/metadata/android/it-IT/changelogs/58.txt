@@ -1,0 +1,14 @@
+v1.2.0 — Cosa contiene ogni giorno
+
+• Il mese in tre modi: punti, titoli nella
+  griglia o una riga al giorno. Pizzichi il
+  mese per cambiare; tocchi un giorno per
+  aprirlo.
+• Ora in tedesco, italiano e spagnolo.
+• Gli eventi di tutto il giorno mantengono
+  la loro data dopo un cambio di fuso
+  orario, ovunque.
+• L'app aperta segue subito un nuovo fuso
+  orario o una nuova lingua.
+• Le azioni principali sono pulsanti blu
+  pieni.

@@ -1,0 +1,14 @@
+v1.2.0 — Lo que contiene cada día
+
+• El mes de tres formas: puntos, títulos en
+  la cuadrícula o una fila por día. Pellizque
+  el mes para cambiar; toque un día para
+  abrirlo.
+• Ahora en alemán, italiano y español.
+• Los eventos de todo el día conservan su
+  fecha tras un cambio de zona horaria, en
+  todas partes.
+• La app abierta sigue al momento una nueva
+  zona horaria o un nuevo idioma.
+• Las acciones principales son botones
+  azules rellenos.

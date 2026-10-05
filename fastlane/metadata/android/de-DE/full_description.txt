@@ -5,7 +5,7 @@ Sie existiert, damit Ihr Kalender nirgendwo anders leben muss als auf Ihrem Tele
 <b>Funktionen</b>
 
 <ul>
-<li>Vier Ansichten — Monat (zwischen Monaten wischen), Woche, Tag und Agendaliste</li>
+<li>Vier Ansichten — Monat (zwischen Monaten wischen; Punkte, Titel im Raster oder eine Zeile pro Tag, mit zwei Fingern umschaltbar), Woche, Tag und Agendaliste</li>
 <li>Termine — ganztägig, Beschreibung, eigene Farbe, Postanschrift und GPS-Koordinaten, die sich in Ihrer Karten-App öffnen (ohne Standortberechtigung)</li>
 <li>Wiederkehrende Termine (RFC 5545) — täglich, wöchentlich an gewählten Tagen, monatlich, jährlich; Ende nach N Terminen oder an einem Datum; einzelnen Termin bearbeiten oder löschen</li>
 <li>Erinnerungen — exakte Wecker, nach einem Neustart wieder eingeplant, freie Vorlaufzeit, eigener Ton und eine Taste „10 Min. schlummern“ in der Benachrichtigung</li>

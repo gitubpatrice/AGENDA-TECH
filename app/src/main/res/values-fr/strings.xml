@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Agenda Tech</string>
 
     <!-- Sélecteur de vue -->
@@ -101,15 +101,42 @@
     <string name="recurrence_yearly">Tous les ans</string>
 
     <!-- Récurrence avancée -->
-    <string name="recurrence_every">Tous les</string>
-    <string name="recurrence_unit_days">jour(s)</string>
-    <string name="recurrence_unit_weeks">semaine(s)</string>
-    <string name="recurrence_unit_months">mois</string>
-    <string name="recurrence_unit_years">an(s)</string>
+    <!-- Un par unite : « Toutes les » devant « semaines », « Tous les » devant les autres. -->
+    <string name="recurrence_every_days">Tous les</string>
+    <string name="recurrence_every_weeks">Toutes les</string>
+    <string name="recurrence_every_months">Tous les</string>
+    <string name="recurrence_every_years">Tous les</string>
+    <!-- Unites sans nombre : le nombre est dans le champ juste a cote (« tous les [2] jours »). En
+         francais la categorie « one » couvre 0 et 1, et « 0 jour » comme « 1 jour » sont justes : la
+         regle ImpliedQuantity, qui exige le nombre dans le texte, ne s'applique pas ici. -->
+    <plurals name="recurrence_unit_days" tools:ignore="ImpliedQuantity">
+        <item quantity="one">jour</item>
+        <item quantity="many">jours</item>
+        <item quantity="other">jours</item>
+    </plurals>
+    <plurals name="recurrence_unit_weeks" tools:ignore="ImpliedQuantity">
+        <item quantity="one">semaine</item>
+        <item quantity="many">semaines</item>
+        <item quantity="other">semaines</item>
+    </plurals>
+    <plurals name="recurrence_unit_months" tools:ignore="ImpliedQuantity">
+        <item quantity="one">mois</item>
+        <item quantity="many">mois</item>
+        <item quantity="other">mois</item>
+    </plurals>
+    <plurals name="recurrence_unit_years" tools:ignore="ImpliedQuantity">
+        <item quantity="one">an</item>
+        <item quantity="many">ans</item>
+        <item quantity="other">ans</item>
+    </plurals>
     <string name="recurrence_ends_label">Fin</string>
     <string name="recurrence_end_never">Jamais</string>
     <string name="recurrence_end_after">Après</string>
-    <string name="recurrence_occurrences">occurrences</string>
+    <plurals name="recurrence_occurrences" tools:ignore="ImpliedQuantity">
+        <item quantity="one">occurrence</item>
+        <item quantity="many">occurrences</item>
+        <item quantity="other">occurrences</item>
+    </plurals>
     <string name="recurrence_end_on">Le</string>
 
     <!-- Rappels -->
@@ -119,7 +146,11 @@
     <string name="reminder_at_time">À l\'heure de l\'événement</string>
     <string name="reminder_minutes">%1$d min avant</string>
     <string name="reminder_hours">%1$d h avant</string>
-    <string name="reminder_days">%1$d jour(s) avant</string>
+    <plurals name="reminder_days">
+        <item quantity="one">%1$d jour avant</item>
+        <item quantity="many">%1$d jours avant</item>
+        <item quantity="other">%1$d jours avant</item>
+    </plurals>
     <string name="reminder_custom">Personnalisé…</string>
     <string name="reminder_custom_amount">Délai avant l\'événement</string>
     <string name="reminder_custom_duplicate">Ce rappel existe déjà</string>
@@ -207,7 +238,7 @@
     <!-- À propos · Fonctionnalités -->
     <string name="about_features_title">Fonctionnalités</string>
     <string name="about_feat_views_label">Vues Mois, Semaine, Jour et Agenda</string>
-    <string name="about_feat_views_desc">Balayez d\'un mois à l\'autre, revenez à aujourd\'hui, gérez plusieurs calendriers.</string>
+    <string name="about_feat_views_desc">Balayez d\'un mois à l\'autre, affichez-le en points, en titres ou en une ligne par jour, revenez à aujourd\'hui, gérez plusieurs calendriers.</string>
     <string name="about_feat_recurrence_label">Événements récurrents</string>
     <string name="about_feat_recurrence_desc">Du quotidien à l\'annuel, intervalles personnalisés, date de fin — modifiez une seule occurrence ou toute la série.</string>
     <string name="about_feat_reminders_label">Rappels</string>

@@ -1,0 +1,13 @@
+v1.2.0 — Ce que contient chaque jour
+
+• Le mois de trois façons : points, titres
+  dans la grille, ou une ligne par jour.
+  Pincez le mois pour changer ; touchez un
+  jour pour l'ouvrir.
+• Désormais en allemand, italien et espagnol.
+• Les journées entières gardent leur date
+  après un changement de fuseau, partout.
+• L'application ouverte suit aussitôt un
+  nouveau fuseau ou une nouvelle langue.
+• Les actions principales sont des boutons
+  bleus pleins.

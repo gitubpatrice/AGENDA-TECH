@@ -102,15 +102,38 @@
     <string name="recurrence_yearly">Ogni anno</string>
 
     <!-- Advanced recurrence -->
-    <string name="recurrence_every">Ogni</string>
-    <string name="recurrence_unit_days">giorno/i</string>
-    <string name="recurrence_unit_weeks">settimana/e</string>
-    <string name="recurrence_unit_months">mese/i</string>
-    <string name="recurrence_unit_years">anno/i</string>
+    <string name="recurrence_every_days">Ogni</string>
+    <string name="recurrence_every_weeks">Ogni</string>
+    <string name="recurrence_every_months">Ogni</string>
+    <string name="recurrence_every_years">Ogni</string>
+    <plurals name="recurrence_unit_days">
+        <item quantity="one">giorno</item>
+        <item quantity="many">giorni</item>
+        <item quantity="other">giorni</item>
+    </plurals>
+    <plurals name="recurrence_unit_weeks">
+        <item quantity="one">settimana</item>
+        <item quantity="many">settimane</item>
+        <item quantity="other">settimane</item>
+    </plurals>
+    <plurals name="recurrence_unit_months">
+        <item quantity="one">mese</item>
+        <item quantity="many">mesi</item>
+        <item quantity="other">mesi</item>
+    </plurals>
+    <plurals name="recurrence_unit_years">
+        <item quantity="one">anno</item>
+        <item quantity="many">anni</item>
+        <item quantity="other">anni</item>
+    </plurals>
     <string name="recurrence_ends_label">Termina</string>
     <string name="recurrence_end_never">Mai</string>
     <string name="recurrence_end_after">Dopo</string>
-    <string name="recurrence_occurrences">occorrenze</string>
+    <plurals name="recurrence_occurrences">
+        <item quantity="one">occorrenza</item>
+        <item quantity="many">occorrenze</item>
+        <item quantity="other">occorrenze</item>
+    </plurals>
     <string name="recurrence_end_on">Il</string>
 
     <!-- Reminders -->
@@ -120,7 +143,11 @@
     <string name="reminder_at_time">All\'ora dell\'evento</string>
     <string name="reminder_minutes">%1$d min prima</string>
     <string name="reminder_hours">%1$d h prima</string>
-    <string name="reminder_days">%1$d giorno/i prima</string>
+    <plurals name="reminder_days">
+        <item quantity="one">%1$d giorno prima</item>
+        <item quantity="many">%1$d giorni prima</item>
+        <item quantity="other">%1$d giorni prima</item>
+    </plurals>
     <string name="reminder_custom">Personalizzato…</string>
     <string name="reminder_custom_amount">Tempo prima dell\'evento</string>
     <string name="reminder_custom_duplicate">Questo promemoria esiste già</string>
@@ -208,7 +235,7 @@
     <!-- About · Features -->
     <string name="about_features_title">Funzionalità</string>
     <string name="about_feat_views_label">Viste Mese, Settimana, Giorno e Agenda</string>
-    <string name="about_feat_views_desc">Scorra tra i mesi, torni a oggi, più calendari.</string>
+    <string name="about_feat_views_desc">Scorra tra i mesi, li mostri come punti, titoli o una riga al giorno, torni a oggi, più calendari.</string>
     <string name="about_feat_recurrence_label">Eventi ricorrenti</string>
     <string name="about_feat_recurrence_desc">Da ogni giorno a ogni anno, intervalli personalizzati, data di fine — modifichi una singola occorrenza o l\'intera serie.</string>
     <string name="about_feat_reminders_label">Promemoria</string>

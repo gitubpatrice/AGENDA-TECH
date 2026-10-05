@@ -5,7 +5,7 @@ It exists so that your calendar never has to live anywhere but on your phone. A 
 <b>Features</b>
 
 <ul>
-<li>Four views — Month (swipe between months), Week, Day and Agenda list</li>
+<li>Four views — Month (swipe between months; dots, titles in the grid or one row per day, pinch to switch), Week, Day and Agenda list</li>
 <li>Events — all-day, description, per-event colour, postal address and GPS coordinates that open in your maps app (with no location permission)</li>
 <li>Recurring events (RFC 5545) — daily, weekly on chosen days, monthly, yearly; ending after N occurrences or on a date; edit or delete a single occurrence</li>
 <li>Reminders — exact alarms, re-armed after a reboot, free delay, your own sound, and a "snooze 10 min" button on the notification</li>

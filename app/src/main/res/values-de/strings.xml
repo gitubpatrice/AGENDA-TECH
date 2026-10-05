@@ -98,15 +98,33 @@
     <string name="recurrence_yearly">Jährlich</string>
 
     <!-- Advanced recurrence -->
-    <string name="recurrence_every">Alle</string>
-    <string name="recurrence_unit_days">Tag(e)</string>
-    <string name="recurrence_unit_weeks">Woche(n)</string>
-    <string name="recurrence_unit_months">Monat(e)</string>
-    <string name="recurrence_unit_years">Jahr(e)</string>
+    <string name="recurrence_every_days">Alle</string>
+    <string name="recurrence_every_weeks">Alle</string>
+    <string name="recurrence_every_months">Alle</string>
+    <string name="recurrence_every_years">Alle</string>
+    <plurals name="recurrence_unit_days">
+        <item quantity="one">Tag</item>
+        <item quantity="other">Tage</item>
+    </plurals>
+    <plurals name="recurrence_unit_weeks">
+        <item quantity="one">Woche</item>
+        <item quantity="other">Wochen</item>
+    </plurals>
+    <plurals name="recurrence_unit_months">
+        <item quantity="one">Monat</item>
+        <item quantity="other">Monate</item>
+    </plurals>
+    <plurals name="recurrence_unit_years">
+        <item quantity="one">Jahr</item>
+        <item quantity="other">Jahre</item>
+    </plurals>
     <string name="recurrence_ends_label">Endet</string>
     <string name="recurrence_end_never">Nie</string>
     <string name="recurrence_end_after">Nach</string>
-    <string name="recurrence_occurrences">Terminen</string>
+    <plurals name="recurrence_occurrences">
+        <item quantity="one">Termin</item>
+        <item quantity="other">Terminen</item>
+    </plurals>
     <string name="recurrence_end_on">Am</string>
 
     <!-- Reminders -->
@@ -116,7 +134,10 @@
     <string name="reminder_at_time">Zum Terminbeginn</string>
     <string name="reminder_minutes">%1$d Min. vorher</string>
     <string name="reminder_hours">%1$d Std. vorher</string>
-    <string name="reminder_days">%1$d Tag(e) vorher</string>
+    <plurals name="reminder_days">
+        <item quantity="one">%1$d Tag vorher</item>
+        <item quantity="other">%1$d Tage vorher</item>
+    </plurals>
     <string name="reminder_custom">Benutzerdefiniert…</string>
     <string name="reminder_custom_amount">Zeit vor dem Termin</string>
     <string name="reminder_custom_duplicate">Diese Erinnerung gibt es bereits</string>
@@ -204,7 +225,7 @@
     <!-- About · Features -->
     <string name="about_features_title">Funktionen</string>
     <string name="about_feat_views_label">Monats-, Wochen-, Tages- und Agendaansicht</string>
-    <string name="about_feat_views_desc">Zwischen Monaten wischen, zu heute springen, mehrere Kalender.</string>
+    <string name="about_feat_views_desc">Zwischen Monaten wischen, als Punkte, Titel oder eine Zeile pro Tag anzeigen, zu heute springen, mehrere Kalender.</string>
     <string name="about_feat_recurrence_label">Wiederkehrende Termine</string>
     <string name="about_feat_recurrence_desc">Täglich bis jährlich, eigene Intervalle, Enddatum — einen einzelnen Termin oder die ganze Serie bearbeiten.</string>
     <string name="about_feat_reminders_label">Erinnerungen</string>

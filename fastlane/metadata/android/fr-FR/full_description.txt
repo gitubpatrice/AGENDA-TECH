@@ -5,7 +5,7 @@ Il existe pour que votre agenda n'ait à vivre nulle part ailleurs que sur votre
 <b>Fonctionnalités</b>
 
 <ul>
-<li>Quatre vues — Mois (changement par glissement), Semaine, Jour et Agenda en liste</li>
+<li>Quatre vues — Mois (changement par glissement ; points, titres dans la grille ou une ligne par jour, au pincement), Semaine, Jour et Agenda en liste</li>
 <li>Événements — journée entière, description, couleur par événement, adresse postale et coordonnées GPS qui s'ouvrent dans votre app de cartes (sans aucune permission de localisation)</li>
 <li>Récurrences (RFC 5545) — quotidienne, hebdomadaire aux jours choisis, mensuelle, annuelle ; fin après N occurrences ou à une date ; modification ou suppression d'une seule occurrence</li>
 <li>Rappels — alarmes exactes, reprogrammées après un redémarrage, délai libre, votre propre son, et un bouton « Répéter 10 min » sur la notification</li>

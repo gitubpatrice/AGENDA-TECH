@@ -100,15 +100,33 @@
     <string name="recurrence_yearly">Yearly</string>
 
     <!-- Advanced recurrence -->
-    <string name="recurrence_every">Every</string>
-    <string name="recurrence_unit_days">day(s)</string>
-    <string name="recurrence_unit_weeks">week(s)</string>
-    <string name="recurrence_unit_months">month(s)</string>
-    <string name="recurrence_unit_years">year(s)</string>
+    <string name="recurrence_every_days">Every</string>
+    <string name="recurrence_every_weeks">Every</string>
+    <string name="recurrence_every_months">Every</string>
+    <string name="recurrence_every_years">Every</string>
+    <plurals name="recurrence_unit_days">
+        <item quantity="one">day</item>
+        <item quantity="other">days</item>
+    </plurals>
+    <plurals name="recurrence_unit_weeks">
+        <item quantity="one">week</item>
+        <item quantity="other">weeks</item>
+    </plurals>
+    <plurals name="recurrence_unit_months">
+        <item quantity="one">month</item>
+        <item quantity="other">months</item>
+    </plurals>
+    <plurals name="recurrence_unit_years">
+        <item quantity="one">year</item>
+        <item quantity="other">years</item>
+    </plurals>
     <string name="recurrence_ends_label">Ends</string>
     <string name="recurrence_end_never">Never</string>
     <string name="recurrence_end_after">After</string>
-    <string name="recurrence_occurrences">occurrences</string>
+    <plurals name="recurrence_occurrences">
+        <item quantity="one">occurrence</item>
+        <item quantity="other">occurrences</item>
+    </plurals>
     <string name="recurrence_end_on">On</string>
 
     <!-- Reminders -->
@@ -118,7 +136,10 @@
     <string name="reminder_at_time">At time of event</string>
     <string name="reminder_minutes">%1$d min before</string>
     <string name="reminder_hours">%1$d h before</string>
-    <string name="reminder_days">%1$d day(s) before</string>
+    <plurals name="reminder_days">
+        <item quantity="one">%1$d day before</item>
+        <item quantity="other">%1$d days before</item>
+    </plurals>
     <string name="reminder_custom">Custom…</string>
     <string name="reminder_custom_amount">Time before the event</string>
     <string name="reminder_custom_duplicate">This reminder already exists</string>
@@ -206,7 +227,7 @@
     <!-- About · Features -->
     <string name="about_features_title">Features</string>
     <string name="about_feat_views_label">Month, Week, Day and Agenda views</string>
-    <string name="about_feat_views_desc">Swipe between months, jump to today, multiple calendars.</string>
+    <string name="about_feat_views_desc">Swipe between months, show them as dots, titles or one row per day, jump to today, multiple calendars.</string>
     <string name="about_feat_recurrence_label">Recurring events</string>
     <string name="about_feat_recurrence_desc">Daily to yearly, custom intervals, end date — edit a single occurrence or the whole series.</string>
     <string name="about_feat_reminders_label">Reminders</string>

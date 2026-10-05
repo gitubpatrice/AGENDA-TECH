@@ -3,7 +3,8 @@
 Agenda Tech (`com.filestech.agenda_tech`) is licensed under the Apache License 2.0
 ([LICENSE](LICENSE)). It ships the open-source libraries listed below. The list was read on
 2026-09-26 from the resolved `releaseRuntimeClasspath` of the `:app` module at `v1.1.1`, and each
-licence from the POM that the library publishes — not from memory.
+licence from the POM that the library publishes — not from memory. Read again on 2026-10-05 for
+`v1.2.0`: only SQLCipher changed.
 
 **No Google Play Services, no Firebase, no analytics SDK, no crash reporter, no network library.**
 
@@ -25,7 +26,7 @@ licence from the POM that the library publishes — not from memory.
 | `javax.inject`, `jakarta.inject-api` | 1 / 2.0.1 | JSR-330 / Eclipse Foundation | Apache 2.0 |
 | Okio (pulled in by DataStore) | 3.4.0 | Square | Apache 2.0 |
 | Timber | 5.0.1 | Jake Wharton | Apache 2.0 |
-| **SQLCipher for Android** | 4.19.0 | Zetetic LLC | **BSD-3-Clause** — full text below |
+| **SQLCipher for Android** | 4.19.1 | Zetetic LLC | **BSD-3-Clause** — full text below |
 
 SQLCipher bundles **SQLite** and **LibTomCrypt**, both released into the public domain by their
 authors.
