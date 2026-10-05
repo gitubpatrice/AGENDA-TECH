@@ -42,6 +42,22 @@
     <string name="month_add_event">Añadir evento</string>
     <string name="month_no_events">No hay eventos este día</string>
     <string name="month_all_day">Todo el día</string>
+    <string name="month_display_button">Vista del mes: %1$s</string>
+    <string name="month_display_dots">Puntos</string>
+    <string name="month_display_titles">Títulos</string>
+    <string name="month_display_rows">Una fila por día</string>
+    <string name="month_display_pinch_hint">Consejo: pellizque el mes con dos dedos para cambiar la vista</string>
+    <string name="month_pick_date">Ir a una fecha</string>
+    <plurals name="month_day_events">
+        <item quantity="one">%1$d evento</item>
+        <item quantity="many">%1$d de eventos</item>
+        <item quantity="other">%1$d eventos</item>
+    </plurals>
+    <plurals name="month_more_events">
+        <item quantity="one">%1$d evento más</item>
+        <item quantity="many">%1$d de eventos más</item>
+        <item quantity="other">%1$d eventos más</item>
+    </plurals>
 
     <!-- Event editor -->
     <string name="editor_new_title">Nuevo evento</string>

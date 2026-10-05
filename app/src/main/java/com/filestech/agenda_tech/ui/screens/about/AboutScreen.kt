@@ -48,7 +48,7 @@ import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -72,6 +72,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.pm.PackageInfoCompat
+import com.filestech.agenda_tech.ui.theme.LogoShape
 import com.filestech.agenda_tech.R
 import timber.log.Timber
 
@@ -215,7 +216,7 @@ private fun HeaderBlock(onCheckUpdate: () -> Unit) {
         Image(
             painter = painterResource(R.drawable.app_logo),
             contentDescription = null,
-            modifier = Modifier.size(80.dp),
+            modifier = Modifier.size(80.dp).clip(LogoShape),
         )
         Spacer(Modifier.size(14.dp))
         Text(
@@ -245,7 +246,7 @@ private fun HeaderBlock(onCheckUpdate: () -> Unit) {
         )
         Spacer(Modifier.size(14.dp))
         // Opens the releases page in the browser — the app itself never talks to the network.
-        FilledTonalButton(onClick = onCheckUpdate) {
+        Button(onClick = onCheckUpdate) {
             Icon(Icons.Outlined.SystemUpdate, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.size(8.dp))
             Text(stringResource(R.string.about_check_update))

@@ -32,6 +32,33 @@ enum class WeekStart(val rawValue: Int) {
 }
 
 /**
+ * How the month view draws a day, from the least detail to the most. The order is the zoom order: a
+ * pinch moves one step along it, so it is part of the behaviour, not a cosmetic choice.
+ */
+enum class MonthDisplay(val rawValue: Int) {
+    /** A coloured dot per event; the day's list sits under the grid. */
+    DOTS(0),
+
+    /** The titles inside the grid, which then fills the screen. */
+    TITLES(1),
+
+    /** One full-width row per day, titles whole, empty days kept visible. */
+    ROWS(2),
+    ;
+
+    /** One step more detail, or this one when there is none. */
+    fun moreDetail(): MonthDisplay = entries.getOrElse(ordinal + 1) { this }
+
+    /** One step less detail, or this one when there is none. */
+    fun lessDetail(): MonthDisplay = entries.getOrElse(ordinal - 1) { this }
+
+    companion object {
+        fun fromRaw(rawValue: Int): MonthDisplay = entries.firstOrNull { it.rawValue == rawValue }
+            ?: DOTS.also { Timber.w("Unknown MonthDisplay %d — defaulting to DOTS", rawValue) }
+    }
+}
+
+/**
  * All user preferences, persisted via DataStore. Pure data — the wiring (theme, grids, editor
  * defaults, notifications, widget) reads this from [com.filestech.agenda_tech.domain.repository.SettingsRepository].
  */
@@ -39,6 +66,8 @@ data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val weekStart: WeekStart = WeekStart.SYSTEM,
     val showWeekNumbers: Boolean = false,
+    /** Dots by default: the month looks the same after the update until the user asks otherwise. */
+    val monthDisplay: MonthDisplay = MonthDisplay.DOTS,
     val defaultEventColor: CalendarColor = CalendarColor.DEFAULT,
     val defaultDurationMinutes: Int = DEFAULT_DURATION_MINUTES,
     /** Minutes-before for a new event's reminder; -1 means no default reminder. */

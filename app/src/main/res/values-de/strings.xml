@@ -40,6 +40,20 @@
     <string name="month_add_event">Termin hinzufügen</string>
     <string name="month_no_events">Keine Termine an diesem Tag</string>
     <string name="month_all_day">Ganztägig</string>
+    <string name="month_display_button">Monatsansicht: %1$s</string>
+    <string name="month_display_dots">Punkte</string>
+    <string name="month_display_titles">Titel</string>
+    <string name="month_display_rows">Eine Zeile pro Tag</string>
+    <string name="month_display_pinch_hint">Tipp: Ziehen Sie den Monat mit zwei Fingern auseinander oder zusammen, um die Ansicht zu wechseln</string>
+    <string name="month_pick_date">Zu einem Datum springen</string>
+    <plurals name="month_day_events">
+        <item quantity="one">%1$d Termin</item>
+        <item quantity="other">%1$d Termine</item>
+    </plurals>
+    <plurals name="month_more_events">
+        <item quantity="one">%1$d weiterer Termin</item>
+        <item quantity="other">%1$d weitere Termine</item>
+    </plurals>
 
     <!-- Event editor -->
     <string name="editor_new_title">Neuer Termin</string>

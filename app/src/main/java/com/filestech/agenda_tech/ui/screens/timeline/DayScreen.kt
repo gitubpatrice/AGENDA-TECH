@@ -10,9 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.ui.navigation.CalendarView
+import com.filestech.agenda_tech.ui.util.AddFab
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -63,9 +62,10 @@ fun DayScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { onAddEvent(state.day.date) }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.month_add_event))
-            }
+            AddFab(
+                onClick = { onAddEvent(state.day.date) },
+                contentDescription = stringResource(R.string.month_add_event),
+            )
         },
     ) { innerPadding ->
         Column(

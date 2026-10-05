@@ -12,6 +12,7 @@ import com.filestech.agenda_tech.domain.backup.AutoBackupOutcome
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.settings.AppSettings
+import com.filestech.agenda_tech.domain.settings.MonthDisplay
 import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.domain.settings.WeekStart
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +40,7 @@ class SettingsRepositoryImpl @Inject constructor(
         themeMode = ThemeMode.fromRaw(this[Keys.THEME_MODE] ?: ThemeMode.SYSTEM.rawValue),
         weekStart = WeekStart.fromRaw(this[Keys.WEEK_START] ?: WeekStart.SYSTEM.rawValue),
         showWeekNumbers = this[Keys.SHOW_WEEK_NUMBERS] ?: false,
+        monthDisplay = MonthDisplay.fromRaw(this[Keys.MONTH_DISPLAY] ?: MonthDisplay.DOTS.rawValue),
         defaultEventColor = CalendarColor.fromRaw(this[Keys.DEFAULT_COLOR] ?: CalendarColor.DEFAULT.rawValue),
         defaultDurationMinutes = this[Keys.DEFAULT_DURATION] ?: AppSettings.DEFAULT_DURATION_MINUTES,
         defaultReminderMinutes = this[Keys.DEFAULT_REMINDER] ?: AppSettings.NO_DEFAULT_REMINDER,
@@ -63,6 +65,7 @@ class SettingsRepositoryImpl @Inject constructor(
         this[Keys.THEME_MODE] = settings.themeMode.rawValue
         this[Keys.WEEK_START] = settings.weekStart.rawValue
         this[Keys.SHOW_WEEK_NUMBERS] = settings.showWeekNumbers
+        this[Keys.MONTH_DISPLAY] = settings.monthDisplay.rawValue
         this[Keys.DEFAULT_COLOR] = settings.defaultEventColor.rawValue
         this[Keys.DEFAULT_DURATION] = settings.defaultDurationMinutes
         this[Keys.DEFAULT_REMINDER] = settings.defaultReminderMinutes
@@ -92,6 +95,7 @@ class SettingsRepositoryImpl @Inject constructor(
         val THEME_MODE = intPreferencesKey("theme_mode")
         val WEEK_START = intPreferencesKey("week_start")
         val SHOW_WEEK_NUMBERS = booleanPreferencesKey("show_week_numbers")
+        val MONTH_DISPLAY = intPreferencesKey("month_display")
         val DEFAULT_COLOR = intPreferencesKey("default_color")
         val DEFAULT_DURATION = intPreferencesKey("default_duration")
         val DEFAULT_REMINDER = intPreferencesKey("default_reminder")
