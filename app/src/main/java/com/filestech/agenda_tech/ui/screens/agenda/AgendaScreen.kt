@@ -99,7 +99,7 @@ fun AgendaScreen(
                 item(key = "header-${day.date}") {
                     DayHeader(day.date, locale)
                 }
-                items(day.items, key = { it.eventId to it.startUtcMillis }) { item ->
+                items(day.items, key = { it.eventId to it.occurrenceStartUtcMillis }) { item ->
                     AgendaRow(item, zone, locale, onOccurrenceClick)
                 }
             }
@@ -143,7 +143,7 @@ private fun AgendaRow(
     EventRow(
         title = displayTitle(item.title, item.birthdayAge),
         colorArgb = item.colorArgb,
-        onClick = { onOccurrenceClick(item.eventId, item.startUtcMillis) },
+        onClick = { onOccurrenceClick(item.eventId, item.occurrenceStartUtcMillis) },
     ) {
         EventRowDetail(timeLabel(item, zone, locale))
     }

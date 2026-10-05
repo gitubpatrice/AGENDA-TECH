@@ -3,15 +3,25 @@ package com.filestech.agenda_tech.ui.screens.timeline
 import com.filestech.agenda_tech.domain.birthday.BirthdayAge
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.recurrence.EventOccurrence
+import com.filestech.agenda_tech.domain.recurrence.shownEndUtcMillis
+import com.filestech.agenda_tech.domain.recurrence.shownStartUtcMillis
 import java.time.LocalDate
 import java.time.ZoneId
 
-/** A calendar occurrence as the Day/Week timeline needs it (colour already resolved). */
+/**
+ * A calendar occurrence as the Day/Week timeline and the agenda need it (colour already resolved).
+ *
+ * [startUtcMillis] / [endUtcMillis] are its place on the phone's calendar, which days and positions are
+ * drawn from; [occurrenceStartUtcMillis] is the instant it is known by, which a tap hands the editor.
+ * They differ only for an all-day occurrence created in another time zone — see
+ * `domain/recurrence/AllDayPlacement.kt`.
+ */
 data class TimelineItem(
     val eventId: Long,
     val title: String,
     val startUtcMillis: Long,
     val endUtcMillis: Long,
+    val occurrenceStartUtcMillis: Long,
     val allDay: Boolean,
     val colorArgb: Int,
     /** Age this birthday occurrence marks, or null — see [BirthdayAge] for when it is null. */
@@ -27,8 +37,9 @@ fun List<EventOccurrence>.toTimelineItems(
         TimelineItem(
             eventId = occurrence.event.id,
             title = occurrence.event.title,
-            startUtcMillis = occurrence.startUtcMillis,
-            endUtcMillis = occurrence.endUtcMillis,
+            startUtcMillis = occurrence.shownStartUtcMillis(zone),
+            endUtcMillis = occurrence.shownEndUtcMillis(zone),
+            occurrenceStartUtcMillis = occurrence.startUtcMillis,
             allDay = occurrence.event.allDay,
             colorArgb = occurrence.event.colorOverride?.argb
                 ?: colorByCalendarId[occurrence.event.calendarId]

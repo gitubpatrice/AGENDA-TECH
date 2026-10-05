@@ -91,7 +91,7 @@ fun EventsColumn(
                     .padding(1.dp)
                     .clip(MaterialTheme.shapes.extraSmall)
                     .background(Color(block.item.colorArgb))
-                    .clickable { onItemClick(block.item.eventId, block.item.startUtcMillis) }
+                    .clickable { onItemClick(block.item.eventId, block.item.occurrenceStartUtcMillis) }
                     .padding(horizontal = 4.dp, vertical = 2.dp),
             ) {
                 Text(
@@ -131,7 +131,7 @@ fun AllDayStrip(
                     .padding(vertical = 2.dp)
                     .clip(MaterialTheme.shapes.extraSmall)
                     .background(Color(item.colorArgb))
-                    .clickable { onItemClick(item.eventId, item.startUtcMillis) }
+                    .clickable { onItemClick(item.eventId, item.occurrenceStartUtcMillis) }
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

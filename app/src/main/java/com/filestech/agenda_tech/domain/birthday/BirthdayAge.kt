@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.domain.birthday
 
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.EventKind
+import com.filestech.agenda_tech.domain.recurrence.dateZone
 import java.time.Instant
 import java.time.ZoneId
 
@@ -33,8 +34,10 @@ object BirthdayAge {
     fun of(event: Event, occurrenceStartUtcMillis: Long, zone: ZoneId): Int? {
         if (event.kind != EventKind.BIRTHDAY) return null
         if (event.isOverride) return null
-        val birthYear = Instant.ofEpochMilli(event.startUtcMillis).atZone(zone).year
-        val occurrenceYear = Instant.ofEpochMilli(occurrenceStartUtcMillis).atZone(zone).year
+        // A birthday is all-day: its dates, the 1st of January included, are read in its own zone.
+        val dateZone = event.dateZone(zone)
+        val birthYear = Instant.ofEpochMilli(event.startUtcMillis).atZone(dateZone).year
+        val occurrenceYear = Instant.ofEpochMilli(occurrenceStartUtcMillis).atZone(dateZone).year
         return (occurrenceYear - birthYear).takeIf { it > 0 }
     }
 }

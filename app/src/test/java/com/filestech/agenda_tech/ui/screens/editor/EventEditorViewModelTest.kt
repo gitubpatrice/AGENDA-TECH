@@ -1,37 +1,22 @@
 package com.filestech.agenda_tech.ui.screens.editor
 
 import androidx.lifecycle.SavedStateHandle
-import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Reminder
+import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
 import com.filestech.agenda_tech.domain.usecase.DeleteEventUseCase
-import com.filestech.agenda_tech.domain.usecase.FakeCalendarRepository
-import com.filestech.agenda_tech.domain.usecase.FakeEventRepository
-import com.filestech.agenda_tech.domain.usecase.FakeReminderRepository
 import com.filestech.agenda_tech.domain.usecase.FakeSettingsRepository
 import com.filestech.agenda_tech.domain.usecase.UpsertEventUseCase
-import com.filestech.agenda_tech.system.AgendaChangeNotifier
-import com.filestech.agenda_tech.system.alarm.ReminderScheduler
-import com.filestech.agenda_tech.ui.navigation.Routes
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
 
 /**
  * The editor's save/delete paths — the most-walked code in the app, and the one that had no net.
@@ -44,75 +29,7 @@ import java.time.ZoneId
  * alarms are cancelled before their rows are replaced, and that an override never silently becomes a
  * whole-series edit.
  */
-class EventEditorViewModelTest {
-
-    private val zone: ZoneId = ZoneId.systemDefault()
-    private fun at(y: Int, m: Int, d: Int, h: Int): Long =
-        LocalDateTime.of(y, m, d, h, 0).atZone(zone).toInstant().toEpochMilli()
-
-    private val eventRepo = FakeEventRepository()
-    private val calendarRepo = FakeCalendarRepository()
-    private val reminderRepo = FakeReminderRepository()
-    private val settingsRepo = FakeSettingsRepository()
-
-    /**
-     * Mocked, not faked: [ReminderScheduler] is a final class wired to AlarmManager, so there is no
-     * seam to implement. What matters here is *which calls it receives, and in what order* — exactly
-     * what a mock verifies.
-     */
-    private val scheduler: ReminderScheduler = mockk(relaxed = true)
-
-    /** Audit AG-2 — la couture qui rafraichit le widget apres chaque ecriture. */
-    private val agendaChanged: AgendaChangeNotifier = mockk(relaxed = true)
-
-    private val dispatcher = StandardTestDispatcher()
-
-    @BeforeEach
-    fun setUp() {
-        // viewModelScope pins Dispatchers.Main, which does not exist off-device.
-        Dispatchers.setMain(dispatcher)
-        calendarRepo.stored += Calendar(id = 1, name = "Perso", isDefault = true)
-    }
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
-
-    private fun viewModel(
-        eventId: Long? = null,
-        occurrenceStart: Long? = null,
-    ): EventEditorViewModel {
-        val args = buildMap<String, Any> {
-            eventId?.let { put(Routes.ARG_EVENT_ID, it) }
-            occurrenceStart?.let { put(Routes.ARG_OCCURRENCE_START, it) }
-        }
-        return EventEditorViewModel(
-            upsertEvent = UpsertEventUseCase(eventRepo),
-            deleteEvent = DeleteEventUseCase(eventRepo),
-            eventRepository = eventRepo,
-            calendarRepository = calendarRepo,
-            reminderRepository = reminderRepo,
-            reminderScheduler = scheduler,
-            agendaChanged = agendaChanged,
-            settingsRepository = settingsRepo,
-            savedStateHandle = SavedStateHandle(args),
-        )
-    }
-
-    private fun seedEvent(
-        id: Long = 10,
-        title: String = "Dentiste",
-        recurrence: RecurrenceRule? = null,
-        sourceUid: String? = null,
-    ) = Event(
-        id = id,
-        calendarId = 1,
-        title = title,
-        startUtcMillis = at(2026, 7, 20, 9),
-        endUtcMillis = at(2026, 7, 20, 10),
-        timeZoneId = zone.id,
-        recurrence = recurrence,
-        sourceUid = sourceUid,
-    ).also { eventRepo.rows[id] = it }
+internal class EventEditorViewModelTest : EventEditorTestBase() {
 
     // --- Audit AG-3 : double-tap sur Enregistrer ----------------------------
 
@@ -212,6 +129,22 @@ class EventEditorViewModelTest {
         vm.onTitleChange("Dentiste")
         vm.onStartTimeChange(14, 0)
         vm.onEndTimeChange(9, 0)
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(eventRepo.rows).isEmpty()
+        assertThat(vm.state.value.error).isEqualTo(EditorError.END_BEFORE_START)
+    }
+
+    @Test
+    fun `an all-day end date before its start date is refused`() = runTest(dispatcher) {
+        // The end of an all-day event is the midnight after its last day, so a last day before the first
+        // gives an end equal to the start — which `end < start` let through as an event of no length.
+        val vm = viewModel()
+        vm.onTitleChange("Congé")
+        vm.onAllDayChange(true)
+        vm.onStartDateChange(LocalDate.of(2026, 7, 20))
+        vm.onEndDateChange(LocalDate.of(2026, 7, 19))
         vm.onSave()
         testScheduler.advanceUntilIdle()
 
@@ -482,106 +415,13 @@ class EventEditorViewModelTest {
             reminderScheduler = scheduler,
             agendaChanged = agendaChanged,
             settingsRepository = settings,
+            expander = RecurrenceExpander(),
             savedStateHandle = SavedStateHandle(emptyMap()),
         )
         testScheduler.advanceUntilIdle()
 
         assertThat(vm.state.value.colorOverride).isEqualTo(CalendarColor.TOMATO)
         assertThat(vm.state.value.reminderMinutes).containsExactly(30)
-    }
-
-    // --- Audit D2 : le fuseau d'un événement existant ne doit pas être écrasé ---
-
-    @Test
-    fun `saving an imported event keeps the zone it was authored in`() = runTest(dispatcher) {
-        // The whole point of the v6 repair migration is that a row imported from Outlook ends up with
-        // a zone every reader can resolve. Opening that event to add a reminder used to overwrite it
-        // with the device zone, which silently undid the repair — and, since the expander re-anchors
-        // recurring occurrences to this field, moved every future occurrence by an hour across the
-        // next DST transition.
-        val tokyo = "Asia/Tokyo"
-        eventRepo.rows[10] = seedEvent().copy(timeZoneId = tokyo)
-        val vm = viewModel(eventId = 10)
-        testScheduler.advanceUntilIdle()
-
-        vm.onAddReminder(15)
-        vm.onSave()
-        testScheduler.advanceUntilIdle()
-
-        assertThat(eventRepo.rows.getValue(10).timeZoneId).isEqualTo(tokyo)
-    }
-
-    @Test
-    fun `retyping the time re-anchors the event to the device zone`() = runTest(dispatcher) {
-        // ⚠️ This test asserted the OPPOSITE until audit DR-6, and the opposite was a defect I had
-        // pinned with a test — the worst way to be wrong, because it makes the defect load-bearing.
-        //
-        // The reasoning that produced it stopped one step early. Preserving the authored zone is right
-        // when the user opens an event to add a reminder (that is D2). It is wrong the moment they
-        // retype a time, because this editor reads and writes wall-clock times in the DEVICE zone and
-        // offers no zone picker: typing 11:00 in Paris on a meeting authored in Asia/Tokyo produces
-        // the instant 18:00 JST. Keeping the Tokyo label then makes RecurrenceExpander anchor every
-        // later occurrence to 18:00 JST — Japan has no summer time, France does, so after October the
-        // user sees 10:00 for a series they set to 11:00. F3's symptom, roles reversed.
-        //
-        // The only honest reading of a time typed here is "local", so a moved event is re-anchored.
-        eventRepo.rows[10] = seedEvent().copy(timeZoneId = "Asia/Tokyo")
-        val vm = viewModel(eventId = 10)
-        testScheduler.advanceUntilIdle()
-
-        vm.onStartTimeChange(11, 0)
-        vm.onSave()
-        testScheduler.advanceUntilIdle()
-
-        val saved = eventRepo.rows.getValue(10)
-        assertThat(saved.startUtcMillis).isEqualTo(at(2026, 7, 20, 11))
-        assertThat(saved.timeZoneId).isEqualTo(zone.id)
-    }
-
-    @Test
-    fun `a zone the app cannot resolve is not preserved`() = runTest(dispatcher) {
-        // Audit DR-5. Before D2 the editor overwrote this field with the device zone and therefore
-        // repaired any unresolvable row by accident; preserving the loaded value removed that safety
-        // net along with the defect. `EntityMappers` deliberately does not re-normalise on read, so
-        // this is the last place the invariant can be kept.
-        eventRepo.rows[10] = seedEvent().copy(timeZoneId = "Romance Standard Time")
-        val vm = viewModel(eventId = 10)
-        testScheduler.advanceUntilIdle()
-
-        vm.onAddReminder(15)
-        vm.onSave()
-        testScheduler.advanceUntilIdle()
-
-        assertThat(eventRepo.rows.getValue(10).timeZoneId).isEqualTo(zone.id)
-    }
-
-    @Test
-    fun `a new event is authored in the device zone`() = runTest(dispatcher) {
-        // The other half: with nothing to preserve, the device zone is the right answer. A test that
-        // only pinned the first half would be satisfied by never writing the field at all.
-        val vm = viewModel()
-        vm.onTitleChange("Nouveau")
-        vm.onSave()
-        testScheduler.advanceUntilIdle()
-
-        assertThat(eventRepo.rows.values.single { it.title == "Nouveau" }.timeZoneId).isEqualTo(zone.id)
-    }
-
-    @Test
-    fun `an all-day event keeps the device zone its boundaries were computed in`() = runTest(dispatcher) {
-        // For an all-day row the zone is not a label but part of the arithmetic: the instants ARE
-        // midnight-to-midnight in this zone. Preserving a foreign zone beside device-zone boundaries
-        // would put the two out of step — the inconsistency DeviceEventMapper and IcsCodec avoid by
-        // anchoring all-day rows to the device zone on both sides.
-        eventRepo.rows[10] = seedEvent().copy(timeZoneId = "Asia/Tokyo", allDay = true)
-        val vm = viewModel(eventId = 10)
-        testScheduler.advanceUntilIdle()
-
-        vm.onAllDayChange(true)
-        vm.onSave()
-        testScheduler.advanceUntilIdle()
-
-        assertThat(eventRepo.rows.getValue(10).timeZoneId).isEqualTo(zone.id)
     }
 
     // --- EXDATE : une annulation ne doit pas survivre à un renommage de série ------

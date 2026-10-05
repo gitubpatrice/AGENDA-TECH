@@ -222,7 +222,7 @@ private fun RowEvent(event: OccurrenceData, time: String?, timeWidth: Dp, onOccu
         modifier = Modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.small)
-            .clickable { onOccurrenceClick(event.eventId, event.startUtcMillis) }
+            .clickable { onOccurrenceClick(event.eventId, event.occurrenceStartUtcMillis) }
             .padding(horizontal = 4.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

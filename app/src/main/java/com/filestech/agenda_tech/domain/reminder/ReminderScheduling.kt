@@ -1,8 +1,11 @@
 package com.filestech.agenda_tech.domain.reminder
 
 import com.filestech.agenda_tech.domain.model.Event
+import com.filestech.agenda_tech.domain.recurrence.ALL_DAY_PLACEMENT_BOUND_MILLIS
 import com.filestech.agenda_tech.domain.recurrence.ExpansionBudget
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
+import com.filestech.agenda_tech.domain.recurrence.shownStartUtcMillis
+import java.time.ZoneId
 
 /** When and for which occurrence a reminder alarm should next fire. */
 data class ScheduledFire(
@@ -19,6 +22,13 @@ data class ScheduledFire(
  * (`start − minutesBefore`) is ≥ now. After an alarm fires, the receiver reschedules using
  * [nextEarliestStart] (strictly past the occurrence that just fired) so a recurring reminder rolls
  * forward without re-firing the same instant.
+ *
+ * "Start" here is where the occurrence begins on the phone's calendar ([shownStartUtcMillis]), and every
+ * threshold below is on that calendar too. For a timed event it is the occurrence's instant. For an
+ * all-day event it is midnight of its date on the phone, which is not its stored instant once the phone
+ * has left the zone the event was created in: a reminder "at the start" of a holiday created in Paris
+ * rang at 18:00 the day before in New York. A threshold built from a fired occurrence is placed on the
+ * calendar the same way, by the caller ([com.filestech.agenda_tech.system.alarm.ReminderScheduler]).
  */
 object ReminderScheduling {
 
@@ -84,15 +94,21 @@ object ReminderScheduling {
         earliestOccurrenceStartUtcMillis: Long,
         extraExcludedStartsUtcMillis: Set<Long> = emptySet(),
         budget: ExpansionBudget? = null,
+        zone: ZoneId = ZoneId.systemDefault(),
     ): ScheduledFire? {
-        val start = expander.nextOccurrenceStart(
-            event,
-            earliestOccurrenceStartUtcMillis,
-            extraExcludedStartsUtcMillis,
-            budget,
-        ) ?: return null
+        // An all-day occurrence's place on the calendar can be up to the bound before or after its stored
+        // start, so the walk starts that much earlier. Places follow starts in order — one date per
+        // occurrence — so the first occurrence placed at or after the threshold is the next one.
+        val searchFrom = if (event.allDay) {
+            earliestOccurrenceStartUtcMillis - ALL_DAY_PLACEMENT_BOUND_MILLIS
+        } else {
+            earliestOccurrenceStartUtcMillis
+        }
+        val start = expander.firstOccurrenceStart(event, searchFrom, extraExcludedStartsUtcMillis, budget) {
+            event.shownStartUtcMillis(it, zone) >= earliestOccurrenceStartUtcMillis
+        } ?: return null
         return ScheduledFire(
-            fireAtUtcMillis = start - minutesBefore * MS_PER_MINUTE,
+            fireAtUtcMillis = event.shownStartUtcMillis(start, zone) - minutesBefore * MS_PER_MINUTE,
             occurrenceStartUtcMillis = start,
         )
     }

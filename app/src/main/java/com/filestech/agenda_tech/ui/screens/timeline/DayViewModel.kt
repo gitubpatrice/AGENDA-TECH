@@ -31,7 +31,7 @@ class DayViewModel @Inject constructor(
     private val occurrences = displayedDate.flatMapLatest { date ->
         val start = date.atStartOfDay(zone).toInstant().toEpochMilli()
         val end = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
-        observeOccurrences(start, end)
+        observeOccurrences(start, end, zone)
     }
 
     val uiState: StateFlow<DayUiState> = combine(

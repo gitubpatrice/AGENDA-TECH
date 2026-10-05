@@ -52,8 +52,21 @@ class BootReceiver : BroadcastReceiver() {
         // Les deux diffusions sont PROTEGEES par la plateforme (seul le systeme peut les emettre),
         // donc exporter ce receiver n'ouvre toujours rien — contrairement au cas mesure faux pour
         // ExactAlarmPermissionReceiver, ou l'action n'etait protegee qu'a partir d'API 31.
-        val action = intent.action
-        if (action != Intent.ACTION_BOOT_COMPLETED && action != Intent.ACTION_MY_PACKAGE_REPLACED) return
+        //
+        // TIMEZONE_CHANGED : le rappel d'une journee entiere sonne par rapport au minuit du TELEPHONE
+        // (ReminderScheduling), qui change avec le fuseau. Sans cette diffusion, les alarmes posees
+        // avant un voyage gardaient l'ancien minuit jusqu'a la prochaine ouverture de l'application.
+        // Diffusion protegee elle aussi — mesure sur le S9 (API 29) : refusee a l'uid shell.
+        val action = intent.action ?: return
+        if (action !in HANDLED_ACTIONS) return
         rescheduleRemindersAsync(scope, scheduler, reason = action)
+    }
+
+    private companion object {
+        val HANDLED_ACTIONS = setOf(
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_MY_PACKAGE_REPLACED,
+            Intent.ACTION_TIMEZONE_CHANGED,
+        )
     }
 }

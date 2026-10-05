@@ -13,6 +13,8 @@ import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Reminder
 import com.filestech.agenda_tech.domain.model.Weekday
+import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
+import com.filestech.agenda_tech.domain.recurrence.dateZone
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.repository.ReminderRepository
@@ -46,6 +48,7 @@ class EventEditorViewModel @Inject constructor(
     private val reminderScheduler: ReminderScheduler,
     private val agendaChanged: AgendaChangeNotifier,
     private val settingsRepository: SettingsRepository,
+    private val expander: RecurrenceExpander,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -111,6 +114,23 @@ class EventEditorViewModel @Inject constructor(
     private var loadedStartUtcMillis: Long? = null
     private var loadedEndUtcMillis: Long? = null
 
+    /**
+     * The zone the dates of the all-day event being edited are counted in: its own, since its instants
+     * are that zone's midnights (see `domain/recurrence/AllDayPlacement.kt`).
+     *
+     * The editor read them on the phone's clock, which showed the day before or after once the phone had
+     * left that zone — and saving then moved the event by a day, without the user changing anything.
+     * Writing the dates back in the phone's zone would have its own cost: a series whose `EXDATE`s and
+     * overrides name its occurrences by their old midnights would no longer match them, and deleted
+     * occurrences would come back.
+     *
+     * Null for a new event, a copy or a timed event, which are counted in the phone's zone.
+     */
+    private var loadedAllDayZone: ZoneId? = null
+
+    /** The zone an all-day event's dates are turned into instants in — see [loadedAllDayZone]. */
+    private val allDayZone: ZoneId get() = loadedAllDayZone ?: zone
+
     private val _state = MutableStateFlow(initialState())
     val state: StateFlow<EventEditorUiState> = _state.asStateFlow()
 
@@ -174,15 +194,18 @@ class EventEditorViewModel @Inject constructor(
         loadedTimeZoneId = event.timeZoneId
         loadedStartUtcMillis = event.startUtcMillis
         loadedEndUtcMillis = event.endUtcMillis
+        loadedAllDayZone = event.dateZone(zone).takeIf { event.allDay }
 
         // For a tapped occurrence of a recurring master, show that occurrence's times (not the base).
         val editingOccurrence = event.recurrence != null && occurrenceStart > 0L
-        val durationMillis = event.endUtcMillis - event.startUtcMillis
         val startMillis = if (editingOccurrence) occurrenceStart else event.startUtcMillis
-        val endMillis = if (editingOccurrence) occurrenceStart + durationMillis else event.endUtcMillis
+        // Ended the way the views end it, in local time: see RecurrenceExpander.occurrenceEndUtcMillis.
+        val endMillis = if (editingOccurrence) expander.occurrenceEndUtcMillis(event, occurrenceStart) else event.endUtcMillis
 
-        val start = Instant.ofEpochMilli(startMillis).atZone(zone).toLocalDateTime()
-        val storedEnd = Instant.ofEpochMilli(endMillis).atZone(zone).toLocalDateTime()
+        // An all-day event's dates are read in its own zone, a timed event's times on the phone's clock.
+        val dateZone = event.dateZone(zone)
+        val start = Instant.ofEpochMilli(startMillis).atZone(dateZone).toLocalDateTime()
+        val storedEnd = Instant.ofEpochMilli(endMillis).atZone(dateZone).toLocalDateTime()
         // All-day end is stored as the exclusive next-midnight boundary — show the inclusive last day.
         val displayEnd = if (event.allDay) storedEnd.minusDays(1) else storedEnd
         val reminderMinutes = reminderRepository.getForEvent(id).map { it.minutesBefore }.sorted()
@@ -194,7 +217,7 @@ class EventEditorViewModel @Inject constructor(
             else -> RecurrenceEnd.NEVER
         }
         val untilDate = rule?.untilUtcMillis
-            ?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() }
+            ?.let { Instant.ofEpochMilli(it).atZone(dateZone).toLocalDate() }
             ?: defaultUntil
         _state.update {
             it.copy(
@@ -341,7 +364,9 @@ class EventEditorViewModel @Inject constructor(
             return
         }
         val (startMillis, endMillis) = current.toInstants()
-        if (endMillis < startMillis) {
+        // An all-day end date before the start date gives an end EQUAL to the start (the end is the
+        // midnight after the last day), which `<` let through as an all-day event of no length.
+        if (endMillis < startMillis || (current.allDay && endMillis == startMillis)) {
             _state.update { it.copy(error = EditorError.END_BEFORE_START) }
             return
         }
@@ -449,6 +474,7 @@ class EventEditorViewModel @Inject constructor(
         loadedTimeZoneId = null
         loadedStartUtcMillis = null
         loadedEndUtcMillis = null
+        loadedAllDayZone = null
         _state.update {
             it.copy(
                 isEditing = false,
@@ -486,10 +512,10 @@ class EventEditorViewModel @Inject constructor(
             //
             // Two deliberate exceptions, both because the zone is not a label there but part of the
             // arithmetic:
-            //  - an ALL-DAY event's instants are the day boundaries computed with `atStartOfDay(zone)`
-            //    a few lines above. Storing a different zone beside them would put the boundaries and
-            //    their label out of step — the very inconsistency `DeviceEventMapper` and `IcsCodec`
-            //    avoid by anchoring all-day rows to the device zone on both sides.
+            //  - an ALL-DAY event's instants are the day boundaries computed in [allDayZone] a few lines
+            //    above — its own zone, or the phone's for a new one. That zone is stored beside them, or
+            //    the boundaries and their label would be out of step: the zone is what every view reads
+            //    the dates back in.
             //  - a NEW event has nothing to preserve.
             //
             // An override inherits the master's zone rather than the device's: it replaces one
@@ -508,10 +534,10 @@ class EventEditorViewModel @Inject constructor(
             //  - et seulement si les instants n'ont pas bougé (DR-6) : une heure retapée l'est dans le
             //    fuseau de l'appareil, la garder sous une étiquette étrangère ferait dériver toutes
             //    les occurrences suivantes.
-            timeZoneId = if (current.allDay || startMillis != loadedStartUtcMillis) {
-                zone.id
-            } else {
-                loadedTimeZoneId?.takeIf(TimeZones::isCanonical) ?: zone.id
+            timeZoneId = when {
+                current.allDay -> allDayZone.id
+                startMillis != loadedStartUtcMillis -> zone.id
+                else -> loadedTimeZoneId?.takeIf(TimeZones::isCanonical) ?: zone.id
             },
             allDay = current.allDay,
             // An override is a single event; the whole-series save keeps the recurrence rule.
@@ -664,9 +690,9 @@ class EventEditorViewModel @Inject constructor(
 
     private fun EventEditorUiState.toInstants(): Pair<Long, Long> =
         if (allDay) {
-            val start = startDateTime.toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli()
+            val start = startDateTime.toLocalDate().atStartOfDay(allDayZone).toInstant().toEpochMilli()
             // Inclusive end date -> exclusive next-midnight boundary (a single all-day = 24h).
-            val end = endDateTime.toLocalDate().plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+            val end = endDateTime.toLocalDate().plusDays(1).atStartOfDay(allDayZone).toInstant().toEpochMilli()
             start to end
         } else {
             startDateTime.atZone(zone).toInstant().toEpochMilli() to
@@ -680,8 +706,9 @@ class EventEditorViewModel @Inject constructor(
         val freq = recurrenceFreq ?: return null
         val count = if (recurrenceEnd == RecurrenceEnd.AFTER_COUNT) recurrenceCount.coerceAtLeast(1) else null
         val until = if (recurrenceEnd == RecurrenceEnd.ON_DATE) {
-            // Inclusive end date → last instant of that day, so an occurrence on it is kept.
-            recurrenceUntilDate.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1
+            // Inclusive end date → last instant of that day, so an occurrence on it is kept. Counted in the
+            // zone the occurrences are: an all-day series' own, or the last day gains or loses one.
+            recurrenceUntilDate.plusDays(1).atStartOfDay(if (allDay) allDayZone else zone).toInstant().toEpochMilli() - 1
         } else {
             null
         }

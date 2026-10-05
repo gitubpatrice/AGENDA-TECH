@@ -91,12 +91,27 @@ class RecurrenceExpander @Inject constructor() {
         afterUtcMillis: Long,
         extraExcludedStartsUtcMillis: Set<Long> = emptySet(),
         budget: ExpansionBudget? = null,
+    ): Long? = firstOccurrenceStart(event, afterUtcMillis, extraExcludedStartsUtcMillis, budget) { true }
+
+    /**
+     * The start instant of the first occurrence of [event] at or after [fromUtcMillis] that [accept]
+     * takes, or null. [nextOccurrenceStart] with a condition, in one walk of the series: the reminders of
+     * an all-day event fire by the occurrence's place on the phone's calendar, not by its instant, and
+     * asking [nextOccurrenceStart] again for each refused occurrence would walk the series from its base
+     * every time.
+     */
+    fun firstOccurrenceStart(
+        event: Event,
+        fromUtcMillis: Long,
+        extraExcludedStartsUtcMillis: Set<Long> = emptySet(),
+        budget: ExpansionBudget? = null,
+        accept: (Long) -> Boolean,
     ): Long? {
         val rule = event.recurrence
-            ?: return event.startUtcMillis.takeIf { it >= afterUtcMillis }
+            ?: return event.startUtcMillis.takeIf { it >= fromUtcMillis && accept(it) }
         val zone = resolveZone(event.timeZoneId)
         return occurrenceStarts(event, rule, zone, extraExcludedStartsUtcMillis, budget)
-            .firstOrNull { it >= afterUtcMillis }
+            .firstOrNull { it >= fromUtcMillis && accept(it) }
     }
 
     /**
@@ -121,6 +136,21 @@ class RecurrenceExpander @Inject constructor() {
         return occurrenceStarts(event, rule, zone, extraExcludedStartsUtcMillis, budget)
             .takeWhile { it < beforeUtcMillis }
             .lastOrNull()
+    }
+
+    /**
+     * The end of the occurrence of [event] that starts at [occurrenceStartUtcMillis], as [expand] computes
+     * it: the event's nominal local duration, re-resolved through its zone.
+     *
+     * The editor used to add the master's duration in milliseconds instead. A one-day all-day series
+     * begun on a 23-hour day (summer time starting) then ended its later occurrences at 23:00 on their
+     * own day, and one tapped on a 25-hour day (summer time ending) ended at 23:00 too: the editor
+     * showed the occurrence ending the day before it began, and saving it stored an all-day event of no
+     * length. Found by external review (GPT 5.6 and Gemini 3.1 Pro).
+     */
+    fun occurrenceEndUtcMillis(event: Event, occurrenceStartUtcMillis: Long): Long {
+        val zone = resolveZone(event.timeZoneId)
+        return occurrenceEndMillis(occurrenceStartUtcMillis, nominalDuration(event, zone), zone)
     }
 
     private fun singleOccurrenceIfOverlaps(
