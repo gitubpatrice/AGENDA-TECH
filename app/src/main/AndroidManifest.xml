@@ -154,6 +154,9 @@
                 <!-- Audit AG-4 — une mise a jour de l'app peut annuler les alarmes selon la version
                      d'Android. Diffusion protegee par la plateforme, comme BOOT_COMPLETED. -->
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <!-- A new time zone moves the reminders of all-day events, which ring by the phone's
+                     midnight. Protected too: measured on API 29, a shell broadcast is refused. -->
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
         </receiver>
 

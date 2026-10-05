@@ -18,13 +18,19 @@ data class DayCellData(
 
 /**
  * A single occurrence rendered in the selected-day list. Times are absolute instants; the UI
- * formats them in the display zone/locale. [eventId] routes a tap to the (future) event editor.
+ * formats them in the display zone/locale. [eventId] routes a tap to the event editor.
+ *
+ * [startUtcMillis] / [endUtcMillis] are the occurrence's place on the phone's calendar, which is what
+ * every day and every clock time is drawn from; [occurrenceStartUtcMillis] is the instant the
+ * occurrence is known by, which is what a tap hands the editor. They differ only for an all-day
+ * occurrence created in another time zone — see `domain/recurrence/AllDayPlacement.kt`.
  */
 data class OccurrenceData(
     val eventId: Long,
     val title: String,
     val startUtcMillis: Long,
     val endUtcMillis: Long,
+    val occurrenceStartUtcMillis: Long,
     val allDay: Boolean,
     val colorArgb: Int,
     /** Age this birthday occurrence marks, or null. */

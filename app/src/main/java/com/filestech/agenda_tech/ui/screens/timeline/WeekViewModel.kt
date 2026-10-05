@@ -53,7 +53,7 @@ class WeekViewModel @Inject constructor(
     private val occurrences = weekStartFlow.flatMapLatest { start ->
         val startMillis = start.atStartOfDay(zone).toInstant().toEpochMilli()
         val endMillis = start.plusWeeks(1).atStartOfDay(zone).toInstant().toEpochMilli()
-        observeOccurrences(startMillis, endMillis)
+        observeOccurrences(startMillis, endMillis, zone)
     }
 
     val uiState: StateFlow<WeekUiState> = combine(

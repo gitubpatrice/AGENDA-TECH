@@ -636,7 +636,7 @@ internal fun SelectedDayOccurrences(
     }
     val zone = remember { ZoneId.systemDefault() }
     LazyColumn(modifier = modifier) {
-        items(occurrences, key = { it.eventId to it.startUtcMillis }) { occurrence ->
+        items(occurrences, key = { it.eventId to it.occurrenceStartUtcMillis }) { occurrence ->
             OccurrenceRow(occurrence, zone, locale, onOccurrenceClick)
         }
     }
@@ -652,7 +652,7 @@ private fun OccurrenceRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onOccurrenceClick(occurrence.eventId, occurrence.startUtcMillis) }
+            .clickable { onOccurrenceClick(occurrence.eventId, occurrence.occurrenceStartUtcMillis) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

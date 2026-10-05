@@ -59,7 +59,7 @@ class AgendaViewModel @Inject constructor(
         LocalDate.now(zone).plusDays(FUTURE_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
 
     val uiState: StateFlow<AgendaUiState> = combine(
-        observeOccurrences(windowStart, windowEnd),
+        observeOccurrences(windowStart, windowEnd, zone),
         calendarRepository.observeAll(),
     ) { occurrences, calendars ->
         val items = occurrences.toTimelineItems(calendars.associate { it.id to it.color.argb }, zone)

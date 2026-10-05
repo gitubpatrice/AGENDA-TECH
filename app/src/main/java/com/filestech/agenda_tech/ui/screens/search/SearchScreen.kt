@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.domain.recurrence.dateZone
 import com.filestech.agenda_tech.domain.search.EventSearchHit
 import com.filestech.agenda_tech.ui.util.EventRow
 import com.filestech.agenda_tech.ui.util.EventRowDetail
@@ -194,11 +195,12 @@ private fun SearchRow(
 
 /**
  * Full date — search spans years, so a bare weekday would be ambiguous. All-day events show no clock
- * time; a recurring hit is dated by the occurrence the use case picked, not by the series' base.
+ * time, and their date is read in their own zone ([dateZone]); a recurring hit is dated by the
+ * occurrence the use case picked, not by the series' base.
  */
 @Composable
 private fun dateLabel(hit: EventSearchHit, zone: ZoneId, locale: Locale): String {
-    val start = Instant.ofEpochMilli(hit.occurrenceStartUtcMillis).atZone(zone)
+    val start = Instant.ofEpochMilli(hit.occurrenceStartUtcMillis).atZone(hit.event.dateZone(zone))
     val date = start.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale))
         .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
     if (hit.event.allDay) return "$date · ${stringResource(R.string.month_all_day)}"

@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.ui.screens.month
 
 import app.cash.turbine.test
+import com.filestech.agenda_tech.core.time.FarZones
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.repository.EventRepository
@@ -26,6 +27,8 @@ import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
@@ -123,6 +126,34 @@ class MonthCellsTest {
         assertThat(state.cell(first).events.map { it.title }).containsExactly("Trip")
         assertThat(state.cell(first.plusDays(1)).events.map { it.title }).containsExactly("Trip")
         assertThat(state.cell(first.plusDays(2)).events).isEmpty()
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = [FarZones.AHEAD, FarZones.BEHIND])
+    fun `an all-day event created in another time zone stays on its own date`(elsewhereId: String) = runTest(dispatcher) {
+        // Its instants are the midnights of the zone it was created in. Read on this phone's clock they
+        // fall inside two days, and the event showed on both — after any journey, or an import of a
+        // file written elsewhere.
+        val day = month.atDay(14)
+        val elsewhere = ZoneId.of(elsewhereId)
+        eventRepo.rows[1] = Event(
+            id = 1,
+            calendarId = 1,
+            title = "Holiday",
+            startUtcMillis = day.atStartOfDay(elsewhere).toInstant().toEpochMilli(),
+            endUtcMillis = day.plusDays(1).atStartOfDay(elsewhere).toInstant().toEpochMilli(),
+            timeZoneId = elsewhere.id,
+            allDay = true,
+        )
+
+        val state = viewModel().state(testScheduler)
+
+        assertThat(state.cell(day.minusDays(1)).events).isEmpty()
+        assertThat(state.cell(day).events.map { it.title }).containsExactly("Holiday")
+        assertThat(state.cell(day.plusDays(1)).events).isEmpty()
+        // A tap hands the editor the instant the occurrence is known by, not its place on this calendar.
+        assertThat(state.cell(day).events.single().occurrenceStartUtcMillis)
+            .isEqualTo(eventRepo.rows.getValue(1).startUtcMillis)
     }
 
     @Test

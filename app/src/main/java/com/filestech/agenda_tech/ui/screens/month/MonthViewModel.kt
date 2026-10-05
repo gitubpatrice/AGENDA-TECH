@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.recurrence.EventOccurrence
+import com.filestech.agenda_tech.domain.recurrence.shownEndUtcMillis
+import com.filestech.agenda_tech.domain.recurrence.shownStartUtcMillis
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
@@ -91,7 +93,7 @@ class MonthViewModel @Inject constructor(
     }.flatMapLatest { (month, firstDay) ->
         val startDate = MonthGrid.gridRange(month.minusMonths(1), firstDay).first
         val endDate = MonthGrid.gridRange(month.plusMonths(1), firstDay).second
-        observeOccurrences(startDate.toStartOfDayUtc(), endDate.toStartOfDayUtc())
+        observeOccurrences(startDate.toStartOfDayUtc(), endDate.toStartOfDayUtc(), zone)
     }
 
     // The last values the two database sources gave, replayed whenever they start again.
@@ -259,18 +261,19 @@ class MonthViewModel @Inject constructor(
         // Converted and sorted once for the whole window; every day below is a filter of this list, so
         // the dots, the titles, the rows and the selected day's list all agree on order and content.
         val sorted = occurrences
-            .sortedWith(compareBy({ !it.event.allDay }, { it.startUtcMillis }))
             .map {
                 OccurrenceData(
                     eventId = it.event.id,
                     title = it.event.title,
-                    startUtcMillis = it.startUtcMillis,
-                    endUtcMillis = it.endUtcMillis,
+                    startUtcMillis = it.shownStartUtcMillis(zone),
+                    endUtcMillis = it.shownEndUtcMillis(zone),
+                    occurrenceStartUtcMillis = it.startUtcMillis,
                     allDay = it.event.allDay,
                     colorArgb = colorOf(it, colorByCalendarId),
                     birthdayAge = BirthdayAge.of(it.event, it.startUtcMillis, zone),
                 )
             }
+            .sortedWith(compareBy({ !it.allDay }, { it.startUtcMillis }))
 
         val pages = PAGE_OFFSETS.associate { offset ->
             val pageMonth = month.plusMonths(offset)

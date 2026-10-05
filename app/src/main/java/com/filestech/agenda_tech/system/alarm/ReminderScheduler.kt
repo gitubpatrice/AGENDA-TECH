@@ -11,12 +11,14 @@ import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.Reminder
 import com.filestech.agenda_tech.domain.recurrence.ExpansionBudget
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
+import com.filestech.agenda_tech.domain.recurrence.shownStartUtcMillis
 import com.filestech.agenda_tech.domain.reminder.ReminderScheduling
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.repository.ReminderRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -225,7 +227,12 @@ class ReminderScheduler @Inject constructor(
             reminder,
             event,
             ReminderScheduling.nextEarliestStart(
-                firedOccurrenceStartUtcMillis = firedOccurrenceStartUtcMillis,
+                // On the phone's calendar, like every threshold of ReminderScheduling: for an all-day
+                // occurrence, midnight of its date here rather than in the zone it was created in.
+                firedOccurrenceStartUtcMillis = event.shownStartUtcMillis(
+                    firedOccurrenceStartUtcMillis,
+                    ZoneId.systemDefault(),
+                ),
                 nowUtcMillis = System.currentTimeMillis(),
                 minutesBefore = reminder.minutesBefore,
             ),
@@ -315,6 +322,7 @@ class ReminderScheduler @Inject constructor(
             earliestOccurrenceStart,
             extraExcludedStarts,
             budget,
+            ZoneId.systemDefault(),
         )
         if (fire == null) {
             // Audit F5-bis, found by external review of lot D — and introduced BY lot D.

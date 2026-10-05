@@ -28,6 +28,7 @@ import com.filestech.agenda_tech.MainActivity
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.birthday.BirthdayAge
 import com.filestech.agenda_tech.domain.birthday.birthdayDisplayTitle
+import com.filestech.agenda_tech.domain.recurrence.shownStartUtcMillis
 import com.filestech.agenda_tech.domain.repository.LockRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
@@ -93,7 +94,7 @@ class AgendaWidget : GlanceAppWidget() {
         val startMillis = today.atStartOfDay(zone).toInstant().toEpochMilli()
         val endMillis = today.plusDays(UPCOMING_DAYS).atStartOfDay(zone).toInstant().toEpochMilli()
 
-        val occurrences = entryPoint.observeOccurrences().invoke(startMillis, endMillis).first()
+        val occurrences = entryPoint.observeOccurrences().invoke(startMillis, endMillis, zone).first()
         // LOCK-3 — the widget lives on the home screen, outside the app-lock gate. When a PIN/biometric
         // lock is enabled we force-hide titles; the user's explicit "hide titles" preference also
         // still applies.
@@ -113,7 +114,7 @@ class AgendaWidget : GlanceAppWidget() {
         val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale)
 
         val rows = occurrences
-            .sortedBy { it.startUtcMillis }
+            .sortedBy { it.shownStartUtcMillis(zone) }
             .take(MAX_ROWS)
             .map { occurrence ->
                 val time = if (occurrence.event.allDay) {

@@ -35,6 +35,15 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ### Fixed
 
+- **An all-day event created in another time zone spilled onto two days.** Its days were read on the
+  phone's clock: after a journey, or for a calendar file written elsewhere, a holiday showed on two
+  days in the month, week and day views, was listed the day before in the agenda and showed a day
+  late in the widget. Opening it and saving without a change moved it by a day. Its dates are now read
+  in the zone it was created in, everywhere, and its reminders ring at the phone's midnight. Also in
+  1.1.1.
+- **One day of an all-day series could open ending the day before it began**, when summer time started
+  or ended in the series, and saving it stored a day of no length. Its end is now counted the way the
+  calendar views count it, and an all-day end before the start is refused. Found by external review.
 - **Coming back to the month could show the next one.** After swiping to another month, a visit to
   Settings, the editor or search came back one month further — every time.
 - **At the largest text sizes, two-digit day numbers were cut** ("1" for the 12th), and so were
@@ -73,6 +82,16 @@ versions selon [SemVer](https://semver.org/lang/fr/).
   le 12), les numéros de semaine aussi.
 - **Un jour de plus de quatre événements montrait quatre points et rien d'autre** ; un « + » signale
   désormais les suivants.
+- **Une journée entière créée dans un autre fuseau horaire débordait sur deux jours.** Ses dates étaient
+  lues à l'heure du téléphone : après un voyage, ou pour un fichier d'agenda écrit ailleurs, un jour
+  férié s'affichait sur deux jours dans les vues mois, semaine et jour, figurait la veille dans
+  l'agenda et un jour trop tard dans le widget. L'ouvrir et l'enregistrer sans rien changer le
+  déplaçait d'un jour. Ses dates sont désormais lues partout dans le fuseau où elle a été créée, et ses
+  rappels sonnent à minuit, heure du téléphone. Présent aussi dans la 1.1.1.
+- **Un jour d'une série « journée entière » pouvait s'ouvrir avec une fin la veille de son début**
+  autour d'un changement d'heure, et l'enregistrer créait une journée de durée nulle. Sa fin est
+  désormais comptée comme dans les vues du calendrier, et une fin antérieure au début est refusée.
+  Trouvé par une relecture externe.
 - **Allemand, italien et espagnol**, en plus de l'anglais et du français : tous les écrans, les
   notifications et le widget, la fiche F-Droid, la politique de confidentialité et les nouvelles
   conditions d'utilisation. Traductions assistées par machine, pas encore relues par un locuteur
