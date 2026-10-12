@@ -655,9 +655,9 @@ internal fun SelectedDayOccurrences(
             occurrences,
             key = { _, occurrence -> occurrence.eventId to occurrence.occurrenceStartUtcMillis },
         ) { index, occurrence ->
-            // A thin line between two events: with the place and the notes, where one ended and the next
-            // began was no longer obvious.
-            if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            // A line between two events: with the place and the notes, where one ended and the next began
+            // was no longer obvious. Each event's own parts are split by a thinner one (DetailDivider).
+            if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = lightLineColor())
             OccurrenceRow(occurrence, zone, locale, onOccurrenceClick)
         }
     }
@@ -686,8 +686,7 @@ private fun OccurrenceRow(
                 .clip(CircleShape)
                 .background(Color(occurrence.colorArgb)),
         )
-        // Room between the lines: title, time, place and notes packed together read as one block.
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = displayTitle(occurrence.title, occurrence.birthdayAge),
                 style = MaterialTheme.typography.bodyLarge,
@@ -697,10 +696,12 @@ private fun OccurrenceRow(
                 text = timeLabel(occurrence, zone, locale),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
             )
             // Capped so one long note cannot push the rest of the day out of the list: the full text is
             // one tap away, in the editor.
             occurrence.place?.let { place ->
+                DetailDivider()
                 Row {
                     Icon(
                         imageVector = Icons.Outlined.Place,
@@ -720,6 +721,7 @@ private fun OccurrenceRow(
                 }
             }
             occurrence.description?.let { description ->
+                DetailDivider()
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
@@ -731,6 +733,21 @@ private fun OccurrenceRow(
         }
     }
 }
+
+/**
+ * The line between the parts of one event — time, place, notes. Thinner than the one between two events,
+ * so the day still reads as a list of events and not as a list of lines (asked for on the S9).
+ */
+@Composable
+private fun DetailDivider() {
+    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 0.5.dp, color = lightLineColor())
+}
+
+/** Light grey, as asked on the S9: the theme's divider grey read as too dark between the lines of a day. */
+@Composable
+private fun lightLineColor(): Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = LIGHT_LINE_ALPHA)
+
+private const val LIGHT_LINE_ALPHA = 0.6f
 
 private const val PLACE_MAX_LINES = 2
 private const val DESCRIPTION_MAX_LINES = 3
