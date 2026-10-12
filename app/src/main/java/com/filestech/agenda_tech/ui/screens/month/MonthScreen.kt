@@ -23,7 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -651,7 +651,13 @@ internal fun SelectedDayOccurrences(
     }
     val zone = LocalDeviceZone.current
     LazyColumn(modifier = modifier) {
-        items(occurrences, key = { it.eventId to it.occurrenceStartUtcMillis }) { occurrence ->
+        itemsIndexed(
+            occurrences,
+            key = { _, occurrence -> occurrence.eventId to occurrence.occurrenceStartUtcMillis },
+        ) { index, occurrence ->
+            // A thin line between two events: with the place and the notes, where one ended and the next
+            // began was no longer obvious.
+            if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             OccurrenceRow(occurrence, zone, locale, onOccurrenceClick)
         }
     }
@@ -668,7 +674,7 @@ private fun OccurrenceRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onOccurrenceClick(occurrence.eventId, occurrence.occurrenceStartUtcMillis) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Beside the title rather than centred on the row: with the place and the notes under it, a
@@ -680,7 +686,8 @@ private fun OccurrenceRow(
                 .clip(CircleShape)
                 .background(Color(occurrence.colorArgb)),
         )
-        Column(modifier = Modifier.weight(1f)) {
+        // Room between the lines: title, time, place and notes packed together read as one block.
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = displayTitle(occurrence.title, occurrence.birthdayAge),
                 style = MaterialTheme.typography.bodyLarge,
@@ -694,7 +701,7 @@ private fun OccurrenceRow(
             // Capped so one long note cannot push the rest of the day out of the list: the full text is
             // one tap away, in the editor.
             occurrence.place?.let { place ->
-                Row(modifier = Modifier.padding(top = 2.dp)) {
+                Row {
                     Icon(
                         imageVector = Icons.Outlined.Place,
                         contentDescription = null,
@@ -719,7 +726,6 @@ private fun OccurrenceRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = DESCRIPTION_MAX_LINES,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
         }
