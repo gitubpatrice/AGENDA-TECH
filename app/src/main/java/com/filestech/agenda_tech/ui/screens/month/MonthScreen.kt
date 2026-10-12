@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
@@ -80,6 +81,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -667,11 +669,13 @@ private fun OccurrenceRow(
             .fillMaxWidth()
             .clickable { onOccurrenceClick(occurrence.eventId, occurrence.occurrenceStartUtcMillis) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // Beside the title rather than centred on the row: with the place and the notes under it, a
+        // centred dot floated halfway down the text (seen on the S9).
         Box(
             modifier = Modifier
+                .padding(top = 6.dp)
                 .size(12.dp)
                 .clip(CircleShape)
                 .background(Color(occurrence.colorArgb)),
@@ -687,9 +691,43 @@ private fun OccurrenceRow(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            // Capped so one long note cannot push the rest of the day out of the list: the full text is
+            // one tap away, in the editor.
+            occurrence.place?.let { place ->
+                Row(modifier = Modifier.padding(top = 2.dp)) {
+                    Icon(
+                        imageVector = Icons.Outlined.Place,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(top = 2.dp, end = 4.dp)
+                            .size(16.dp),
+                    )
+                    Text(
+                        text = place,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = PLACE_MAX_LINES,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            occurrence.description?.let { description ->
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = DESCRIPTION_MAX_LINES,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
         }
     }
 }
+
+private const val PLACE_MAX_LINES = 2
+private const val DESCRIPTION_MAX_LINES = 3
 
 // --- formatting helpers (UI-side, locale-aware) -----------------------------
 
