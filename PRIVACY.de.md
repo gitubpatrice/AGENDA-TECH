@@ -124,9 +124,10 @@ von einer App zur anderen:
   Termin **so, wie er gespeichert ist** (Titel, Datum und Uhrzeiten, vollständiger Ort,
   Beschreibung; bei einer Serie die ganze Serie) an die App, die **Sie** im Teilen-Menü von Android
   auswählen. Die App selbst sendet nichts. Bei `.ics` wird die Datei in den privaten
-  Speicherbereich der App geschrieben; nur die gewählte App erhält das Recht, sie zu lesen, und sie
-  wird beim nächsten Teilen oder beim nächsten Start der App gelöscht. Was die empfangende App mit
-  dem Termin macht, regelt ihre eigene Datenschutzerklärung.
+  Speicherbereich der App geschrieben; nur die gewählte App erhält das Recht, sie zu lesen, und nur
+  für diese eine Datei. Sie wird beim nächsten Teilen gelöscht, wenn Sie den Termin löschen, und
+  andernfalls beim ersten Start der App, der mehr als eine Stunde nach dem Teilen erfolgt. Was die
+  empfangende App mit dem Termin macht, regelt ihre eigene Datenschutzerklärung.
 - **Erinnerungston**: Sie wählen über die Klingeltonauswahl des Systems einen der Klingeltöne, die
   bereits auf dem Gerät registriert sind. Die App speichert die Kennung des gewählten Klingeltons
   und nimmt **keine dauerhafte Zugriffsberechtigung** auf Ihre Dateien — sie fordert weder

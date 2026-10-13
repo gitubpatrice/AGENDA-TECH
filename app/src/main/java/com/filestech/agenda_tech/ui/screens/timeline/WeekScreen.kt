@@ -3,11 +3,13 @@ package com.filestech.agenda_tech.ui.screens.timeline
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -31,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.TextAlign
@@ -205,19 +208,26 @@ private fun WeekAllDayRow(days: List<DayTimelineData>, onItemClick: (Long, Long)
 /** One all-day event in a week column: the Day view's strip, narrowed — its colour, white text, a tap opens it. */
 @Composable
 private fun WeekAllDayChip(item: TimelineItem, onItemClick: (Long, Long) -> Unit) {
-    Text(
-        text = displayTitle(item.title, item.birthdayAge),
-        style = MaterialTheme.typography.labelSmall,
-        color = Color.White,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
+    // At least 24 dp tall, the smallest target WCAG 2.5.8 accepts (pre-release audit, 2026-10-13): one
+    // line of small text made a strip about 15 dp high to aim a finger at.
+    Box(
+        contentAlignment = Alignment.CenterStart,
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 24.dp)
             .clip(MaterialTheme.shapes.extraSmall)
             .background(Color(item.colorArgb))
-            .clickable { onItemClick(item.eventId, item.occurrenceStartUtcMillis) }
-            .padding(horizontal = 3.dp, vertical = 1.dp),
-    )
+            .clickable(role = Role.Button) { onItemClick(item.eventId, item.occurrenceStartUtcMillis) }
+            .padding(horizontal = 3.dp),
+    ) {
+        Text(
+            text = displayTitle(item.title, item.birthdayAge),
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 /** Past this many, a week column says how many more: a holiday week would otherwise push the hours away. */

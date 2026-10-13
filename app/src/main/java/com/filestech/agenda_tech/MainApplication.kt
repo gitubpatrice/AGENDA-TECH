@@ -76,10 +76,11 @@ class MainApplication : Application() {
             }.onFailure { Timber.w(it, "auto-backup re-arm failed") }
         }
 
-        // The last `.ics` shared is the one piece of the agenda kept unencrypted (SharedFiles): it lives
-        // until the app next starts, no longer.
+        // The last `.ics` shared is the one piece of the agenda kept unencrypted (SharedFiles). A start of
+        // the app deletes one left from an earlier session — not a recent one: the app may start again
+        // for a reminder or the widget before the app shared to has read its file.
         appScope.launch {
-            runCatching { sharedFiles.clear() }.onFailure { Timber.w(it, "shared files cleanup failed") }
+            runCatching { sharedFiles.clearStale() }.onFailure { Timber.w(it, "shared files cleanup failed") }
         }
     }
 }

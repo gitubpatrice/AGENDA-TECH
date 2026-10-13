@@ -7,6 +7,7 @@ import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.model.Reminder
 import com.filestech.agenda_tech.domain.model.SeriesExclusion
 import com.google.common.truth.Truth.assertThat
+import io.mockk.coVerify
 import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
@@ -42,6 +43,34 @@ internal class EventEditorUndoTest : EventEditorTestBase() {
         recurrenceParentId = masterId,
         originalStartUtcMillis = originalStart,
     ).also { eventRepo.rows[id] = it }
+
+    @Test
+    fun `deleting an event deletes what was shared of it`() = runTest(dispatcher) {
+        // Security audit, 2026-10-13: the shared .ics survived, unencrypted, the event it was a copy of.
+        seedEvent(id = 10)
+
+        val vm = viewModel(eventId = 10)
+        testScheduler.advanceUntilIdle()
+        vm.onDelete()
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { sharedFiles.forget(10) }
+    }
+
+    @Test
+    fun `deleting a moved occurrence deletes what was shared of its series`() = runTest(dispatcher) {
+        // A share of an occurrence is filed under its series: that is what the .ics carries.
+        val occurrence = at(2026, 7, 27, 9)
+        seedEvent(id = 10, title = "Sport", recurrence = RecurrenceRule(freq = RecurrenceFreq.WEEKLY))
+        seedOverride(id = 11, masterId = 10, originalStart = occurrence)
+
+        val vm = viewModel(eventId = 11)
+        testScheduler.advanceUntilIdle()
+        vm.onDelete()
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { sharedFiles.forget(10) }
+    }
 
     @Test
     fun `deleting an event offers it back with the reminders it carried`() = runTest(dispatcher) {

@@ -112,8 +112,9 @@ from one app to another:
   event **as it is saved** (title, date and times, the place in full, description; for a series, the
   whole series) to the app **you** pick in Android's share sheet. The app itself sends nothing. For
   the `.ics`, the file is written in the app's private storage; only the chosen app is granted
-  permission to read it, and it is deleted at the next share or the next time the app starts. What
-  the receiving app does with the event is governed by its own privacy policy.
+  permission to read it, for that file alone. It is deleted at the next share, when you delete the
+  event, and otherwise at the first start of the app more than an hour after the share. What the
+  receiving app does with the event is governed by its own privacy policy.
 - **Reminder sound**: you choose a ringtone from those already registered on the device, through the
   system ringtone picker. The app stores the identifier of the chosen ringtone and takes **no
   persistent access permission** on your files — it declares neither `READ_MEDIA_AUDIO` nor

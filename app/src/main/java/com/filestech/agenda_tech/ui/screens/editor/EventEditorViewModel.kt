@@ -277,7 +277,9 @@ class EventEditorViewModel @Inject constructor(
             emptyList()
         }
         val ics = EventShare.ics(source.event, overrides, System.currentTimeMillis())
-        return sharedFiles.calendarFile(EventShare.fileStem(source.event.title), ics)
+        // Filed under the series, so deleting any part of it — see launchDeletion — deletes the copy.
+        val owner = source.event.recurrenceParentId ?: source.event.id
+        return sharedFiles.calendarFile(owner, EventShare.fileStem(source.event.title), ics)
     }
 
     fun onAddReminder(minutesBefore: Int) = _state.update {
@@ -652,11 +654,18 @@ class EventEditorViewModel @Inject constructor(
      *
      * L'echec est dit, pas seulement relache : une suppression qui ne se produit pas et ne dit rien
      * laisse croire qu'elle a eu lieu.
+     *
+     * Le .ics partage de l'evenement (de sa serie, pour une occurrence) est efface ici, une fois pour les
+     * quatre chemins (audit de securite du 2026-10-13) : il survivait en clair a la suppression. AVANT
+     * l'ecriture et non apres : `isDeleted` referme l'ecran, et la coroutine qui suivrait serait annulee
+     * avec lui. Une suppression qui echoue ensuite aura seulement fait perdre un partage a refaire.
      */
     private fun launchDeletion(block: suspend () -> Unit) {
         _state.update { it.copy(busy = true) }
+        val sharedOwner = loadedParentId ?: eventId
         viewModelScope.launch {
             try {
+                sharedFiles.forget(sharedOwner)
                 block()
             } catch (t: Throwable) {
                 Timber.w(t, "Event deletion failed")

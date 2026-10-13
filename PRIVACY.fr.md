@@ -118,8 +118,9 @@ votre appareil, d'une application à l'autre :
   remet l'événement **tel qu'il est enregistré** (titre, date et heures, lieu complet, description ;
   pour une série, la série entière) à l'application que **vous** choisissez dans le menu de partage
   d'Android. L'application n'envoie rien elle-même. Pour le `.ics`, le fichier est écrit dans
-  l'espace privé de l'application ; seule l'application choisie reçoit le droit de le lire, et il est
-  effacé au partage suivant ou au prochain démarrage de l'application. Ce que l'application
+  l'espace privé de l'application ; seule l'application choisie reçoit le droit de le lire, pour ce
+  seul fichier. Il est effacé au partage suivant, quand vous supprimez l'événement, et sinon au
+  premier démarrage de l'application plus d'une heure après le partage. Ce que l'application
   destinataire fait de l'événement relève de sa propre politique de confidentialité.
 - **Son de rappel** : vous choisissez une sonnerie parmi celles **déjà enregistrées sur l'appareil**,
   via le sélecteur système. L'application mémorise l'identifiant de la sonnerie choisie et ne prend

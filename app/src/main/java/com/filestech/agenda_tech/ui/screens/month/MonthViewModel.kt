@@ -36,6 +36,7 @@ import com.filestech.agenda_tech.domain.birthday.BirthdayAge
 import com.filestech.agenda_tech.domain.holiday.Holiday
 import com.filestech.agenda_tech.domain.location.GeoLink
 import com.filestech.agenda_tech.domain.location.PlaceLabel
+import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.usecase.ObserveHolidaysUseCase
 import java.time.ZoneId
 import java.time.temporal.WeekFields
@@ -299,8 +300,14 @@ class MonthViewModel @Inject constructor(
 
         // Converted and sorted once for the whole window; every day below is a filter of this list, so
         // the dots, the titles, the rows and the selected day's list all agree on order and content.
+        // Once per EVENT, not per occurrence (security audit, 2026-10-13): a daily series shows ~100 times
+        // in the window, and an imported place may be 4 000 characters — copied, and URL-encoded three to
+        // nine times its size, for each occurrence, a few hundred such series filled the memory and the
+        // app crashed at every start, the month being the first screen. Shared, they cost one copy each.
+        val details = occurrences.map { it.event }.distinctBy { it.id }.associate { it.id to EventDetails.of(it) }
         val sorted = occurrences
             .map {
+                val detail = details.getValue(it.event.id)
                 OccurrenceData(
                     eventId = it.event.id,
                     title = it.event.title,
@@ -310,10 +317,9 @@ class MonthViewModel @Inject constructor(
                     allDay = it.event.allDay,
                     colorArgb = colorOf(it, colorByCalendarId),
                     birthdayAge = BirthdayAge.of(it.event, it.startUtcMillis, zone),
-                    place = PlaceLabel.of(it.event)
-                        ?: it.event.gpsCoordinates?.trim()?.takeIf(GeoLink::isUsable),
-                    mapUri = GeoLink.forEvent(it.event),
-                    description = it.event.description?.trim()?.ifEmpty { null },
+                    place = detail.place,
+                    mapUri = detail.mapUri,
+                    description = detail.description,
                 )
             }
             .sortedWith(compareBy({ !it.allDay }, { it.startUtcMillis }))
@@ -393,3 +399,14 @@ private data class MonthWindow(
     val occurrences: List<EventOccurrence>,
     val holidays: Map<LocalDate, List<Holiday>>,
 )
+
+/** What the day's list shows of an event beyond its title and times — computed once per event. */
+private class EventDetails(val place: String?, val mapUri: String?, val description: String?) {
+    companion object {
+        fun of(event: Event) = EventDetails(
+            place = PlaceLabel.of(event) ?: event.gpsCoordinates?.trim()?.takeIf(GeoLink::isUsable),
+            mapUri = GeoLink.forEvent(event),
+            description = event.description?.trim()?.ifEmpty { null },
+        )
+    }
+}

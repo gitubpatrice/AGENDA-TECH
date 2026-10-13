@@ -120,9 +120,10 @@ dispositivo, de una app a otra:
   entrega el evento **tal como está guardado** (título, fecha y horas, lugar completo, descripción;
   si es una serie, la serie entera) a la app que **usted** elija en el menú para compartir de
   Android. La app no envía nada por sí misma. Para el `.ics`, el archivo se escribe en el espacio
-  privado de la app; solo la app elegida recibe el derecho de leerlo, y el archivo se borra la
-  próxima vez que vuelva a compartir o que la app se inicie. Lo que la app destinataria haga con
-  el evento se rige por su propia política de privacidad.
+  privado de la app; solo la app elegida recibe el derecho de leerlo, y solo para ese archivo. El
+  archivo se borra la próxima vez que vuelva a compartir, cuando usted elimina el evento y, si no,
+  en el primer inicio de la app más de una hora después de compartirlo. Lo que la app destinataria
+  haga con el evento se rige por su propia política de privacidad.
 - **Sonido del recordatorio**: usted elige un tono entre los ya registrados en el dispositivo,
   mediante el selector de tonos del sistema. La app guarda el identificador del tono elegido y **no
   toma ningún permiso de acceso persistente** a sus archivos — no declara ni `READ_MEDIA_AUDIO` ni

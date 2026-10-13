@@ -121,9 +121,10 @@ dispositivo, da un'app all'altra:
   passa l'evento **così come è salvato** (titolo, data e orari, luogo completo, descrizione;
   per una serie, l'intera serie) all'app che **lei** sceglie nel menu di condivisione di Android.
   L'app non invia nulla da sé. Per il `.ics`, il file viene scritto nello spazio privato dell'app;
-  solo l'app scelta riceve il diritto di leggerlo, e il file viene cancellato alla condivisione
-  successiva o al prossimo avvio dell'app. Ciò che l'app destinataria fa dell'evento è regolato
-  dalla propria informativa sulla privacy.
+  solo l'app scelta riceve il diritto di leggerlo, e solo per quel file. Il file viene cancellato
+  alla condivisione successiva, quando lei elimina l'evento e, altrimenti, al primo avvio dell'app
+  più di un'ora dopo la condivisione. Ciò che l'app destinataria fa dell'evento è regolato dalla
+  propria informativa sulla privacy.
 - **Suono del promemoria**: sceglie una suoneria tra quelle già registrate sul dispositivo, tramite
   il selettore di suonerie del sistema. L'app memorizza l'identificativo della suoneria scelta e
   **non prende alcuna autorizzazione di accesso permanente** ai suoi file — non dichiara né

@@ -7,6 +7,8 @@ import com.filestech.agenda_tech.domain.holiday.HolidayCountry
 import com.filestech.agenda_tech.domain.holiday.HolidayName
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.Event
+import com.filestech.agenda_tech.domain.model.RecurrenceFreq
+import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
 import com.filestech.agenda_tech.domain.settings.AppSettings
@@ -390,5 +392,34 @@ class MonthCellsTest {
         assertThat(days.single { it.date == bastilleDay }.holidays.map { it.name }).containsExactly(HolidayName.NATIONAL_DAY)
         assertThat(days.single { it.date == bastilleDay.plusDays(1) }.holidays).isEmpty()
         assertThat(state.selectedDayHolidays.map { it.name }).containsExactly(HolidayName.NATIONAL_DAY)
+    }
+
+    @Test
+    fun `the occurrences of a series share one place and one map link, not a copy each`() = runTest(dispatcher) {
+        // Security audit, 2026-10-13: an imported place of 4 000 characters was copied, and URL-encoded,
+        // for every occurrence — a few hundred daily series filled the memory and crashed the app at start.
+        val start = millis(month.atDay(1), 9)
+        eventRepo.rows[1] = Event(
+            id = 1,
+            calendarId = 1,
+            title = "Daily",
+            location = "Salle " + "x".repeat(3_000),
+            address = "12 rue des Lices",
+            startUtcMillis = start,
+            endUtcMillis = start + 3_600_000,
+            timeZoneId = zone.id,
+            recurrence = RecurrenceRule(freq = RecurrenceFreq.DAILY),
+        )
+
+        val occurrences = viewModel().state(testScheduler).weeks.flatten().flatMap { it.events }
+            .filter { it.eventId == 1L }
+
+        assertThat(occurrences.size).isAtLeast(2)
+        val first = occurrences.first()
+        assertThat(first.place).isNotNull()
+        occurrences.drop(1).forEach {
+            assertThat(it.place).isSameInstanceAs(first.place)
+            assertThat(it.mapUri).isSameInstanceAs(first.mapUri)
+        }
     }
 }

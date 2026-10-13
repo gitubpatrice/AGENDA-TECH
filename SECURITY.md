@@ -281,15 +281,22 @@ apply to it as to the other two.
   the file written in `cache/shared/` (the app's private storage) for the app picked in the share
   sheet. It is handed out by a **non-exported** `FileProvider`, limited to that folder
   (`res/xml/share_paths.xml`), with a read grant **given to the picked app only, and temporary**
-  (`FLAG_GRANT_READ_URI_PERMISSION` and `ClipData`). One file at a time: each share deletes the
-  previous one, each start of the app deletes the last. It cannot be deleted on sending: the
-  receiving app may read it only when the user taps "Send". Its name comes from the title, stripped
-  of anything that could name a path (`/`, `.`). Sharing **as text** writes no file.
+  (`FLAG_GRANT_READ_URI_PERMISSION` and `ClipData`). Each share has its **own random subfolder**,
+  hence its own `content://` link: a grant received for one share never covers the file of a later
+  one, even of the same title (security audit, 2026-10-13 — the link used to depend on the title
+  alone). One file at a time: each share deletes the previous one, **deleting the event deletes its
+  file**, and a start of the app deletes one older than an hour; every deletion **also withdraws the
+  grant** (`revokeUriPermission`). It cannot be deleted on sending, nor at every start: the receiving
+  app may read it only when the user taps "Send", and the app may start again meanwhile for a
+  reminder or the widget. Its name comes from the title, stripped of anything that could name a path
+  (`/`, `.`). Sharing **as text** writes no file.
 - **Opening on the map.** A `geo:` link handed to the maps app (`ACTION_VIEW`): the validated GPS
   coordinates, else a search for the address or the place name, encoded. Neither a location nor a
   network permission; the search is the maps app's.
 - **Undoing a deletion.** What a deletion removes is kept **in memory only** (`DeletionUndo`), never
-  written to storage, until it is undone, the offer runs out, or the process ends. The restore runs in
+  written to storage, until it is undone, the offer is withdrawn (bar dismissed, offer replaced by
+  another), or the process ends — the offer stops showing after 30 seconds, but nothing erases it from
+  memory at that moment. The restore runs in
   **one transaction**; a row comes back under its own id, and an id already taken is **refused, never
   overwritten** (`OnConflictStrategy.ABORT`); a date excluded from a series is restored on the series
   **as it is now**, never by writing back an old copy of the series.
