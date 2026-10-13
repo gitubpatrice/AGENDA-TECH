@@ -3,7 +3,9 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
-## [Unreleased]
+## [1.3.0] — 2026-10-13
+
+Public holidays, sharing, undo and the maps app — and the week view finally shows all-day events.
 
 ### Added
 
@@ -21,9 +23,16 @@ versions selon [SemVer](https://semver.org/lang/fr/).
   Switzerland, the United Kingdom, the United States), national ones, worked out on the phone and off
   by default (Settings → Appearance): the date in red in every view, the name in grey.
 
+### Changed
+
+- **The maps app gets the place, never the event's title**: GPS coordinates go labelled with the
+  place name, or with nothing. A GPS pin with no place name used to carry the title.
+
 ### Fixed
 
 - **The week view never showed all-day events.** They now sit under the days, with the holidays.
+- **Moving to the next day or week, or jumping to a far month, showed for an instant the previous
+  one's events — or an empty month — before its own.** Each view is now drawn from what it read.
 - The editor's title broke in the middle of a word on a narrow screen; it now keeps one line.
 - The delete confirmation no longer says "permanently": the event can be brought back.
 

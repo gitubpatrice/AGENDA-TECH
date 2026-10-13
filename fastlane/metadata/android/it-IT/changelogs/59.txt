@@ -1,0 +1,14 @@
+v1.3.0 — Festivi, condivisione, annulla
+
+• I giorni festivi di dieci paesi, calcolati
+  sul telefono (Impostazioni → Aspetto).
+• Condividere un evento come testo o come
+  file .ics.
+• Annullare un'eliminazione dalla barra
+  rossa.
+• Aprire un luogo nell'app di mappe dal suo
+  indirizzo o dal suo nome.
+• L'elenco del giorno mostra il luogo e la
+  descrizione.
+• La vista Settimana ora mostra gli eventi
+  di tutto il giorno.

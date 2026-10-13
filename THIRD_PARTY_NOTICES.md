@@ -4,7 +4,8 @@ Agenda Tech (`com.filestech.agenda_tech`) is licensed under the Apache License 2
 ([LICENSE](LICENSE)). It ships the open-source libraries listed below. The list was read on
 2026-09-26 from the resolved `releaseRuntimeClasspath` of the `:app` module at `v1.1.1`, and each
 licence from the POM that the library publishes — not from memory. Read again on 2026-10-05 for
-`v1.2.0`: only SQLCipher changed.
+`v1.2.0`: only SQLCipher changed. Checked on 2026-10-13 for `v1.3.0`: no library changed (the build
+files are those of `v1.2.0`).
 
 **No Google Play Services, no Firebase, no analytics SDK, no crash reporter, no network library.**
 

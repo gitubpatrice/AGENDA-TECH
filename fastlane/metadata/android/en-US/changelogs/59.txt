@@ -1,0 +1,12 @@
+v1.3.0 — Holidays, sharing, undo
+
+• Public holidays of ten countries, worked
+  out on the phone (Settings → Appearance).
+• Share an event as text or as an .ics
+  file.
+• Undo a deletion from the red bar.
+• Open a place in your maps app from its
+  address or its name.
+• The day's list shows the place and the
+  description.
+• The week view now shows all-day events.
