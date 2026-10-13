@@ -34,9 +34,15 @@ import kotlinx.coroutines.launch
  *
  * Leaving the screen while it shows does not dismiss the offer — the next screen shows it again, as long
  * as it is recent ([DeletionUndo.isFresh]). Only running out, a swipe, or "Undo" ends it.
+ *
+ * [modifier] places the bar: the search, whose keyboard opens again on return, keeps it above the
+ * keyboard — under it, the offer ran out unseen.
  */
 @Composable
-fun DeletionUndoSnackbarHost(viewModel: DeletionUndoViewModel = hiltViewModel()) {
+fun DeletionUndoSnackbarHost(
+    modifier: Modifier = Modifier,
+    viewModel: DeletionUndoViewModel = hiltViewModel(),
+) {
     val hostState = remember { SnackbarHostState() }
     val pending by viewModel.pending.collectAsStateWithLifecycle()
     // Read at the moment of showing, in the app's language — see MonthScreen for why not the context.
@@ -67,7 +73,7 @@ fun DeletionUndoSnackbarHost(viewModel: DeletionUndoViewModel = hiltViewModel())
     }
     // Red with white text, and "Undo" as a white rounded button with black text — asked on the S9, then
     // made compact: with a button's default padding, the white filled the bar to its edge.
-    SnackbarHost(hostState) { data ->
+    SnackbarHost(hostState, modifier) { data ->
         Snackbar(
             modifier = Modifier.padding(12.dp),
             action = data.visuals.actionLabel?.let { label ->

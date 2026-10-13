@@ -42,10 +42,16 @@ class DeletionRepositoryImpl @Inject constructor(
                 // (external review, 2026-10-13).
                 val row = checkNotNull(eventDao.getById(exclusion.masterId)) { "The series is gone" }
                 val master = row.toDomain()
-                val rule = master.recurrence ?: return@let
-                if (exclusion.occurrenceStartUtcMillis in rule.exDatesUtcMillis) {
+                val rule = master.recurrence
+                if (rule != null && exclusion.occurrenceStartUtcMillis in rule.exDatesUtcMillis) {
                     val lifted = rule.copy(exDatesUtcMillis = rule.exDatesUtcMillis - exclusion.occurrenceStartUtcMillis)
                     eventDao.upsert(master.copy(recurrence = lifted).toEntity(createdAt = row.createdAt, updatedAt = now))
+                } else {
+                    // The series no longer repeats, or no longer excludes the date (its time changed since):
+                    // the occurrence has nothing to come back into. When lifting was the whole undo, nothing
+                    // came back — a failure, not "restored" (external review, 2026-10-13). A moved
+                    // occurrence restored with it stands on its own.
+                    check(deleted.events.isNotEmpty()) { "Nothing to lift on the series" }
                 }
             }
         }

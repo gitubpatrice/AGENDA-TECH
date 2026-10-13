@@ -115,8 +115,9 @@ von einer App zur anderen:
   an dem Tag nutzbar bleibt, an dem das Telefon weg ist. `SECURITY.md` beschreibt es vollständig.
 - **Einen Ort auf der Karte öffnen**: Wenn Sie im Editor auf die Stecknadel eines Ortsfelds tippen
   oder in der Liste eines Tages auf die Zeile des Orts, übergibt die App der Karten-App Ihres
-  Telefons **nur diesen Ort**: die GPS-Koordinaten und die Bezeichnung des Termins, wenn die
-  Koordinaten gültig sind, andernfalls die Adresse (Straße, Postleitzahl, Stadt), andernfalls den
+  Telefons **nur diesen Ort**: die GPS-Koordinaten, wenn sie gültig sind, mit dem Namen des Orts,
+  falls vorhanden (nie mit dem Titel des Termins), andernfalls die Adresse (Straße, Postleitzahl,
+  Stadt), andernfalls den
   Namen des Orts. Sonst wird nichts übergeben, und nichts verlässt die App, wenn Sie nichts
   antippen. Was diese Karten-App dann mit den Informationen macht — eine Adresssuche läuft oft über
   das Internet —, regelt ihre eigene Datenschutzerklärung.

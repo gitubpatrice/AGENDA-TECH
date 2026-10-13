@@ -104,8 +104,9 @@ from one app to another:
   day the phone is gone. `SECURITY.md` states it in full.
 - **Opening a place on a map**: when you tap the pin of a place field in the editor, or the place
   line in a day's list, the app hands your phone's maps app **that place only**: the GPS coordinates
-  and the event's label if the coordinates are valid, otherwise the address (street, postal code,
-  city), otherwise the place name. Nothing else is sent, and nothing leaves if you don't tap
+  if they are valid, labelled with the place name if there is one (never with the event's title),
+  otherwise the address (street, postal code, city), otherwise the place name. Nothing else is
+  sent, and nothing leaves if you don't tap
   anything. What that maps app then does with the information — an address search often goes over
   the internet — is governed by its own privacy policy.
 - **Sharing an event**: from the editor (⋮ menu), "Share as text…" or "Share .ics…" hands over the

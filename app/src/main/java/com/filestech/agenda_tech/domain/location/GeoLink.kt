@@ -49,12 +49,13 @@ object GeoLink {
      * Where a tap on [event]'s place leads: its coordinates when usable, the exact spot; else a search
      * for its postal address; else for its place name — the only place field an imported event
      * carries. Null when the event has no place at all.
+     *
+     * The pin is labelled with the place name, or not at all — never with the title (external review,
+     * 2026-10-13): it is not a place, and the maps app may keep it in a history it syncs.
      */
-    fun forEvent(event: Event): String? {
-        val pinLabel = event.location?.takeIf { it.isNotBlank() } ?: event.title
-        return fromCoordinates(event.gpsCoordinates, pinLabel)
+    fun forEvent(event: Event): String? =
+        fromCoordinates(event.gpsCoordinates, event.location)
             ?: fromAddress(PlaceLabel.addressQuery(event.address, event.postalCode, event.city) ?: event.location)
-    }
 
     /** True when [raw] holds coordinates a maps app could open. */
     fun isUsable(raw: String?): Boolean = parseCoordinates(raw) != null

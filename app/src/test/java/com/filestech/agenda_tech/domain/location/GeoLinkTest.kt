@@ -137,9 +137,10 @@ class GeoLinkTest {
     }
 
     @Test
-    fun `coordinates without a place name are labelled with the title`() {
+    fun `coordinates without a place name go unlabelled, never with the title`() {
+        // External review, 2026-10-13: the title is not a place, and the maps app may keep it.
         assertThat(GeoLink.forEvent(event(gps = "44.0512,5.0489")))
-            .isEqualTo("geo:44.0512,5.0489?q=44.0512,5.0489(Dentiste)")
+            .isEqualTo("geo:44.0512,5.0489?q=44.0512,5.0489")
     }
 
     @Test

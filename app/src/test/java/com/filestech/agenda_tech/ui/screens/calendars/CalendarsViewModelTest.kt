@@ -6,6 +6,7 @@ import com.filestech.agenda_tech.domain.usecase.FakeCalendarRepository
 import com.filestech.agenda_tech.domain.usecase.FakeEventRepository
 import com.filestech.agenda_tech.domain.usecase.UpsertCalendarUseCase
 import com.filestech.agenda_tech.system.AgendaChangeNotifier
+import com.filestech.agenda_tech.system.SharedFiles
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coVerify
@@ -54,6 +55,7 @@ class CalendarsViewModelTest {
     /** Mocké : `ReminderScheduler` est final et câblé à `AlarmManager`. Ce qui compte est l'appel. */
     private val scheduler: ReminderScheduler = mockk(relaxed = true)
     private val agendaChanged: AgendaChangeNotifier = mockk(relaxed = true)
+    private val sharedFiles: SharedFiles = mockk(relaxed = true)
 
     @BeforeEach
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -67,6 +69,7 @@ class CalendarsViewModelTest {
         eventRepository = events,
         reminderScheduler = scheduler,
         agendaChanged = agendaChanged,
+        sharedFiles = sharedFiles,
     )
 
     private fun seed() {
@@ -103,6 +106,21 @@ class CalendarsViewModelTest {
 
         coVerify(exactly = 1) { scheduler.cancelEvent(42) }
         coVerify(exactly = 1) { scheduler.cancelEvent(43) }
+    }
+
+    @Test
+    fun `deleting a calendar deletes the ics shared of one of its events`() = runTest(dispatcher) {
+        // External review, 2026-10-13: only the editor deleted it, so a calendar's deletion left the copy
+        // of its event behind, readable by the app it was sent to.
+        seed()
+        val vm = viewModel()
+        backgroundScope.launch { vm.uiState.collect { } }
+        testScheduler.advanceUntilIdle()
+
+        vm.delete(2)
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { sharedFiles.forgetAll() }
     }
 
     @Test
@@ -225,5 +243,7 @@ class CalendarsViewModelTest {
         assertThat(vm.uiState.value.error).isEqualTo(CalendarsError.DELETE_FAILED)
         assertThat(vm.uiState.value.busy).isFalse()
         assertThat(calendars.stored.map { it.id }).contains(2L)
+        // Nothing went: the share stays, as its event does.
+        coVerify(exactly = 0) { sharedFiles.forgetAll() }
     }
 }

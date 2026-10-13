@@ -8,6 +8,7 @@ import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.usecase.UpsertCalendarUseCase
 import com.filestech.agenda_tech.system.AgendaChangeNotifier
+import com.filestech.agenda_tech.system.SharedFiles
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +40,7 @@ class CalendarsViewModel @Inject constructor(
     private val eventRepository: EventRepository,
     private val reminderScheduler: ReminderScheduler,
     private val agendaChanged: AgendaChangeNotifier,
+    private val sharedFiles: SharedFiles,
 ) : ViewModel() {
 
     /** Ce que l'ecran ecrit lui-meme, tenu a part de ce que la base lui rend. */
@@ -164,6 +166,8 @@ class CalendarsViewModel @Inject constructor(
                     reminderScheduler.cancelEvent(event.id)
                 }
                 calendarRepository.promoteDefaultAndDelete(promoteId, id)
+                // Its events are gone: so is the .ics shared of one of them.
+                sharedFiles.forgetAll()
                 agendaChanged.onAgendaChanged()
                 pending.value = Pending()
             } catch (t: Throwable) {

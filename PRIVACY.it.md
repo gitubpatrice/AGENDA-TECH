@@ -112,7 +112,8 @@ dispositivo, da un'app all'altra:
   il telefono non c'è più. `SECURITY.md` lo descrive per intero.
 - **Aprire un luogo sulla mappa**: quando tocca lo spillo di un campo del luogo nell'editor, o la
   riga del luogo nell'elenco di un giorno, l'app passa all'app di mappe del suo telefono **solo quel
-  luogo**: le coordinate GPS e il titolo dell'evento se le coordinate sono valide, altrimenti
+  luogo**: le coordinate GPS se sono valide, con il nome del luogo se c'è (mai il titolo
+  dell'evento), altrimenti
   l'indirizzo (via, codice postale, città), altrimenti il nome del luogo. Non viene inviato
   nient'altro, e nulla esce se non tocca nulla. Ciò che l'app di mappe fa poi con queste
   informazioni — una ricerca di indirizzo passa spesso da Internet — è regolato dalla propria

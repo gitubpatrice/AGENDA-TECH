@@ -6,8 +6,10 @@ import com.filestech.agenda_tech.domain.usecase.FakeDeviceCalendars
 import com.filestech.agenda_tech.domain.usecase.FakeEventRepository
 import com.filestech.agenda_tech.domain.usecase.ImportDeviceEventsUseCase
 import com.filestech.agenda_tech.system.AgendaChangeNotifier
+import com.filestech.agenda_tech.system.SharedFiles
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.google.common.truth.Truth.assertThat
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -52,6 +54,7 @@ class DeviceImportViewModelTest {
 
     private val scheduler: ReminderScheduler = mockk(relaxed = true)
     private val agendaChanged: AgendaChangeNotifier = mockk(relaxed = true)
+    private val sharedFiles: SharedFiles = mockk(relaxed = true)
 
     @BeforeEach
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -63,6 +66,7 @@ class DeviceImportViewModelTest {
         importDeviceEvents = ImportDeviceEventsUseCase(devices, calendars, events),
         reminderScheduler = scheduler,
         agendaChanged = agendaChanged,
+        sharedFiles = sharedFiles,
     )
 
     /**
@@ -84,6 +88,21 @@ class DeviceImportViewModelTest {
         assertThat(vm.failed.value).isTrue()
         // Et rien n'a été effacé — le message ne ment pas.
         assertThat(calendars.stored.map { it.id }).containsExactly(1L, 2L)
+        coVerify(exactly = 0) { sharedFiles.forgetAll() }
+    }
+
+    @Test
+    fun `clearing the imported calendars deletes the ics shared of one of their events`() = runTest(dispatcher) {
+        // External review, 2026-10-13: the copy outlived the imported event, readable by the app it was sent to.
+        calendars.stored += Calendar(id = 1, name = "Perso", isDefault = true)
+        calendars.stored += Calendar(id = 2, name = "Google", sourceId = "device:7")
+        val vm = viewModel()
+
+        vm.clearImported()
+        testScheduler.advanceUntilIdle()
+
+        assertThat(calendars.stored.map { it.id }).containsExactly(1L)
+        coVerify(exactly = 1) { sharedFiles.forgetAll() }
     }
 
     /** La preuve que l'écran n'est pas condamné : la tentative suivante aboutit. */

@@ -115,8 +115,10 @@ fun SearchScreen(
                 },
             )
         },
-        // The editor opened from a result comes back here after a deletion.
-        snackbarHost = { DeletionUndoSnackbarHost() },
+        // The editor opened from a result comes back here after a deletion, and the keyboard opens again:
+        // the bar goes above it, or the offer to undo ran out unseen under the keys (external review,
+        // 2026-10-13) — the Scaffold places it above the system bars only.
+        snackbarHost = { DeletionUndoSnackbarHost(Modifier.imePadding()) },
     ) { padding ->
         // imePadding: Scaffold's default window insets cover the system bars but NOT the keyboard,
         // which is up the whole time on this screen — without it the centred hint is cut in half and

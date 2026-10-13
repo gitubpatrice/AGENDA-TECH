@@ -111,7 +111,8 @@ dispositivo, de una app a otra:
   está. `SECURITY.md` lo describe por completo.
 - **Abrir un lugar en el mapa**: cuando toca la chincheta de un campo de lugar en el editor, o la
   línea del lugar en la lista de un día, la app pasa a la app de mapas de su teléfono **solo ese
-  lugar**: las coordenadas GPS y el título del evento si las coordenadas son válidas, o, en su
+  lugar**: las coordenadas GPS si son válidas, con el nombre del lugar si lo hay (nunca el título
+  del evento), o, en su
   defecto, la dirección (calle, código postal, ciudad), o, en su defecto, el nombre del lugar. No
   se envía nada más, y nada sale si no toca nada. Lo que esa app de mapas haga después con la
   información — una búsqueda de dirección suele pasar por Internet — se rige por su propia política

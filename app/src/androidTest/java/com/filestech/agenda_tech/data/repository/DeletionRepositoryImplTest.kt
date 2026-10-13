@@ -37,11 +37,15 @@ class DeletionRepositoryImplTest {
     private lateinit var db: AppDatabase
     private lateinit var repository: DeletionRepositoryImpl
 
+    /** The other half of an undo: removing one occurrence, which the undo lifts. */
+    private lateinit var events: EventRepositoryImpl
+
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
         repository = DeletionRepositoryImpl(db, db.eventDao(), db.reminderDao(), Dispatchers.IO)
+        events = EventRepositoryImpl(db, db.eventDao(), Dispatchers.IO)
         runBlocking { db.calendarDao().upsert(Calendar(id = CALENDAR, name = "Perso", isDefault = true).toEntity(0)) }
     }
 
@@ -104,11 +108,84 @@ class DeletionRepositoryImplTest {
     }
 
     @Test
-    fun anExclusionOnASeriesDeletedMeanwhileIsSimplyNothingToLift() {
+    fun anExclusionOnASeriesDeletedMeanwhileFailsInsteadOfSayingRestored() {
         runBlocking {
-            repository.restore(DeletedEvents(addedExclusion = SeriesExclusion(10, START + WEEK)))
+            // External review, 2026-10-13: the bar said "restored" of a date with no series to come back to.
+            val failure = runCatching {
+                repository.restore(DeletedEvents(addedExclusion = SeriesExclusion(10, START + WEEK)))
+            }
 
+            assertThat(failure.isFailure).isTrue()
             assertThat(stored(10)).isNull()
+        }
+    }
+
+    @Test
+    fun anExclusionTheSeriesNoLongerCarriesFailsWhenLiftingItWasTheWholeUndo() {
+        runBlocking {
+            // The series' time changed after the deletion: its exclusions no longer hold the date.
+            db.eventDao().upsert(event(10, "Sport", RecurrenceRule(freq = RecurrenceFreq.WEEKLY)).toEntity(0, 0))
+
+            val failure = runCatching {
+                repository.restore(DeletedEvents(addedExclusion = SeriesExclusion(10, START + WEEK)))
+            }
+
+            assertThat(failure.isFailure).isTrue()
+        }
+    }
+
+    @Test
+    fun anExclusionOnASeriesThatNoLongerRepeatsFailsWhenLiftingItWasTheWholeUndo() {
+        runBlocking {
+            db.eventDao().upsert(event(10, "Sport").toEntity(0, 0))
+
+            val failure = runCatching {
+                repository.restore(DeletedEvents(addedExclusion = SeriesExclusion(10, START + WEEK)))
+            }
+
+            assertThat(failure.isFailure).isTrue()
+            assertThat(stored(10)).isEqualTo(event(10, "Sport"))
+        }
+    }
+
+    @Test
+    fun excludingAnOccurrenceDropsItsOverrideAndAddsTheDateToTheSeriesAsItIsNow() {
+        runBlocking {
+            val excluded = START + WEEK
+            // The series renamed after the editor opened: the exclusion lands on it, not on a copy read before.
+            val renamed = event(10, "Sport — renommé", RecurrenceRule(freq = RecurrenceFreq.WEEKLY))
+            db.eventDao().upsert(renamed.toEntity(0, 0))
+            db.eventDao().upsert(event(20, "Sport — déplacé", parentId = 10).toEntity(0, 0))
+
+            val added = events.excludeOccurrence(masterId = 10, occurrenceStartUtcMillis = excluded, deleteId = 20)
+
+            assertThat(added).isTrue()
+            assertThat(stored(20)).isNull()
+            val now = stored(10)!!
+            assertThat(now.title).isEqualTo("Sport — renommé")
+            assertThat(now.recurrence!!.exDatesUtcMillis).containsExactly(excluded)
+        }
+    }
+
+    @Test
+    fun excludingADateAlreadyExcludedAddsNothingToLiftOnUndo() {
+        runBlocking {
+            val excluded = START + WEEK
+            val series = event(10, "Sport", RecurrenceRule(freq = RecurrenceFreq.WEEKLY).excluding(excluded))
+            db.eventDao().upsert(series.toEntity(0, 0))
+
+            assertThat(events.excludeOccurrence(10, excluded, deleteId = null)).isFalse()
+            assertThat(stored(10)!!.recurrence!!.exDatesUtcMillis).containsExactly(excluded)
+        }
+    }
+
+    @Test
+    fun excludingFromASeriesDeletedMeanwhileStillDropsTheOverride() {
+        runBlocking {
+            db.eventDao().upsert(event(20, "Seul").toEntity(0, 0))
+
+            assertThat(events.excludeOccurrence(10, START + WEEK, deleteId = 20)).isFalse()
+            assertThat(stored(20)).isNull()
         }
     }
 

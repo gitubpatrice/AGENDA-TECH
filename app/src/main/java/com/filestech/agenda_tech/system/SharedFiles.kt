@@ -8,13 +8,13 @@ import androidx.core.content.FileProvider
 import com.filestech.agenda_tech.core.di.IoDispatcher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
  * The file a "Share as .ics" hands to another app.
@@ -22,9 +22,10 @@ import kotlinx.coroutines.sync.withLock
  * The agenda itself is encrypted; this file is not — it is what the user asked to send. So it is kept
  * as short-lived as sharing allows: in the app's private cache, readable by no other app except the one
  * picked in the share sheet (a temporary grant through the non-exported `FileProvider`), and only ever
- * one: each share deletes the previous file. Deleting the event deletes its file, and a start of the app
- * deletes one left from an earlier session. It cannot be deleted the moment it is sent: the receiving
- * app may read it later — when the user taps Send.
+ * one: each share deletes the previous file. Deleting the event deletes its file — so do deleting its
+ * calendar, clearing the imported calendars and restoring a backup — and a start of the app deletes one
+ * left from an earlier session. It cannot be deleted the moment it is sent: the receiving app may read
+ * it later — when the user taps Send.
  *
  * Each share lives in a folder of its own, named after the event and a random part (security audit,
  * 2026-10-13). The file name is the title, so two shares of one title used to get the same
@@ -67,6 +68,14 @@ class SharedFiles @Inject constructor(
             ?.filter { it.name.startsWith("$eventId$SEPARATOR") }
             ?.forEach(::deleteShare)
     }
+
+    /**
+     * Deletes every shared file, for the deletions that are not one event's: a calendar deleted, the
+     * imported calendars cleared, a backup restored over the agenda. Only the editor knew which event it
+     * deleted, so these left the copy behind, readable by the app it was sent to (external review,
+     * 2026-10-13). There is only ever one file: nothing is lost that was not a copy of what went.
+     */
+    suspend fun forgetAll() = locked { root().listFiles()?.forEach(::deleteShare) }
 
     /**
      * Deletes what a share left behind more than [STALE_AFTER_MS] ago. Not everything: the app may start

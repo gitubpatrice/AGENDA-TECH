@@ -582,7 +582,8 @@ private fun EventEditorContent(
             GpsField(
                 value = state.gpsCoordinates,
                 onValueChange = onGpsCoordinatesChange,
-                label = state.location.ifBlank { state.title },
+                // The place name only, as in the day's list — see GeoLink.forEvent.
+                label = state.location,
             )
 
             // DELETE_FAILED partage cette surface : les deux disent « l'ecriture n'a pas eu lieu »,

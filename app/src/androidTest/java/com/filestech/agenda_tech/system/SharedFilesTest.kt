@@ -70,6 +70,18 @@ class SharedFilesTest {
     }
 
     @Test
+    fun aDeletionThatIsNotOneEventsDeletesTheShareWhateverItsEvent() {
+        runBlocking {
+            // A calendar deleted, a backup restored: no one event to name.
+            val uri = shared.calendarFile(5, "Ostéo", "O")
+
+            shared.forgetAll()
+
+            assertThat(read(uri)).isNull()
+        }
+    }
+
+    @Test
     fun aStartOfTheAppKeepsARecentShareAndDeletesAnOldOne() {
         runBlocking {
             val uri = shared.calendarFile(3, "Réunion", "R")

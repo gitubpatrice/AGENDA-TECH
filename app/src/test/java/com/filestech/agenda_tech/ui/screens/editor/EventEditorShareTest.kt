@@ -1,8 +1,11 @@
 package com.filestech.agenda_tech.ui.screens.editor
 
+import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.google.common.truth.Truth.assertThat
+import io.mockk.coVerify
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 
@@ -42,5 +45,53 @@ internal class EventEditorShareTest : EventEditorTestBase() {
         testScheduler.advanceUntilIdle()
 
         assertThat(vm.shareSource()).isNull()
+    }
+
+    @Test
+    fun `a moved occurrence goes as its series, filed under the series`() = runTest(dispatcher) {
+        // External review, 2026-10-13: the .ics held the moved occurrence alone — an instance of a series
+        // it did not carry, which the receiving calendar drops or imports on its own.
+        val occurrence = at(2026, 7, 27, 9)
+        seedEvent(id = 10, title = "Sport", recurrence = RecurrenceRule(freq = RecurrenceFreq.WEEKLY).excluding(occurrence))
+        eventRepo.rows[11] = Event(
+            id = 11,
+            calendarId = 1,
+            title = "Sport déplacé",
+            startUtcMillis = occurrence + HOUR,
+            endUtcMillis = occurrence + 2 * HOUR,
+            timeZoneId = zone.id,
+            recurrenceParentId = 10,
+            originalStartUtcMillis = occurrence,
+        )
+
+        val vm = viewModel(eventId = 11)
+        testScheduler.advanceUntilIdle()
+        vm.calendarFileToShare(vm.shareSource()!!)
+
+        val content = slot<String>()
+        coVerify(exactly = 1) { sharedFiles.calendarFile(10, "Sport", capture(content)) }
+        assertThat(content.captured).contains("RRULE:")
+        assertThat(content.captured).contains("SUMMARY:Sport déplacé")
+    }
+
+    @Test
+    fun `a share asked as a deletion begins gives up, so no copy outlives the event`() = runTest(dispatcher) {
+        // External review, 2026-10-13: written just after the deletion had cleared the shares, the copy
+        // stayed behind its event.
+        seedEvent(id = 10)
+        val vm = viewModel(eventId = 10)
+        testScheduler.advanceUntilIdle()
+        val source = vm.shareSource()!!
+
+        vm.onDelete()
+        val shared = vm.calendarFileToShare(source)
+        testScheduler.advanceUntilIdle()
+
+        assertThat(shared).isNull()
+        coVerify(exactly = 0) { sharedFiles.calendarFile(any(), any(), any()) }
+    }
+
+    private companion object {
+        const val HOUR = 3_600_000L
     }
 }

@@ -109,8 +109,9 @@ votre appareil, d'une application à l'autre :
   reste utilisable le jour où le téléphone n'est plus là. `SECURITY.fr.md` l'énonce en entier.
 - **Ouvrir un lieu sur la carte** : quand vous touchez le repère d'un champ de lieu dans l'éditeur,
   ou la ligne du lieu dans la liste d'un jour, l'application transmet à l'application de cartes de
-  votre téléphone **ce lieu seulement** : les coordonnées GPS et le libellé de l'événement si les
-  coordonnées sont valides, sinon l'adresse (rue, code postal, ville), sinon le nom du lieu. Rien
+  votre téléphone **ce lieu seulement** : les coordonnées GPS si elles sont valides, avec le nom du
+  lieu s'il y en a un (jamais le titre de l'événement), sinon l'adresse (rue, code postal, ville),
+  sinon le nom du lieu. Rien
   d'autre n'est transmis, et rien ne part si vous ne touchez rien. Ce que cette application de
   cartes fait ensuite de ces informations — une recherche d'adresse passe souvent par Internet —
   relève de sa propre politique de confidentialité.

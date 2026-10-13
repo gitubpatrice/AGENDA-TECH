@@ -17,6 +17,7 @@ import com.filestech.agenda_tech.domain.settings.WeekStart
 import com.filestech.agenda_tech.domain.usecase.FakeCalendarRepository
 import com.filestech.agenda_tech.domain.usecase.FakeEventRepository
 import com.filestech.agenda_tech.domain.usecase.FakeSettingsRepository
+import com.filestech.agenda_tech.domain.usecase.GatedEventRepository
 import com.filestech.agenda_tech.domain.usecase.ObserveHolidaysUseCase
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import com.google.common.truth.Truth.assertThat
@@ -68,8 +69,11 @@ class MonthCellsTest {
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(settings: FakeSettingsRepository = FakeSettingsRepository()) = MonthViewModel(
-        observeOccurrences = ObserveOccurrencesInRangeUseCase(eventRepo, calendarRepo, RecurrenceExpander(), dispatcher),
+    private fun viewModel(
+        settings: FakeSettingsRepository = FakeSettingsRepository(),
+        events: EventRepository = eventRepo,
+    ) = MonthViewModel(
+        observeOccurrences = ObserveOccurrencesInRangeUseCase(events, calendarRepo, RecurrenceExpander(), dispatcher),
         calendarRepository = calendarRepo,
         eventRepository = eventRepo,
         observeHolidays = ObserveHolidaysUseCase(settings),
@@ -420,6 +424,55 @@ class MonthCellsTest {
         occurrences.drop(1).forEach {
             assertThat(it.place).isSameInstanceAs(first.place)
             assertThat(it.mapUri).isSameInstanceAs(first.mapUri)
+        }
+    }
+
+    @Test
+    fun `a jump past the neighbouring months keeps the month shown until its own window is read`() =
+        runTest(dispatcher) {
+            // External review, 2026-10-13: drawn from the window already read, the far month showed for an
+            // instant without its events and holidays, its days "with no event".
+            val far = month.plusMonths(4)
+            val day = far.atDay(15)
+            seed(1, "Far", millis(day, 9), millis(day, 10))
+            val events = GatedEventRepository(eventRepo)
+            val vm = viewModel(events = events)
+
+            vm.uiState.test {
+                testScheduler.advanceUntilIdle()
+                assertThat(expectMostRecentItem().yearMonth).isEqualTo(month)
+
+                vm.showMonth(far)
+                testScheduler.advanceUntilIdle()
+                expectNoEvents()
+
+                events.gate.complete(Unit)
+                testScheduler.advanceUntilIdle()
+                val state = expectMostRecentItem()
+                assertThat(state.yearMonth).isEqualTo(far)
+                assertThat(state.cell(day).events.map { it.title }).containsExactly("Far")
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a swipe to the next month is drawn at once, from the window already read`() = runTest(dispatcher) {
+        // The neighbours are read in advance for this: a swipe waiting for its own read would undo it.
+        val next = month.plusMonths(1).atDay(15)
+        seed(1, "Next", millis(next, 9), millis(next, 10))
+        val vm = viewModel(events = GatedEventRepository(eventRepo)) // its gate never opens
+
+        vm.uiState.test {
+            testScheduler.advanceUntilIdle()
+            expectMostRecentItem()
+
+            vm.onNextMonth()
+            testScheduler.advanceUntilIdle()
+
+            val state = expectMostRecentItem()
+            assertThat(state.yearMonth).isEqualTo(month.plusMonths(1))
+            assertThat(state.cell(next).events.map { it.title }).containsExactly("Next")
+            cancelAndIgnoreRemainingEvents()
         }
     }
 }
