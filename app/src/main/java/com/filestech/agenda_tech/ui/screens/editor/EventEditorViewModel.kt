@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.ui.screens.editor
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,10 +22,13 @@ import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.repository.ReminderRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
+import com.filestech.agenda_tech.domain.share.EventShare
+import com.filestech.agenda_tech.domain.share.ShareSource
 import com.filestech.agenda_tech.domain.usecase.DeleteEventUseCase
 import com.filestech.agenda_tech.domain.usecase.UpsertEventUseCase
 import com.filestech.agenda_tech.system.AgendaChangeNotifier
 import com.filestech.agenda_tech.system.DeletionUndo
+import com.filestech.agenda_tech.system.SharedFiles
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.filestech.agenda_tech.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -51,6 +55,7 @@ class EventEditorViewModel @Inject constructor(
     private val reminderScheduler: ReminderScheduler,
     private val agendaChanged: AgendaChangeNotifier,
     private val deletionUndo: DeletionUndo,
+    private val sharedFiles: SharedFiles,
     private val settingsRepository: SettingsRepository,
     private val expander: RecurrenceExpander,
     savedStateHandle: SavedStateHandle,
@@ -200,11 +205,8 @@ class EventEditorViewModel @Inject constructor(
         loadedEndUtcMillis = event.endUtcMillis
         loadedAllDayZone = event.dateZone(zone).takeIf { event.allDay }
 
-        // For a tapped occurrence of a recurring master, show that occurrence's times (not the base).
         val editingOccurrence = event.recurrence != null && occurrenceStart > 0L
-        val startMillis = if (editingOccurrence) occurrenceStart else event.startUtcMillis
-        // Ended the way the views end it, in local time: see RecurrenceExpander.occurrenceEndUtcMillis.
-        val endMillis = if (editingOccurrence) expander.occurrenceEndUtcMillis(event, occurrenceStart) else event.endUtcMillis
+        val (startMillis, endMillis) = expander.shownSpan(event, occurrenceStart)
 
         // An all-day event's dates are read in its own zone, a timed event's times on the phone's clock.
         val dateZone = event.dateZone(zone)
@@ -249,6 +251,33 @@ class EventEditorViewModel @Inject constructor(
                 isLoaded = true,
             )
         }
+    }
+
+    /**
+     * The event to share, as the AGENDA holds it — not the form: typing not yet saved is not part of the
+     * event, and sending it would send something the agenda does not contain. Null until the event is
+     * loaded, or while a write is running.
+     */
+    suspend fun shareSource(): ShareSource? {
+        val current = _state.value
+        if (!current.isEditing || !current.isLoaded || current.busy) return null
+        val event = eventRepository.getById(eventId) ?: return null
+        val (start, end) = expander.shownSpan(event, occurrenceStart)
+        return ShareSource(event, start, end)
+    }
+
+    /**
+     * The `.ics` of the event, written for another app to read (SharedFiles). A series goes whole, with
+     * its moved occurrences — as the agenda's own export writes it.
+     */
+    suspend fun calendarFileToShare(source: ShareSource): Uri {
+        val overrides = if (source.event.isRecurring) {
+            eventRepository.observeOverrides().first().filter { it.recurrenceParentId == source.event.id }
+        } else {
+            emptyList()
+        }
+        val ics = EventShare.ics(source.event, overrides, System.currentTimeMillis())
+        return sharedFiles.calendarFile(EventShare.fileStem(source.event.title), ics)
     }
 
     fun onAddReminder(minutesBefore: Int) = _state.update {
@@ -416,7 +445,7 @@ class EventEditorViewModel @Inject constructor(
             val rule = master?.recurrence
             val addsExclusion = master != null && rule != null && originalStart !in rule.exDatesUtcMillis
             // The exclusion is only this deletion's to lift if this deletion added it — see DeletedEvents.
-            val undo = removedWith(
+            val undo = reminderRepository.removedWith(
                 listOfNotNull(eventRepository.getById(eventId)),
                 SeriesExclusion(parentId, originalStart).takeIf { addsExclusion },
             )
@@ -638,7 +667,7 @@ class EventEditorViewModel @Inject constructor(
 
     private fun deleteDirect() {
         launchDeletion {
-            val undo = removedWith(listOfNotNull(eventRepository.getById(eventId)))
+            val undo = reminderRepository.removedWith(listOfNotNull(eventRepository.getById(eventId)))
             reminderScheduler.cancelEvent(eventId)
             deleteEvent(eventId)
             agendaChanged.onAgendaChanged(rearmReminders = false)
@@ -667,7 +696,7 @@ class EventEditorViewModel @Inject constructor(
                 .filter { it.recurrenceParentId == eventId }
             overrides.forEach { reminderScheduler.cancelEvent(it.id) }
             // The master first: an override names it.
-            val undo = removedWith(listOfNotNull(eventRepository.getById(eventId)) + overrides)
+            val undo = reminderRepository.removedWith(listOfNotNull(eventRepository.getById(eventId)) + overrides)
             eventRepository.deleteSeriesAtomic(eventId) // ROB-NEW-2 — master + overrides in one transaction
             agendaChanged.onAgendaChanged(rearmReminders = false)
             deletionUndo.offer(undo)
@@ -691,22 +720,11 @@ class EventEditorViewModel @Inject constructor(
             reminderScheduler.rescheduleEvent(eventId)
             agendaChanged.onAgendaChanged(rearmReminders = false)
             // Nothing was removed — one date was excluded; undoing lifts that exclusion and nothing else.
-            deletionUndo.offer(removedWith(emptyList(), SeriesExclusion(eventId, occurrenceStart).takeIf { addsExclusion }))
+            val exclusion = SeriesExclusion(eventId, occurrenceStart).takeIf { addsExclusion }
+            deletionUndo.offer(reminderRepository.removedWith(emptyList(), exclusion))
             _state.update { it.copy(isDeleted = true) }
         }
     }
-
-    /**
-     * What a deletion is about to remove, with the reminders those rows carry — read BEFORE the rows go:
-     * the reminders leave with them, by cascade.
-     */
-    private suspend fun removedWith(events: List<Event>, addedExclusion: SeriesExclusion? = null) = DeletedEvents(
-        events = events,
-        reminderMinutesByEventId = events
-            .associate { event -> event.id to reminderRepository.getForEvent(event.id).map { it.minutesBefore } }
-            .filterValues { it.isNotEmpty() },
-        addedExclusion = addedExclusion,
-    )
 
     private fun EventEditorUiState.withStart(newStart: LocalDateTime): EventEditorUiState {
         // A birthday has no end of its own — it is the one day. Left to the generic rule below, moving
@@ -768,3 +786,31 @@ class EventEditorViewModel @Inject constructor(
         const val MAX_COUNT = 999
     }
 }
+
+/**
+ * The instants the editor shows for [event]: for an occurrence of a series opened at [occurrenceStart],
+ * that occurrence — not the series' first — ended the way the views end it, in local time (see
+ * [RecurrenceExpander.occurrenceEndUtcMillis]). Shared by the form and by "Share", so both show the same
+ * day. [occurrenceStart] at or below 0 means no occurrence was tapped.
+ */
+private fun RecurrenceExpander.shownSpan(event: Event, occurrenceStart: Long): Pair<Long, Long> =
+    if (event.recurrence != null && occurrenceStart > 0L) {
+        occurrenceStart to occurrenceEndUtcMillis(event, occurrenceStart)
+    } else {
+        event.startUtcMillis to event.endUtcMillis
+    }
+
+/**
+ * What a deletion is about to remove, with the reminders those rows carry — read BEFORE the rows go: the
+ * reminders leave with them, by cascade. What [DeletionUndo] puts back if asked.
+ */
+private suspend fun ReminderRepository.removedWith(
+    events: List<Event>,
+    addedExclusion: SeriesExclusion? = null,
+) = DeletedEvents(
+    events = events,
+    reminderMinutesByEventId = events
+        .associate { event -> event.id to getForEvent(event.id).map { it.minutesBefore } }
+        .filterValues { it.isNotEmpty() },
+    addedExclusion = addedExclusion,
+)

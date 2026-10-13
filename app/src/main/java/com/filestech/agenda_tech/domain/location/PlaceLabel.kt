@@ -16,10 +16,18 @@ object PlaceLabel {
      * and city are held together by a no-break space: wrapped, the line left `84000` at the end of one
      * line and `Avignon` alone on the next (seen on the S9).
      */
-    fun of(event: Event): String? =
+    fun of(event: Event): String? = line(event, townSeparator = NO_BREAK_SPACE)
+
+    /**
+     * The same line for text leaving the app — a message, the `LOCATION` of a shared `.ics` — with a
+     * plain space: the reader's own calendar may hand it to a maps search.
+     */
+    fun forSharing(event: Event): String? = line(event, townSeparator = " ")
+
+    private fun line(event: Event, townSeparator: String): String? =
         listOfNotNull(
             event.location.filled(),
-            postalAddress(event.address, event.postalCode, event.city, townSeparator = NO_BREAK_SPACE),
+            postalAddress(event.address, event.postalCode, event.city, townSeparator),
         ).joinToString(", ").ifEmpty { null }
 
     /**

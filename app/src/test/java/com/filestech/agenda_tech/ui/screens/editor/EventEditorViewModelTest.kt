@@ -415,6 +415,7 @@ internal class EventEditorViewModelTest : EventEditorTestBase() {
             reminderScheduler = scheduler,
             agendaChanged = agendaChanged,
             deletionUndo = deletionUndo,
+            sharedFiles = sharedFiles,
             settingsRepository = settings,
             expander = RecurrenceExpander(),
             savedStateHandle = SavedStateHandle(emptyMap()),

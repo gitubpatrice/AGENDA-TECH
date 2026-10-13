@@ -62,6 +62,8 @@
     <string name="editor_save">Save</string>
     <string name="editor_delete">Delete</string>
     <string name="editor_duplicate">Duplicate</string>
+    <string name="editor_share_text">Share as text…</string>
+    <string name="editor_share_ics">Share .ics…</string>
     <!-- Title given to the unsaved copy; %1$s is the original title. -->
     <string name="editor_duplicate_title">%1$s (copy)</string>
     <string name="editor_back">Back</string>

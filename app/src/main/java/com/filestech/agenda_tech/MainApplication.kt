@@ -6,6 +6,7 @@ import com.filestech.agenda_tech.core.logging.NoOpReleaseTree
 import com.filestech.agenda_tech.core.di.ApplicationScope
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.EnsureDefaultCalendarUseCase
+import com.filestech.agenda_tech.system.SharedFiles
 import com.filestech.agenda_tech.system.backup.AutoBackupScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -34,6 +35,9 @@ class MainApplication : Application() {
     /** Providers for the same reason as above: neither may pull the database graph onto Main. */
     @Inject lateinit var settingsRepository: Provider<SettingsRepository>
     @Inject lateinit var autoBackupScheduler: Provider<AutoBackupScheduler>
+
+    /** Touches no database: a plain field is enough. */
+    @Inject lateinit var sharedFiles: SharedFiles
 
     override fun onCreate() {
         super.onCreate()
@@ -70,6 +74,12 @@ class MainApplication : Application() {
                     }
                 }
             }.onFailure { Timber.w(it, "auto-backup re-arm failed") }
+        }
+
+        // The last `.ics` shared is the one piece of the agenda kept unencrypted (SharedFiles): it lives
+        // until the app next starts, no longer.
+        appScope.launch {
+            runCatching { sharedFiles.clear() }.onFailure { Timber.w(it, "shared files cleanup failed") }
         }
     }
 }

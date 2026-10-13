@@ -13,6 +13,7 @@ import com.filestech.agenda_tech.domain.usecase.FakeSettingsRepository
 import com.filestech.agenda_tech.domain.usecase.UpsertEventUseCase
 import com.filestech.agenda_tech.system.AgendaChangeNotifier
 import com.filestech.agenda_tech.system.DeletionUndo
+import com.filestech.agenda_tech.system.SharedFiles
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.filestech.agenda_tech.ui.navigation.Routes
 import io.mockk.mockk
@@ -54,6 +55,9 @@ internal abstract class EventEditorTestBase {
     /** Mocked: what the editor OFFERS to undo is the question; restoring is DeletionUndo's own test. */
     protected val deletionUndo: DeletionUndo = mockk(relaxed = true)
 
+    /** Mocked: writing a file needs a Context; what the editor puts IN it is EventShare's own test. */
+    protected val sharedFiles: SharedFiles = mockk(relaxed = true)
+
     protected val dispatcher = StandardTestDispatcher()
 
     @BeforeEach
@@ -85,6 +89,7 @@ internal abstract class EventEditorTestBase {
             reminderScheduler = scheduler,
             agendaChanged = agendaChanged,
             deletionUndo = deletionUndo,
+            sharedFiles = sharedFiles,
             settingsRepository = settingsRepo,
             expander = RecurrenceExpander(),
             savedStateHandle = SavedStateHandle(args),
