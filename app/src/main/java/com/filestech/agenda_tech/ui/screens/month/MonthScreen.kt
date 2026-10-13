@@ -256,10 +256,17 @@ private fun MonthScreenContent(
         scrollTargetDay = date.toEpochDay()
         scrollRequest++
     }
+    // With the titles, the grid fills the screen and has no list under it: a tap on a day opens the
+    // day over the grid. Saved, so coming back from the editor reopens the day just edited.
+    var daySheetOpen by rememberSaveable { mutableStateOf(false) }
+    val daySheetShown = daySheetOpen && display == MonthDisplay.TITLES
 
     CalendarScaffold(
         currentView = CalendarView.MONTH,
         onSelectView = onSelectView,
+        // The day's sheet is a window over the screen: an undo offered under it went unseen (S9). While
+        // it is open, the sheet shows the offer instead.
+        undoSnackbar = !daySheetShown,
         topBar = {
             TopAppBar(
                 title = {
@@ -340,9 +347,6 @@ private fun MonthScreenContent(
         val haptic = LocalHapticFeedback.current
         val latestDisplay by rememberUpdatedState(display)
         val latestOnDisplayChange by rememberUpdatedState(onDisplayChange)
-        // With the titles, the grid fills the screen and has no list under it: a tap on a day opens the
-        // day over the grid. Saved, so coming back from the editor reopens the day just edited.
-        var daySheetOpen by rememberSaveable { mutableStateOf(false) }
         // Selected first, so on coming back from the editor the grid shows the day the event went to.
         val onDayLongClick: (LocalDate) -> Unit = { date ->
             onSelectDate(date)
@@ -485,7 +489,7 @@ private fun MonthScreenContent(
                 )
             }
         }
-        if (daySheetOpen && display == MonthDisplay.TITLES) {
+        if (daySheetShown) {
             DaySheet(
                 date = state.selectedDate,
                 occurrences = state.selectedDayOccurrences,

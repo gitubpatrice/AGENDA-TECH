@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
+import com.filestech.agenda_tech.domain.model.DeletedEvents
 import com.filestech.agenda_tech.core.time.TimeZones
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
+import com.filestech.agenda_tech.domain.model.SeriesExclusion
 import com.filestech.agenda_tech.domain.model.Reminder
 import com.filestech.agenda_tech.domain.model.Weekday
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
@@ -22,6 +24,7 @@ import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.DeleteEventUseCase
 import com.filestech.agenda_tech.domain.usecase.UpsertEventUseCase
 import com.filestech.agenda_tech.system.AgendaChangeNotifier
+import com.filestech.agenda_tech.system.DeletionUndo
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.filestech.agenda_tech.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -47,6 +50,7 @@ class EventEditorViewModel @Inject constructor(
     private val reminderRepository: ReminderRepository,
     private val reminderScheduler: ReminderScheduler,
     private val agendaChanged: AgendaChangeNotifier,
+    private val deletionUndo: DeletionUndo,
     private val settingsRepository: SettingsRepository,
     private val expander: RecurrenceExpander,
     savedStateHandle: SavedStateHandle,
@@ -408,10 +412,16 @@ class EventEditorViewModel @Inject constructor(
      */
     private fun deleteOverrideAndExclude(parentId: Long, originalStart: Long) {
         launchDeletion {
-            reminderScheduler.cancelEvent(eventId)
             val master = eventRepository.getById(parentId)
             val rule = master?.recurrence
-            if (master != null && rule != null && originalStart !in rule.exDatesUtcMillis) {
+            val addsExclusion = master != null && rule != null && originalStart !in rule.exDatesUtcMillis
+            // The exclusion is only this deletion's to lift if this deletion added it — see DeletedEvents.
+            val undo = removedWith(
+                listOfNotNull(eventRepository.getById(eventId)),
+                SeriesExclusion(parentId, originalStart).takeIf { addsExclusion },
+            )
+            reminderScheduler.cancelEvent(eventId)
+            if (addsExclusion) {
                 val updated = master.copy(recurrence = rule.copy(exDatesUtcMillis = rule.exDatesUtcMillis + originalStart))
                 // ROB-NEW-2 — exclude on the master and drop the override in one transaction.
                 eventRepository.upsertAndDelete(updated, eventId)
@@ -420,6 +430,7 @@ class EventEditorViewModel @Inject constructor(
                 deleteEvent(eventId)
             }
             agendaChanged.onAgendaChanged(rearmReminders = false)
+            deletionUndo.offer(undo)
             _state.update { it.copy(isDeleted = true) }
         }
     }
@@ -627,9 +638,11 @@ class EventEditorViewModel @Inject constructor(
 
     private fun deleteDirect() {
         launchDeletion {
+            val undo = removedWith(listOfNotNull(eventRepository.getById(eventId)))
             reminderScheduler.cancelEvent(eventId)
             deleteEvent(eventId)
             agendaChanged.onAgendaChanged(rearmReminders = false)
+            deletionUndo.offer(undo)
             _state.update { it.copy(isDeleted = true) }
         }
     }
@@ -650,11 +663,14 @@ class EventEditorViewModel @Inject constructor(
             // F7 ne fermait pas.
             //
             // Énumérées AVANT la suppression : après, plus rien ne permet de les retrouver.
-            eventRepository.observeOverrides().first()
+            val overrides = eventRepository.observeOverrides().first()
                 .filter { it.recurrenceParentId == eventId }
-                .forEach { reminderScheduler.cancelEvent(it.id) }
+            overrides.forEach { reminderScheduler.cancelEvent(it.id) }
+            // The master first: an override names it.
+            val undo = removedWith(listOfNotNull(eventRepository.getById(eventId)) + overrides)
             eventRepository.deleteSeriesAtomic(eventId) // ROB-NEW-2 — master + overrides in one transaction
             agendaChanged.onAgendaChanged(rearmReminders = false)
+            deletionUndo.offer(undo)
             _state.update { it.copy(isDeleted = true) }
         }
     }
@@ -670,12 +686,27 @@ class EventEditorViewModel @Inject constructor(
                 deleteDirect()
                 return@launchDeletion
             }
+            val addsExclusion = occurrenceStart !in rule.exDatesUtcMillis
             eventRepository.upsert(master.copy(recurrence = rule.excluding(occurrenceStart)))
             reminderScheduler.rescheduleEvent(eventId)
             agendaChanged.onAgendaChanged(rearmReminders = false)
+            // Nothing was removed — one date was excluded; undoing lifts that exclusion and nothing else.
+            deletionUndo.offer(removedWith(emptyList(), SeriesExclusion(eventId, occurrenceStart).takeIf { addsExclusion }))
             _state.update { it.copy(isDeleted = true) }
         }
     }
+
+    /**
+     * What a deletion is about to remove, with the reminders those rows carry — read BEFORE the rows go:
+     * the reminders leave with them, by cascade.
+     */
+    private suspend fun removedWith(events: List<Event>, addedExclusion: SeriesExclusion? = null) = DeletedEvents(
+        events = events,
+        reminderMinutesByEventId = events
+            .associate { event -> event.id to reminderRepository.getForEvent(event.id).map { it.minutesBefore } }
+            .filterValues { it.isNotEmpty() },
+        addedExclusion = addedExclusion,
+    )
 
     private fun EventEditorUiState.withStart(newStart: LocalDateTime): EventEditorUiState {
         // A birthday has no end of its own — it is the one day. Left to the generic rule below, moving

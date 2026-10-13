@@ -90,6 +90,9 @@
     <string name="editor_error_blank_title">Le titre est obligatoire</string>
     <string name="editor_error_end_before_start">La fin doit être après le début</string>
     <string name="editor_error_delete_failed">L’événement n’a pas pu être supprimé. Rien n’a été retiré — réessayez.</string>
+    <string name="event_deleted">Événement supprimé</string>
+    <string name="action_undo">Annuler</string>
+    <string name="event_restore_failed">L’événement n’a pas pu être rétabli.</string>
     <string name="editor_error_save_failed">Échec de l\'enregistrement</string>
     <string name="editor_ok">OK</string>
     <string name="editor_cancel">Annuler</string>
@@ -303,7 +306,7 @@
     <string name="device_import_clear_confirm_title">Effacer les calendriers importés ?</string>
     <string name="device_import_clear_confirm_body">Cela supprime tous les calendriers déjà importés et leurs événements. Vos propres calendriers sont conservés.</string>
     <string name="event_delete_confirm_title">Supprimer l\'événement ?</string>
-    <string name="event_delete_confirm_body">Cet événement et ses rappels seront définitivement supprimés.</string>
+    <string name="event_delete_confirm_body">Cet événement et ses rappels seront supprimés.</string>
     <string name="calendar_delete_confirm_title">Supprimer le calendrier ?</string>
     <string name="calendar_delete_confirm_body">« %1$s » et tous ses événements seront définitivement supprimés.</string>
     <string name="calendar_error_save_failed">Le calendrier n’a pas pu être enregistré. Rien n’a été écrit — réessayez.</string>

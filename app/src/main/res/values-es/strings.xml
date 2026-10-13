@@ -91,6 +91,9 @@
     <string name="editor_error_blank_title">El título es obligatorio</string>
     <string name="editor_error_end_before_start">El fin debe ser posterior al inicio</string>
     <string name="editor_error_delete_failed">No se pudo eliminar el evento. No se ha borrado nada — inténtelo de nuevo.</string>
+    <string name="event_deleted">Evento eliminado</string>
+    <string name="action_undo">Deshacer</string>
+    <string name="event_restore_failed">No se pudo restaurar el evento.</string>
     <string name="editor_error_save_failed">No se pudo guardar el evento</string>
     <string name="editor_ok">Aceptar</string>
     <string name="editor_cancel">Cancelar</string>
@@ -300,7 +303,7 @@
     <string name="device_import_clear_confirm_title">¿Eliminar los calendarios importados?</string>
     <string name="device_import_clear_confirm_body">Se eliminarán todos los calendarios importados anteriormente y sus eventos. Sus propios calendarios se conservan.</string>
     <string name="event_delete_confirm_title">¿Eliminar el evento?</string>
-    <string name="event_delete_confirm_body">Este evento y sus recordatorios se eliminarán definitivamente.</string>
+    <string name="event_delete_confirm_body">Este evento y sus recordatorios se eliminarán.</string>
     <string name="calendar_delete_confirm_title">¿Eliminar el calendario?</string>
     <string name="calendar_delete_confirm_body">«%1$s» y todos sus eventos se eliminarán definitivamente.</string>
     <string name="calendar_error_save_failed">No se pudo guardar el calendario. No se ha escrito nada — inténtelo de nuevo.</string>

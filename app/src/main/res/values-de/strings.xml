@@ -87,6 +87,9 @@
     <string name="editor_error_blank_title">Titel erforderlich</string>
     <string name="editor_error_end_before_start">Das Ende muss nach dem Beginn liegen</string>
     <string name="editor_error_delete_failed">Der Termin konnte nicht gelöscht werden. Es wurde nichts entfernt — versuchen Sie es erneut.</string>
+    <string name="event_deleted">Termin gelöscht</string>
+    <string name="action_undo">Rückgängig</string>
+    <string name="event_restore_failed">Der Termin konnte nicht wiederhergestellt werden.</string>
     <string name="editor_error_save_failed">Der Termin konnte nicht gespeichert werden</string>
     <string name="editor_ok">OK</string>
     <string name="editor_cancel">Abbrechen</string>
@@ -290,7 +293,7 @@
     <string name="device_import_clear_confirm_title">Importierte Kalender löschen?</string>
     <string name="device_import_clear_confirm_body">Damit werden alle zuvor importierten Kalender und ihre Termine entfernt. Ihre eigenen Kalender bleiben erhalten.</string>
     <string name="event_delete_confirm_title">Termin löschen?</string>
-    <string name="event_delete_confirm_body">Dieser Termin und seine Erinnerungen werden endgültig gelöscht.</string>
+    <string name="event_delete_confirm_body">Dieser Termin und seine Erinnerungen werden gelöscht.</string>
     <string name="calendar_delete_confirm_title">Kalender löschen?</string>
     <string name="calendar_delete_confirm_body">„%1$s“ und alle zugehörigen Termine werden endgültig gelöscht.</string>
     <string name="calendar_error_save_failed">Der Kalender konnte nicht gespeichert werden. Es wurde nichts geschrieben — versuchen Sie es erneut.</string>

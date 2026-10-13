@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.ui.util.DeletionUndoSnackbarHost
 import java.time.LocalDate
 import java.util.Locale
 
@@ -141,6 +142,9 @@ internal fun DaySheet(
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.month_add_event))
             }
+            // The sheet is a window over the month, so the undo of a deletion shows here while it is
+            // open — the month's own would be hidden under it (CalendarScaffold's `undoSnackbar`).
+            DeletionUndoSnackbarHost()
         }
     }
 }

@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.recurrence.dateZone
 import com.filestech.agenda_tech.domain.search.EventSearchHit
+import com.filestech.agenda_tech.ui.util.DeletionUndoSnackbarHost
 import com.filestech.agenda_tech.ui.util.EventRow
 import com.filestech.agenda_tech.ui.util.EventRowDetail
 import com.filestech.agenda_tech.ui.util.LocalDeviceZone
@@ -114,6 +115,8 @@ fun SearchScreen(
                 },
             )
         },
+        // The editor opened from a result comes back here after a deletion.
+        snackbarHost = { DeletionUndoSnackbarHost() },
     ) { padding ->
         // imePadding: Scaffold's default window insets cover the system bars but NOT the keyboard,
         // which is up the whole time on this screen — without it the centred hint is cut in half and
