@@ -36,6 +36,10 @@ data class OccurrenceData(
     val colorArgb: Int,
     /** Age this birthday occurrence marks, or null. */
     val birthdayAge: Int? = null,
+    /** Where it takes place, on one line (see [com.filestech.agenda_tech.domain.location.PlaceLabel]), or null. */
+    val place: String? = null,
+    /** The event's notes, or null when there are none. */
+    val description: String? = null,
 )
 
 /**

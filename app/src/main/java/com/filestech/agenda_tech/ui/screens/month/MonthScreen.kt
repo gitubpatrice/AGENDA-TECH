@@ -23,7 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
@@ -80,6 +81,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -649,7 +651,13 @@ internal fun SelectedDayOccurrences(
     }
     val zone = LocalDeviceZone.current
     LazyColumn(modifier = modifier) {
-        items(occurrences, key = { it.eventId to it.occurrenceStartUtcMillis }) { occurrence ->
+        itemsIndexed(
+            occurrences,
+            key = { _, occurrence -> occurrence.eventId to occurrence.occurrenceStartUtcMillis },
+        ) { index, occurrence ->
+            // A line between two events: with the place and the notes, where one ended and the next began
+            // was no longer obvious. Each event's own parts are split by a thinner one (DetailDivider).
+            if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = lightLineColor())
             OccurrenceRow(occurrence, zone, locale, onOccurrenceClick)
         }
     }
@@ -666,12 +674,14 @@ private fun OccurrenceRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onOccurrenceClick(occurrence.eventId, occurrence.occurrenceStartUtcMillis) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // Beside the title rather than centred on the row: with the place and the notes under it, a
+        // centred dot floated halfway down the text (seen on the S9).
         Box(
             modifier = Modifier
+                .padding(top = 6.dp)
                 .size(12.dp)
                 .clip(CircleShape)
                 .background(Color(occurrence.colorArgb)),
@@ -686,10 +696,61 @@ private fun OccurrenceRow(
                 text = timeLabel(occurrence, zone, locale),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
             )
+            // Capped so one long note cannot push the rest of the day out of the list: the full text is
+            // one tap away, in the editor.
+            occurrence.place?.let { place ->
+                DetailDivider()
+                Row {
+                    Icon(
+                        imageVector = Icons.Outlined.Place,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(top = 2.dp, end = 4.dp)
+                            .size(16.dp),
+                    )
+                    Text(
+                        text = place,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = PLACE_MAX_LINES,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            occurrence.description?.let { description ->
+                DetailDivider()
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = DESCRIPTION_MAX_LINES,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
+
+/**
+ * The line between the parts of one event — time, place, notes. Thinner than the one between two events,
+ * so the day still reads as a list of events and not as a list of lines (asked for on the S9).
+ */
+@Composable
+private fun DetailDivider() {
+    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 0.5.dp, color = lightLineColor())
+}
+
+/** Light grey, as asked on the S9: the theme's divider grey read as too dark between the lines of a day. */
+@Composable
+private fun lightLineColor(): Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = LIGHT_LINE_ALPHA)
+
+private const val LIGHT_LINE_ALPHA = 0.6f
+
+private const val PLACE_MAX_LINES = 2
+private const val DESCRIPTION_MAX_LINES = 3
 
 // --- formatting helpers (UI-side, locale-aware) -----------------------------
 
