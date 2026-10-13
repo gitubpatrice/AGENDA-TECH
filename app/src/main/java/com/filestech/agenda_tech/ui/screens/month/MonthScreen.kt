@@ -98,6 +98,7 @@ import com.filestech.agenda_tech.ui.theme.LogoShape
 import com.filestech.agenda_tech.ui.theme.BrandDanger
 import com.filestech.agenda_tech.ui.util.DatePickerModal
 import com.filestech.agenda_tech.ui.util.LocalDeviceZone
+import com.filestech.agenda_tech.ui.util.openMapLink
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import java.time.DayOfWeek
 import java.time.Instant
@@ -702,23 +703,7 @@ private fun OccurrenceRow(
             // one tap away, in the editor.
             occurrence.place?.let { place ->
                 DetailDivider()
-                Row {
-                    Icon(
-                        imageVector = Icons.Outlined.Place,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .padding(top = 2.dp, end = 4.dp)
-                            .size(16.dp),
-                    )
-                    Text(
-                        text = place,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = PLACE_MAX_LINES,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                PlaceLine(place, occurrence.mapUri)
             }
             occurrence.description?.let { description ->
                 DetailDivider()
@@ -730,6 +715,50 @@ private fun OccurrenceRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+    }
+}
+
+/**
+ * The event's place, which opens in the phone's maps app when tapped — the rest of the row opens the
+ * editor. The pin takes the primary colour to say so, and the line keeps a full touch height: on one
+ * line of text alone, a tap a little too low opened the editor instead.
+ */
+@Composable
+private fun PlaceLine(place: String, mapUri: String?) {
+    val context = LocalContext.current
+    val openLabel = stringResource(R.string.editor_gps_open)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .then(
+                if (mapUri == null) {
+                    Modifier
+                } else {
+                    Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable(onClickLabel = openLabel, role = Role.Button) { openMapLink(context, mapUri) }
+                },
+            ),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Row {
+            Icon(
+                imageVector = Icons.Outlined.Place,
+                contentDescription = null,
+                tint = if (mapUri == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(top = 2.dp, end = 4.dp)
+                    .size(16.dp),
+            )
+            Text(
+                text = place,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = PLACE_MAX_LINES,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

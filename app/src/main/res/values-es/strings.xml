@@ -87,6 +87,7 @@
     <string name="editor_gps_hint">44.0512, 5.0489</string>
     <string name="editor_gps_help">Latitud, longitud — toque la chincheta para abrir su app de mapas</string>
     <string name="editor_gps_open">Abrir en el mapa</string>
+    <string name="map_no_app">No hay ninguna aplicación de mapas en este teléfono</string>
     <string name="editor_error_blank_title">El título es obligatorio</string>
     <string name="editor_error_end_before_start">El fin debe ser posterior al inicio</string>
     <string name="editor_error_delete_failed">No se pudo eliminar el evento. No se ha borrado nada — inténtelo de nuevo.</string>

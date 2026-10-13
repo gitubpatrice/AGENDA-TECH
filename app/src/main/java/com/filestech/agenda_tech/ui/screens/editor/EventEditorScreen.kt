@@ -1,7 +1,5 @@
 package com.filestech.agenda_tech.ui.screens.editor
 
-import android.content.Intent
-import android.net.Uri
 import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -74,15 +72,16 @@ import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.location.GeoLink
+import com.filestech.agenda_tech.domain.location.PlaceLabel
 import com.filestech.agenda_tech.domain.model.Weekday
 import com.filestech.agenda_tech.ui.theme.BrandDanger
 import com.filestech.agenda_tech.ui.util.DatePickerModal
+import com.filestech.agenda_tech.ui.util.openMapLink
 import com.filestech.agenda_tech.ui.util.ReminderNotificationsBlockedNotice
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import com.filestech.agenda_tech.ui.util.rememberReminderNotifications
 import com.filestech.agenda_tech.ui.util.displayName
 import com.filestech.agenda_tech.ui.util.reminderLabel
-import timber.log.Timber
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -441,11 +440,17 @@ private fun EventEditorContent(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            // Each place field opens what it holds: here the postal address, street, postal code and city
+            // together — the three fields below make one address.
+            val addressUri = remember(state.address, state.postalCode, state.city) {
+                GeoLink.fromAddress(PlaceLabel.addressQuery(state.address, state.postalCode, state.city))
+            }
             OutlinedTextField(
                 value = state.address,
                 onValueChange = onAddressChange,
                 label = { Text(stringResource(R.string.editor_address)) },
                 singleLine = true,
+                trailingIcon = addressUri?.let { uri -> { OpenOnMapButton(uri) } },
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -467,11 +472,14 @@ private fun EventEditorContent(
                 )
             }
 
+            // The place name alone is often all an imported event has (`LOCATION` of an `.ics`).
+            val locationUri = remember(state.location) { GeoLink.fromAddress(state.location) }
             OutlinedTextField(
                 value = state.location,
                 onValueChange = onLocationChange,
                 label = { Text(stringResource(R.string.editor_location)) },
                 singleLine = true,
+                trailingIcon = locationUri?.let { uri -> { OpenOnMapButton(uri) } },
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -781,8 +789,7 @@ private fun GpsField(
     onValueChange: (String) -> Unit,
     label: String,
 ) {
-    val context = LocalContext.current
-    val usable = remember(value) { GeoLink.isUsable(value) }
+    val uri = remember(value, label) { GeoLink.fromCoordinates(value, label) }
 
     OutlinedTextField(
         value = value,
@@ -792,23 +799,18 @@ private fun GpsField(
         supportingText = { Text(stringResource(R.string.editor_gps_help)) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
         singleLine = true,
-        trailingIcon = {
-            if (usable) {
-                IconButton(onClick = { openOnMap(context, value, label) }) {
-                    Icon(Icons.Filled.Place, stringResource(R.string.editor_gps_open))
-                }
-            }
-        },
+        trailingIcon = uri?.let { { OpenOnMapButton(it) } },
         modifier = Modifier.fillMaxWidth(),
     )
 }
 
-/** Hands the coordinates to whatever maps app is installed; silently no-ops if there is none. */
-private fun openOnMap(context: android.content.Context, coordinates: String, label: String) {
-    val uri = GeoLink.fromCoordinates(coordinates, label) ?: return
-    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
-    runCatching { context.startActivity(intent) }
-        .onFailure { Timber.w(it, "EventEditor: no maps app to open a geo: link") }
+/** The pin at the end of a place field, handing [uri] to the phone's maps app. */
+@Composable
+private fun OpenOnMapButton(uri: String) {
+    val context = LocalContext.current
+    IconButton(onClick = { openMapLink(context, uri) }) {
+        Icon(Icons.Filled.Place, stringResource(R.string.editor_gps_open))
+    }
 }
 
 /**

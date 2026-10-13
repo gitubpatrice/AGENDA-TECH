@@ -83,6 +83,7 @@
     <string name="editor_gps_hint">44.0512, 5.0489</string>
     <string name="editor_gps_help">Breitengrad, Längengrad — tippen Sie auf die Stecknadel, um Ihre Karten-App zu öffnen</string>
     <string name="editor_gps_open">Auf der Karte öffnen</string>
+    <string name="map_no_app">Keine Karten-App auf diesem Telefon</string>
     <string name="editor_error_blank_title">Titel erforderlich</string>
     <string name="editor_error_end_before_start">Das Ende muss nach dem Beginn liegen</string>
     <string name="editor_error_delete_failed">Der Termin konnte nicht gelöscht werden. Es wurde nichts entfernt — versuchen Sie es erneut.</string>

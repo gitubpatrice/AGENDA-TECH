@@ -85,6 +85,7 @@
     <string name="editor_gps_hint">44.0512, 5.0489</string>
     <string name="editor_gps_help">Latitude, longitude — tap the pin to open your maps app</string>
     <string name="editor_gps_open">Open on the map</string>
+    <string name="map_no_app">No maps app on this phone</string>
     <string name="editor_error_blank_title">Title is required</string>
     <string name="editor_error_end_before_start">End must be after start</string>
     <string name="editor_error_delete_failed">The event could not be deleted. Nothing was removed — try again.</string>

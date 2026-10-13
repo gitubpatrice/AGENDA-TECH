@@ -33,6 +33,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import com.filestech.agenda_tech.core.time.DAY_MILLIS
 import com.filestech.agenda_tech.domain.birthday.BirthdayAge
+import com.filestech.agenda_tech.domain.location.GeoLink
 import com.filestech.agenda_tech.domain.location.PlaceLabel
 import java.time.ZoneId
 import java.time.temporal.WeekFields
@@ -299,7 +300,9 @@ class MonthViewModel @Inject constructor(
                     allDay = it.event.allDay,
                     colorArgb = colorOf(it, colorByCalendarId),
                     birthdayAge = BirthdayAge.of(it.event, it.startUtcMillis, zone),
-                    place = PlaceLabel.of(it.event),
+                    place = PlaceLabel.of(it.event)
+                        ?: it.event.gpsCoordinates?.trim()?.takeIf(GeoLink::isUsable),
+                    mapUri = GeoLink.forEvent(it.event),
                     description = it.event.description?.trim()?.ifEmpty { null },
                 )
             }

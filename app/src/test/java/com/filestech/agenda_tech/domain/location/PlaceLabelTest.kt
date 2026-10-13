@@ -62,6 +62,14 @@ class PlaceLabelTest {
     }
 
     @Test
+    fun `the address to search leaves out the place name and uses a plain space`() {
+        assertThat(PlaceLabel.addressQuery("12 rue des Lices", "84000", "Avignon"))
+            .isEqualTo("12 rue des Lices, 84000 Avignon")
+        assertThat(PlaceLabel.addressQuery(null, null, "Avignon")).isEqualTo("Avignon")
+        assertThat(PlaceLabel.addressQuery(" ", "", null)).isNull()
+    }
+
+    @Test
     fun `no place at all gives null, and coordinates alone are not a place to read`() {
         assertThat(PlaceLabel.of(event())).isNull()
         assertThat(PlaceLabel.of(event(gps = "44.0512, 5.0489"))).isNull()

@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.location
 
+import com.filestech.agenda_tech.domain.model.Event
 import java.math.BigDecimal
 import java.net.URLEncoder
 
@@ -33,6 +34,26 @@ object GeoLink {
             ?.let { "$point(${encode(it)})" }
             ?: point
         return "geo:$point?q=$query"
+    }
+
+    /**
+     * `"12 rue des Lices, 84000 Avignon"` → `geo:0,0?q=12+rue+des+Lices%2C+84000+Avignon`: a search
+     * the maps app runs itself (the form Android documents for an address). Null when [query] is blank.
+     */
+    fun fromAddress(query: String?): String? {
+        val text = query?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        return "geo:0,0?q=${encode(text)}"
+    }
+
+    /**
+     * Where a tap on [event]'s place leads: its coordinates when usable, the exact spot; else a search
+     * for its postal address; else for its place name — the only place field an imported event
+     * carries. Null when the event has no place at all.
+     */
+    fun forEvent(event: Event): String? {
+        val pinLabel = event.location?.takeIf { it.isNotBlank() } ?: event.title
+        return fromCoordinates(event.gpsCoordinates, pinLabel)
+            ?: fromAddress(PlaceLabel.addressQuery(event.address, event.postalCode, event.city) ?: event.location)
     }
 
     /** True when [raw] holds coordinates a maps app could open. */

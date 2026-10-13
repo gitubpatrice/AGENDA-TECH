@@ -36,8 +36,14 @@ data class OccurrenceData(
     val colorArgb: Int,
     /** Age this birthday occurrence marks, or null. */
     val birthdayAge: Int? = null,
-    /** Where it takes place, on one line (see [com.filestech.agenda_tech.domain.location.PlaceLabel]), or null. */
+    /**
+     * Where it takes place, on one line (see [com.filestech.agenda_tech.domain.location.PlaceLabel]) —
+     * or its GPS coordinates when they are its only place, since a tap on them still opens the map —
+     * or null.
+     */
     val place: String? = null,
+    /** The `geo:` link a tap on [place] opens ([com.filestech.agenda_tech.domain.location.GeoLink.forEvent]). */
+    val mapUri: String? = null,
     /** The event's notes, or null when there are none. */
     val description: String? = null,
 )

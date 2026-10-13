@@ -87,6 +87,7 @@
     <string name="editor_gps_hint">44.0512, 5.0489</string>
     <string name="editor_gps_help">Latitudine, longitudine — tocchi lo spillo per aprire la sua app di mappe</string>
     <string name="editor_gps_open">Apri sulla mappa</string>
+    <string name="map_no_app">Nessuna app di mappe su questo telefono</string>
     <string name="editor_error_blank_title">Il titolo è obbligatorio</string>
     <string name="editor_error_end_before_start">La fine deve essere successiva all\'inizio</string>
     <string name="editor_error_delete_failed">Non è stato possibile eliminare l\'evento. Non è stato rimosso nulla — riprovi.</string>

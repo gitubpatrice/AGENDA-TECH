@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.domain.location
 
+import com.filestech.agenda_tech.domain.model.Event
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
 
@@ -91,4 +92,78 @@ class GeoLinkTest {
         assertThat(GeoLink.isUsable("Marseille")).isFalse()
         assertThat(GeoLink.isUsable(null)).isFalse()
     }
+
+    @Test
+    fun `an address becomes a search the maps app runs`() {
+        assertThat(GeoLink.fromAddress("12 rue des Lices, 84000 Avignon"))
+            .isEqualTo("geo:0,0?q=12+rue+des+Lices%2C+84000+Avignon")
+    }
+
+    @Test
+    fun `an address can never break the link`() {
+        val uri = GeoLink.fromAddress("1st & Pike?x=1#top")!!
+        assertThat(uri).startsWith("geo:0,0?q=")
+        assertThat(uri.removePrefix("geo:0,0?q=")).doesNotContainMatch("[ &?#=]")
+    }
+
+    @Test
+    fun `a blank address gives no link`() {
+        assertThat(GeoLink.fromAddress(null)).isNull()
+        assertThat(GeoLink.fromAddress("   ")).isNull()
+    }
+
+    @Test
+    fun `an event's coordinates win over its address, labelled with its place`() {
+        val uri = GeoLink.forEvent(event(location = "Cabinet", address = "12 rue des Lices", gps = "44.0512,5.0489"))
+        assertThat(uri).isEqualTo("geo:44.0512,5.0489?q=44.0512,5.0489(Cabinet)")
+    }
+
+    @Test
+    fun `without coordinates, an event's postal address is searched, not its place name`() {
+        val uri = GeoLink.forEvent(
+            event(location = "Cabinet du Dr Martin", address = "12 rue des Lices", postalCode = "84000", city = "Avignon"),
+        )
+        assertThat(uri).isEqualTo("geo:0,0?q=12+rue+des+Lices%2C+84000+Avignon")
+    }
+
+    @Test
+    fun `unusable coordinates fall back to the address`() {
+        assertThat(GeoLink.forEvent(event(city = "Avignon", gps = "Marseille"))).isEqualTo("geo:0,0?q=Avignon")
+    }
+
+    @Test
+    fun `an imported event with a place name only searches that name`() {
+        assertThat(GeoLink.forEvent(event(location = "Gare de Lyon"))).isEqualTo("geo:0,0?q=Gare+de+Lyon")
+    }
+
+    @Test
+    fun `coordinates without a place name are labelled with the title`() {
+        assertThat(GeoLink.forEvent(event(gps = "44.0512,5.0489")))
+            .isEqualTo("geo:44.0512,5.0489?q=44.0512,5.0489(Dentiste)")
+    }
+
+    @Test
+    fun `an event without any place gives no link`() {
+        assertThat(GeoLink.forEvent(event())).isNull()
+        assertThat(GeoLink.forEvent(event(location = " ", address = ""))).isNull()
+    }
+
+    private fun event(
+        location: String? = null,
+        address: String? = null,
+        postalCode: String? = null,
+        city: String? = null,
+        gps: String? = null,
+    ) = Event(
+        calendarId = 1L,
+        title = "Dentiste",
+        location = location,
+        address = address,
+        postalCode = postalCode,
+        city = city,
+        gpsCoordinates = gps,
+        startUtcMillis = 0L,
+        endUtcMillis = 0L,
+        timeZoneId = "Europe/Paris",
+    )
 }
