@@ -2,6 +2,7 @@ package com.filestech.agenda_tech.ui.screens.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.filestech.agenda_tech.domain.holiday.HolidayCountry
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.repository.LockRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
@@ -177,6 +178,7 @@ class SettingsViewModel @Inject constructor(
     fun setThemeMode(value: ThemeMode) = update { it.copy(themeMode = value) }
     fun setWeekStart(value: WeekStart) = update { it.copy(weekStart = value) }
     fun setShowWeekNumbers(value: Boolean) = update { it.copy(showWeekNumbers = value) }
+    fun setHolidayCountry(value: HolidayCountry?) = update { it.copy(holidayCountry = value) }
     fun setDefaultColor(value: CalendarColor) = update { it.copy(defaultEventColor = value) }
     fun setDefaultDuration(minutes: Int) = update { it.copy(defaultDurationMinutes = minutes) }
     fun setDefaultReminder(minutes: Int) = update { it.copy(defaultReminderMinutes = minutes) }

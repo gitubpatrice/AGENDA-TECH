@@ -2,6 +2,8 @@ package com.filestech.agenda_tech.data.local.db.dao
 
 import androidx.room.ColumnInfo
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Upsert
@@ -59,13 +61,6 @@ interface EventDao {
         delete(parentId)
     }
 
-    /** ROB-NEW-2 — upsert one event and delete another atomically (exclude-from-master + drop override). */
-    @Transaction
-    suspend fun upsertAndDelete(entity: EventEntity, deleteId: Long) {
-        upsert(entity)
-        delete(deleteId)
-    }
-
     /**
      * Writes a per-occurrence override and its master's updated rule in one transaction, returning
      * the override's rowid.
@@ -115,6 +110,14 @@ interface EventDao {
      */
     @Upsert
     suspend fun upsert(entity: EventEntity): Long
+
+    /**
+     * Inserts a row that must not exist yet: the undo of a deletion puts rows back under their own ids.
+     * ABORT rather than an upsert — should that id be taken, overwriting the row holding it is the worst
+     * thing an undo could do; failing restores nothing, and the caller says so.
+     */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertNew(entity: EventEntity)
 
     /** Atomic batch insert (device/ICS import): all rows land in one transaction or none do. */
     @Transaction

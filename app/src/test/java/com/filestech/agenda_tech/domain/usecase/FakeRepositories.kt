@@ -153,20 +153,36 @@ internal class FakeEventRepository : EventRepository {
 
     /** Stands in for `MAX(updated_at)`, which a fake holding domain models cannot compute. */
     var lastChangeAtUtcMillis: Long = 0L
+
+    /**
+     * Called with the id of every row removed — the `ON DELETE CASCADE` the real database applies to the
+     * reminders. Without it, a test reading an event's reminders AFTER deleting it still found them, and
+     * would pass a code path that, on the device, reads nothing.
+     */
+    var onRowRemoved: (Long) -> Unit = {}
+
+    private fun remove(id: Long) {
+        if (rows.remove(id) != null) onRowRemoved(id)
+    }
+
     override suspend fun deleteOverridesForParent(parentId: Long) {
-        rows.values.filter { it.recurrenceParentId == parentId }.forEach { rows.remove(it.id) }
+        rows.values.filter { it.recurrenceParentId == parentId }.forEach { remove(it.id) }
     }
 
     /** Mirrors the real DAO: the master AND every override of it go together. */
     override suspend fun deleteSeriesAtomic(parentId: Long) {
         deleteOverridesForParent(parentId)
-        rows.remove(parentId)
+        remove(parentId)
     }
 
-    /** Mirrors the real DAO: writes [event] and removes [deleteId] in one go. */
-    override suspend fun upsertAndDelete(event: Event, deleteId: Long) {
-        upsert(event)
-        rows.remove(deleteId)
+    /** Mirrors the real implementation: the override dropped and the date excluded from the series as it is. */
+    override suspend fun excludeOccurrence(masterId: Long, occurrenceStartUtcMillis: Long, deleteId: Long?): Boolean {
+        deleteId?.let { remove(it) }
+        val master = rows[masterId] ?: return false
+        val rule = master.recurrence ?: return false
+        if (occurrenceStartUtcMillis in rule.exDatesUtcMillis) return false
+        rows[masterId] = master.copy(recurrence = rule.excluding(occurrenceStartUtcMillis))
+        return true
     }
 
     /** Mirrors the real implementation: writes the override AND the master's new EXDATE together. */
@@ -225,7 +241,7 @@ internal class FakeEventRepository : EventRepository {
 
     override suspend fun delete(id: Long) {
         if (deleteThrows) error("base indisponible")
-        rows.remove(id)
+        remove(id)
     }
 }
 

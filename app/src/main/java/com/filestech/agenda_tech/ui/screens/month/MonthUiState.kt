@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.ui.screens.month
 
+import com.filestech.agenda_tech.domain.holiday.Holiday
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -15,6 +16,8 @@ data class DayCellData(
     val isToday: Boolean,
     val isSelected: Boolean,
     val events: List<OccurrenceData>,
+    /** The public holidays on this day (see ObserveHolidaysUseCase) — none unless a country is picked. */
+    val holidays: List<Holiday> = emptyList(),
 )
 
 /**
@@ -36,8 +39,14 @@ data class OccurrenceData(
     val colorArgb: Int,
     /** Age this birthday occurrence marks, or null. */
     val birthdayAge: Int? = null,
-    /** Where it takes place, on one line (see [com.filestech.agenda_tech.domain.location.PlaceLabel]), or null. */
+    /**
+     * Where it takes place, on one line (see [com.filestech.agenda_tech.domain.location.PlaceLabel]) —
+     * or its GPS coordinates when they are its only place, since a tap on them still opens the map —
+     * or null.
+     */
     val place: String? = null,
+    /** The `geo:` link a tap on [place] opens ([com.filestech.agenda_tech.domain.location.GeoLink.forEvent]). */
+    val mapUri: String? = null,
     /** The event's notes, or null when there are none. */
     val description: String? = null,
 )
@@ -62,6 +71,8 @@ data class MonthUiState(
     val pages: Map<YearMonth, List<List<DayCellData>>>,
     val selectedDate: LocalDate,
     val selectedDayOccurrences: List<OccurrenceData>,
+    /** The selected day's public holidays, shown above its events in the day's list. */
+    val selectedDayHolidays: List<Holiday> = emptyList(),
     val showWeekNumbers: Boolean,
     /** ISO week number for each of the 6 grid rows (parallel to [weeks]); shown when [showWeekNumbers]. */
     val weekNumbers: List<Int>,

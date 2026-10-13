@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,14 +26,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.filestech.agenda_tech.domain.birthday.displayTitle
+import com.filestech.agenda_tech.domain.holiday.Holiday
+import com.filestech.agenda_tech.ui.util.HolidayChip
 
 /** Height of one hour row on the timeline; the whole day is 24× this. */
 val HOUR_HEIGHT: Dp = 60.dp
 
+/** Width of the hour labels' column — what everything above the timeline lines its days up with. */
+val HOUR_GUTTER_WIDTH: Dp = 52.dp
+
 /** Left column of hour labels, aligned with the [EventsColumn] grid. */
 @Composable
 fun HourGutter(modifier: Modifier = Modifier) {
-    Column(modifier.width(52.dp)) {
+    Column(modifier.width(HOUR_GUTTER_WIDTH)) {
         for (hour in 0..23) {
             Box(
                 modifier = Modifier
@@ -116,14 +122,24 @@ fun EventsColumn(
     }
 }
 
-/** All-day events shown as a strip above the timeline. */
+/** The day's public holidays, then its all-day events, as a strip above the timeline. */
 @Composable
 fun AllDayStrip(
+    holidays: List<Holiday>,
     items: List<TimelineItem>,
     onItemClick: (Long, Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
+        holidays.forEach { holiday ->
+            HolidayChip(
+                holiday = holiday,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(vertical = 2.dp),
+                // The all-day events' own padding, so the holiday reads as one of the strip's bars.
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
         items.forEach { item ->
             Row(
                 modifier = Modifier

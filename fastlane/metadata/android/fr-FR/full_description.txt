@@ -6,7 +6,9 @@ Il existe pour que votre agenda n'ait à vivre nulle part ailleurs que sur votre
 
 <ul>
 <li>Quatre vues — Mois (changement par glissement ; points, titres dans la grille ou une ligne par jour, au pincement), Semaine, Jour et Agenda en liste</li>
-<li>Événements — journée entière, description, couleur par événement, adresse postale et coordonnées GPS qui s'ouvrent dans votre app de cartes (sans aucune permission de localisation)</li>
+<li>Événements — journée entière, description, couleur par événement, adresse postale et coordonnées GPS qui s'ouvrent dans votre app de cartes (sans aucune permission de localisation) ; supprimé par erreur ? « Annuler » le rétablit</li>
+<li>Partage — envoyez un événement en texte ou en fichier .ics vers l'application de votre choix</li>
+<li>Jours fériés — ceux de neuf pays européens et des États-Unis, calculés sur le téléphone, désactivés par défaut</li>
 <li>Récurrences (RFC 5545) — quotidienne, hebdomadaire aux jours choisis, mensuelle, annuelle ; fin après N occurrences ou à une date ; modification ou suppression d'une seule occurrence</li>
 <li>Rappels — alarmes exactes, reprogrammées après un redémarrage, délai libre, votre propre son, et un bouton « Répéter 10 min » sur la notification</li>
 <li>Sauvegarde chiffrée — exportez tout votre agenda dans un fichier .atbak protégé par mot de passe (PBKDF2 600 000 itérations + AES-256-GCM). Rangez-le où vous voulez, cloud compris : il reste illisible sans votre mot de passe</li>
@@ -30,6 +32,6 @@ Il existe pour que votre agenda n'ait à vivre nulle part ailleurs que sur votre
 
 <ul>
 <li>Ce n'est pas une synchronisation. L'import copie ce qui est sur le téléphone ; un événement créé ici ne remontera pas vers le calendrier d'origine. C'est le prix du zéro réseau, et il est assumé</li>
-<li>Pas de CalDAV, pas de partage d'agenda, pas d'invitations — tout cela demande un réseau</li>
+<li>Pas de CalDAV, pas d'agenda partagé, pas d'invitations — tout cela demande un réseau. Vous pouvez envoyer un événement, pas partager un agenda</li>
 <li>La sauvegarde chiffrée est le pont entre vos appareils, et il est manuel</li>
 </ul>

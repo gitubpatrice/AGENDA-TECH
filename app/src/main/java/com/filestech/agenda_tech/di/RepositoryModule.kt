@@ -9,11 +9,13 @@ import com.filestech.agenda_tech.data.local.settings.SettingsRepositoryImpl
 import com.filestech.agenda_tech.data.local.settings.SharedPrefsLockThrottleStore
 import com.filestech.agenda_tech.data.repository.BackupRepositoryImpl
 import com.filestech.agenda_tech.data.repository.CalendarRepositoryImpl
+import com.filestech.agenda_tech.data.repository.DeletionRepositoryImpl
 import com.filestech.agenda_tech.data.repository.EventRepositoryImpl
 import com.filestech.agenda_tech.data.repository.ReminderRepositoryImpl
 import com.filestech.agenda_tech.data.device.DeviceCalendarRepositoryImpl
 import com.filestech.agenda_tech.domain.repository.BackupRepository
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
+import com.filestech.agenda_tech.domain.repository.DeletionRepository
 import com.filestech.agenda_tech.domain.repository.DeviceCalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.repository.LockRepository
@@ -38,6 +40,9 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindEventRepository(impl: EventRepositoryImpl): EventRepository
+
+    @Binds @Singleton
+    abstract fun bindDeletionRepository(impl: DeletionRepositoryImpl): DeletionRepository
 
     @Binds @Singleton
     abstract fun bindReminderRepository(impl: ReminderRepositoryImpl): ReminderRepository

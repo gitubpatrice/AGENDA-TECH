@@ -40,6 +40,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.domain.holiday.Holiday
+import com.filestech.agenda_tech.ui.util.DeletionUndoSnackbarHost
 import java.time.LocalDate
 import java.util.Locale
 
@@ -56,6 +58,7 @@ import java.util.Locale
 internal fun DaySheet(
     date: LocalDate,
     occurrences: List<OccurrenceData>,
+    holidays: List<Holiday>,
     locale: Locale,
     onChangeDay: (LocalDate) -> Unit,
     onAddEvent: (LocalDate) -> Unit,
@@ -109,7 +112,7 @@ internal fun DaySheet(
             // already showing the incoming day's events. The weight lets a long day scroll inside the
             // sheet instead of pushing the Add button off the screen.
             AnimatedContent(
-                targetState = SheetDay(date, occurrences),
+                targetState = SheetDay(date, occurrences, holidays),
                 modifier = Modifier.weight(1f, fill = false),
                 contentKey = { it.date },
                 transitionSpec = {
@@ -124,6 +127,7 @@ internal fun DaySheet(
             ) { day ->
                 SelectedDayOccurrences(
                     occurrences = day.occurrences,
+                    holidays = day.holidays,
                     locale = locale,
                     onOccurrenceClick = onOccurrenceClick,
                     modifier = Modifier
@@ -141,11 +145,14 @@ internal fun DaySheet(
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.month_add_event))
             }
+            // The sheet is a window over the month, so the undo of a deletion shows here while it is
+            // open — the month's own would be hidden under it (CalendarScaffold's `undoSnackbar`).
+            DeletionUndoSnackbarHost()
         }
     }
 }
 
-private data class SheetDay(val date: LocalDate, val occurrences: List<OccurrenceData>)
+private data class SheetDay(val date: LocalDate, val occurrences: List<OccurrenceData>, val holidays: List<Holiday>)
 
 private val SWIPE_THRESHOLD = 56.dp
 private val LIST_MIN_HEIGHT = 96.dp

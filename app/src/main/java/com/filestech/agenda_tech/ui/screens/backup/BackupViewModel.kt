@@ -15,6 +15,7 @@ import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.usecase.ExportBackupUseCase
 import com.filestech.agenda_tech.domain.usecase.RestoreBackupUseCase
 import com.filestech.agenda_tech.system.AgendaChangeNotifier
+import com.filestech.agenda_tech.system.SharedFiles
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -89,6 +90,7 @@ class BackupViewModel @Inject constructor(
     private val autoBackupScheduler: AutoBackupScheduler,
     private val runAutoBackup: RunAutoBackupUseCase,
     @IoDispatcher private val io: CoroutineDispatcher,
+    private val sharedFiles: SharedFiles,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BackupUiState())
@@ -403,6 +405,8 @@ class BackupViewModel @Inject constructor(
                 // remplacer n'y figurent plus, exactement comme apres la cascade d'une suppression
                 // de calendrier (AG-9). Seule cette enumeration, faite AVANT l'ecriture, les atteint.
                 reminderScheduler.cancelReminders(staleReminderIds)
+                // The agenda replaced: an event shared before may be gone, its .ics with it.
+                sharedFiles.forgetAll()
                 // Le reste — re-armer, redessiner le widget — passe par la couture commune.
                 //
                 // Audit de coherence C1 : ces deux gestes etaient refaits a la main ici, sur

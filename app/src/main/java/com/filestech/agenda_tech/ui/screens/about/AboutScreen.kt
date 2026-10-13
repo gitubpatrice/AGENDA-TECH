@@ -32,6 +32,7 @@ import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Fingerprint
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material.icons.outlined.ImportExport
 import androidx.compose.material.icons.outlined.Language
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.Translate
@@ -529,6 +531,11 @@ private fun features(): List<Feature> = listOf(
         stringResource(R.string.about_feat_views_desc),
     ),
     Feature(
+        Icons.Outlined.Flag,
+        stringResource(R.string.about_feat_holidays_label),
+        stringResource(R.string.about_feat_holidays_desc),
+    ),
+    Feature(
         Icons.Outlined.Repeat,
         stringResource(R.string.about_feat_recurrence_label),
         stringResource(R.string.about_feat_recurrence_desc),
@@ -542,6 +549,11 @@ private fun features(): List<Feature> = listOf(
         Icons.Outlined.ImportExport,
         stringResource(R.string.about_feat_import_label),
         stringResource(R.string.about_feat_import_desc),
+    ),
+    Feature(
+        Icons.Outlined.Share,
+        stringResource(R.string.about_feat_share_label),
+        stringResource(R.string.about_feat_share_desc),
     ),
     Feature(
         Icons.Outlined.Widgets,

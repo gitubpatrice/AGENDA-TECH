@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.birthday.displayTitle
+import com.filestech.agenda_tech.ui.util.HolidayChip
 import com.filestech.agenda_tech.ui.util.LocalDeviceZone
 import java.time.Instant
 import java.time.LocalDate
@@ -115,6 +116,18 @@ private fun RowScope.TitlesDayCell(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         DayNumber(cell, size = 22.dp, style = MaterialTheme.typography.labelMedium)
+        // A holiday takes the first lines; the titles share what is left (CellTitles measures it). Two
+        // lines, hyphenated like the titles: on one, "Toussaint" read "Touss…" (seen on the S9).
+        cell.holidays.forEach { holiday ->
+            HolidayChip(
+                holiday = holiday,
+                style = cellTitleStyle(),
+                maxLines = 2,
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .padding(horizontal = CHIP_MARGIN),
+            )
+        }
         CellTitles(
             events = cell.events,
             date = cell.date,

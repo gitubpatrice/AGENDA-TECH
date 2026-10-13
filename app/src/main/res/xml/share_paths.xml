@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The one folder "Share as .ics" may hand out: the app's private cache, subfolder shared/
+     (SharedFiles). Nothing else of the app is reachable through the provider. -->
+<paths>
+    <cache-path name="shared" path="shared/" />
+</paths>

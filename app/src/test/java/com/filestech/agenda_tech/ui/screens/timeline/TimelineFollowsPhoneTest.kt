@@ -8,6 +8,7 @@ import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
 import com.filestech.agenda_tech.domain.usecase.FakeCalendarRepository
 import com.filestech.agenda_tech.domain.usecase.FakeEventRepository
 import com.filestech.agenda_tech.domain.usecase.FakeSettingsRepository
+import com.filestech.agenda_tech.domain.usecase.ObserveHolidaysUseCase
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +49,8 @@ class TimelineFollowsPhoneTest {
     @Test
     fun `the week starts on the day the screen's language starts it`() = runTest(dispatcher) {
         // First day set to "system": Sunday in American English, Monday in German.
-        val vm = WeekViewModel(occurrences, calendarRepo, FakeSettingsRepository(), deviceZone)
+        val settings = FakeSettingsRepository()
+        val vm = WeekViewModel(occurrences, ObserveHolidaysUseCase(settings), calendarRepo, settings, deviceZone)
 
         vm.uiState.test {
             vm.onLocaleChange(Locale.US)
@@ -75,7 +77,7 @@ class TimelineFollowsPhoneTest {
             endUtcMillis = start + 3_600_000,
             timeZoneId = paris.id,
         )
-        val vm = DayViewModel(occurrences, calendarRepo, deviceZone)
+        val vm = DayViewModel(occurrences, ObserveHolidaysUseCase(FakeSettingsRepository()), calendarRepo, deviceZone)
 
         vm.uiState.test {
             testScheduler.advanceUntilIdle()

@@ -1,7 +1,5 @@
 package com.filestech.agenda_tech.ui.screens.editor
 
-import android.content.Intent
-import android.net.Uri
 import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,6 +32,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Event
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
@@ -56,40 +57,52 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.domain.birthday.BirthdayAge
+import com.filestech.agenda_tech.domain.birthday.birthdayDisplayTitle
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.location.GeoLink
+import com.filestech.agenda_tech.domain.location.PlaceLabel
 import com.filestech.agenda_tech.domain.model.Weekday
+import com.filestech.agenda_tech.domain.share.EventShare
 import com.filestech.agenda_tech.ui.theme.BrandDanger
 import com.filestech.agenda_tech.ui.util.DatePickerModal
+import com.filestech.agenda_tech.ui.util.openMapLink
 import com.filestech.agenda_tech.ui.util.ReminderNotificationsBlockedNotice
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import com.filestech.agenda_tech.ui.util.rememberReminderNotifications
 import com.filestech.agenda_tech.ui.util.displayName
 import com.filestech.agenda_tech.ui.util.reminderLabel
-import timber.log.Timber
+import com.filestech.agenda_tech.ui.util.shareCalendarFile
+import com.filestech.agenda_tech.ui.util.shareText
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.launch
+import timber.log.Timber
 
 private enum class EditTarget { START, END, RECURRENCE_UNTIL }
 
@@ -113,10 +126,42 @@ fun EventEditorScreen(
         )
     }
 
+    val context = LocalContext.current
+    // Read when sharing, in the app's language — the context's own resources would miss a language
+    // switched since the screen opened (see MonthScreen).
+    val resources = LocalResources.current
+    val locale = rememberAppLocale()
+    val scope = rememberCoroutineScope()
+    val onShare: (ShareKind) -> Unit = { kind ->
+        scope.launch {
+            val source = viewModel.shareSource() ?: return@launch
+            // The editor's zone: the one it read the event's hours in.
+            val zone = ZoneId.systemDefault()
+            val title = birthdayDisplayTitle(
+                resources,
+                source.event.title,
+                BirthdayAge.of(source.event, source.startUtcMillis, zone),
+            )
+            when (kind) {
+                ShareKind.TEXT -> shareText(
+                    context,
+                    subject = title,
+                    text = EventShare.text(source, zone, locale, title, resources.getString(R.string.month_all_day)),
+                )
+                ShareKind.CALENDAR_FILE ->
+                    runCatching { viewModel.calendarFileToShare(source) }
+                        // Null: a deletion came first, and the event is no longer there to share.
+                        .onSuccess { uri -> uri?.let { shareCalendarFile(context, subject = title, uri = it) } }
+                        .onFailure { Timber.w(it, "EventEditor: the .ics to share could not be written") }
+            }
+        }
+    }
+
     EventEditorContent(
         state = state,
         onBack = onDone,
         onSave = viewModel::onSave,
+        onShare = onShare,
         onDelete = viewModel::onDelete,
         onDuplicate = viewModel::onDuplicate,
         onTitleChange = viewModel::onTitleChange,
@@ -177,11 +222,64 @@ private fun ScopeDialog(
     )
 }
 
+/** What "Share" sends: a few lines of text, or the event as an `.ics` file (see EventShare). */
+private enum class ShareKind { TEXT, CALENDAR_FILE }
+
+/**
+ * The editor's less frequent actions, behind "⋮": duplicate, and the two ways to share. Three icons side
+ * by side left the title no room — it broke in the middle of a word on the S9 —, and a menu says in words
+ * what each one does, where an icon alone had to be guessed. Delete stays in sight, in red.
+ */
+@Composable
+private fun EditorMoreMenu(
+    copyTitle: String,
+    enabled: Boolean,
+    onDuplicate: (String) -> Unit,
+    onShare: (ShareKind) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    // A Box, so the menu anchors to the icon rather than to the screen's edge (as on the month screen).
+    Box {
+        IconButton(onClick = { expanded = true }, enabled = enabled) {
+            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.menu_more))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            // Duplicate turns this form into an unsaved copy in place — no navigation, nothing written.
+            // Offered only while editing: there is nothing to copy from a form that was never saved.
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.editor_duplicate)) },
+                leadingIcon = { Icon(Icons.Filled.ContentCopy, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onDuplicate(copyTitle)
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.editor_share_text)) },
+                leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onShare(ShareKind.TEXT)
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.editor_share_ics)) },
+                leadingIcon = { Icon(Icons.Outlined.Event, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onShare(ShareKind.CALENDAR_FILE)
+                },
+            )
+        }
+    }
+}
+
 @Composable
 private fun EventEditorContent(
     state: EventEditorUiState,
     onBack: () -> Unit,
     onSave: () -> Unit,
+    onShare: (ShareKind) -> Unit,
     onDelete: () -> Unit,
     /** Takes the already-localised title for the copy — the ViewModel holds no Context. */
     onDuplicate: (String) -> Unit,
@@ -237,10 +335,14 @@ private fun EventEditorContent(
         topBar = {
             TopAppBar(
                 title = {
+                    // One line: squeezed by the actions, the title broke in the middle of a word
+                    // ("l'événeme / nt", seen on the S9).
                     Text(
                         stringResource(
                             if (state.isEditing) R.string.editor_edit_title else R.string.editor_new_title,
                         ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
                 navigationIcon = {
@@ -253,20 +355,6 @@ private fun EventEditorContent(
                     // empty form and deleting a recurring occurrence would take the whole series
                     // without asking (see EventEditorUiState.isLoaded).
                     if (state.isEditing && state.isLoaded) {
-                        // Duplicate turns this form into an unsaved copy in place — no navigation,
-                        // nothing written. Shown only while editing: there is nothing to copy from a
-                        // form that has never been saved.
-                        val copyTitle = stringResource(R.string.editor_duplicate_title, state.title)
-                        IconButton(
-                            onClick = { onDuplicate(copyTitle) },
-                            // Audit AG-3 — meme garde que le bouton Enregistrer ci-dessous.
-                            enabled = !state.busy,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.ContentCopy,
-                                contentDescription = stringResource(R.string.editor_duplicate),
-                            )
-                        }
                         IconButton(
                             onClick = {
                                 // A recurring occurrence opens the scope dialog (this/series) — a deliberate
@@ -282,6 +370,13 @@ private fun EventEditorContent(
                                 tint = BrandDanger,
                             )
                         }
+                        EditorMoreMenu(
+                            copyTitle = stringResource(R.string.editor_duplicate_title, state.title),
+                            // Audit AG-3 — meme garde que le bouton Enregistrer ci-dessous.
+                            enabled = !state.busy,
+                            onDuplicate = onDuplicate,
+                            onShare = onShare,
+                        )
                     }
                     // Spelled out and filled rather than a bare check icon: "Enregistrer" leaves no
                     // doubt about the action, and the filled primary colour — the lock screen's Unlock,
@@ -441,11 +536,17 @@ private fun EventEditorContent(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            // Each place field opens what it holds: here the postal address, street, postal code and city
+            // together — the three fields below make one address.
+            val addressUri = remember(state.address, state.postalCode, state.city) {
+                GeoLink.fromAddress(PlaceLabel.addressQuery(state.address, state.postalCode, state.city))
+            }
             OutlinedTextField(
                 value = state.address,
                 onValueChange = onAddressChange,
                 label = { Text(stringResource(R.string.editor_address)) },
                 singleLine = true,
+                trailingIcon = addressUri?.let { uri -> { OpenOnMapButton(uri) } },
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -467,18 +568,22 @@ private fun EventEditorContent(
                 )
             }
 
+            // The place name alone is often all an imported event has (`LOCATION` of an `.ics`).
+            val locationUri = remember(state.location) { GeoLink.fromAddress(state.location) }
             OutlinedTextField(
                 value = state.location,
                 onValueChange = onLocationChange,
                 label = { Text(stringResource(R.string.editor_location)) },
                 singleLine = true,
+                trailingIcon = locationUri?.let { uri -> { OpenOnMapButton(uri) } },
                 modifier = Modifier.fillMaxWidth(),
             )
 
             GpsField(
                 value = state.gpsCoordinates,
                 onValueChange = onGpsCoordinatesChange,
-                label = state.location.ifBlank { state.title },
+                // The place name only, as in the day's list — see GeoLink.forEvent.
+                label = state.location,
             )
 
             // DELETE_FAILED partage cette surface : les deux disent « l'ecriture n'a pas eu lieu »,
@@ -781,8 +886,7 @@ private fun GpsField(
     onValueChange: (String) -> Unit,
     label: String,
 ) {
-    val context = LocalContext.current
-    val usable = remember(value) { GeoLink.isUsable(value) }
+    val uri = remember(value, label) { GeoLink.fromCoordinates(value, label) }
 
     OutlinedTextField(
         value = value,
@@ -792,23 +896,18 @@ private fun GpsField(
         supportingText = { Text(stringResource(R.string.editor_gps_help)) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
         singleLine = true,
-        trailingIcon = {
-            if (usable) {
-                IconButton(onClick = { openOnMap(context, value, label) }) {
-                    Icon(Icons.Filled.Place, stringResource(R.string.editor_gps_open))
-                }
-            }
-        },
+        trailingIcon = uri?.let { { OpenOnMapButton(it) } },
         modifier = Modifier.fillMaxWidth(),
     )
 }
 
-/** Hands the coordinates to whatever maps app is installed; silently no-ops if there is none. */
-private fun openOnMap(context: android.content.Context, coordinates: String, label: String) {
-    val uri = GeoLink.fromCoordinates(coordinates, label) ?: return
-    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
-    runCatching { context.startActivity(intent) }
-        .onFailure { Timber.w(it, "EventEditor: no maps app to open a geo: link") }
+/** The pin at the end of a place field, handing [uri] to the phone's maps app. */
+@Composable
+private fun OpenOnMapButton(uri: String) {
+    val context = LocalContext.current
+    IconButton(onClick = { openMapLink(context, uri) }) {
+        Icon(Icons.Filled.Place, stringResource(R.string.editor_gps_open))
+    }
 }
 
 /**

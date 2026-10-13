@@ -3,9 +3,11 @@ package com.filestech.agenda_tech.ui.screens.timeline
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.core.time.DeviceZone
+import com.filestech.agenda_tech.domain.holiday.Holiday
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
 import com.filestech.agenda_tech.domain.settings.toDayOfWeek
+import com.filestech.agenda_tech.domain.usecase.ObserveHolidaysUseCase
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,7 +17,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -32,6 +33,7 @@ data class WeekUiState(
 @HiltViewModel
 class WeekViewModel @Inject constructor(
     private val observeOccurrences: ObserveOccurrencesInRangeUseCase,
+    private val observeHolidays: ObserveHolidaysUseCase,
     private val calendarRepository: CalendarRepository,
     private val settingsRepository: SettingsRepository,
     private val deviceZone: DeviceZone,
@@ -61,25 +63,32 @@ class WeekViewModel @Inject constructor(
     }.distinctUntilChanged()
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val occurrences = combine(weekStartFlow, deviceZone.zone) { start, now -> start to now }
+    private val window = combine(weekStartFlow, deviceZone.zone) { start, now -> start to now }
         .flatMapLatest { (start, weekZone) ->
             val startMillis = start.atStartOfDay(weekZone).toInstant().toEpochMilli()
             val endMillis = start.plusWeeks(1).atStartOfDay(weekZone).toInstant().toEpochMilli()
-            observeOccurrences(startMillis, endMillis, weekZone).map { occurrences -> weekZone to occurrences }
+            combine(
+                observeOccurrences(startMillis, endMillis, weekZone),
+                observeHolidays(start, start.plusWeeks(1)),
+            ) { occurrences, holidays -> TimelineWindow(start, weekZone, occurrences, holidays) }
         }
 
     val uiState: StateFlow<WeekUiState> = combine(
-        weekStartFlow,
-        occurrences,
+        window,
         calendarRepository.observeAll(),
-    ) { start, (weekZone, occ), calendars ->
-        // Built in the zone the list was read in, never in a newer one the list does not cover.
-        val items = occ.toTimelineItems(calendars.associate { it.id to it.color.argb }, weekZone)
-        buildWeek(start, items, weekZone)
+    ) { window, calendars ->
+        // The week the window was read for, in the zone it was read in — see TimelineWindow.start.
+        val items = window.occurrences.toTimelineItems(calendars.associate { it.id to it.color.argb }, window.zone)
+        buildWeek(window.start, items, window.holidays, window.zone)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-        initialValue = buildWeek(startOfWeek(LocalDate.now(zone), WeekFields.of(appLocale.value).firstDayOfWeek), emptyList(), zone),
+        initialValue = buildWeek(
+            startOfWeek(LocalDate.now(zone), WeekFields.of(appLocale.value).firstDayOfWeek),
+            emptyList(),
+            emptyMap(),
+            zone,
+        ),
     )
 
     fun onPreviousWeek() { referenceDate.value = referenceDate.value.minusWeeks(1) }
@@ -91,12 +100,17 @@ class WeekViewModel @Inject constructor(
         appLocale.value = locale
     }
 
-    private fun buildWeek(start: LocalDate, items: List<TimelineItem>, zone: ZoneId): WeekUiState {
+    private fun buildWeek(
+        start: LocalDate,
+        items: List<TimelineItem>,
+        holidays: Map<LocalDate, List<Holiday>>,
+        zone: ZoneId,
+    ): WeekUiState {
         val today = LocalDate.now(zone)
         val now = System.currentTimeMillis()
         val days = (0L until DAYS_PER_WEEK).map { offset ->
             val date = start.plusDays(offset)
-            TimelineBuilder.build(items.filter { overlapsDay(it, date, zone) }, date, zone, today, now)
+            TimelineBuilder.build(items.filter { overlapsDay(it, date, zone) }, date, zone, today, now, holidays[date].orEmpty())
         }
         return WeekUiState(weekStart = start, days = days)
     }

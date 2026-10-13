@@ -48,8 +48,16 @@ interface EventRepository {
     /** Atomically deletes a recurring master and all its overrides. */
     suspend fun deleteSeriesAtomic(parentId: Long)
 
-    /** Atomically upserts [event] and deletes the event with [deleteId] (exclude-from-master + drop override). */
-    suspend fun upsertAndDelete(event: Event, deleteId: Long)
+    /**
+     * Removes one occurrence of the series [masterId], in one transaction: deletes the override [deleteId]
+     * if there is one, and adds [occurrenceStartUtcMillis] to the exclusions of the master AS IT IS NOW —
+     * read inside the transaction, never from a copy taken before it (external review, 2026-10-13: an undo
+     * landing between a read and a write was written over with the old exclusions).
+     *
+     * Returns whether this call added the exclusion: false when it was already there, or the series is
+     * gone or no longer recurring — then there is nothing of this deletion's to lift on undo.
+     */
+    suspend fun excludeOccurrence(masterId: Long, occurrenceStartUtcMillis: Long, deleteId: Long?): Boolean
 
     /**
      * Atomically saves a per-occurrence [override] and excludes [originalStartUtcMillis] — the instant

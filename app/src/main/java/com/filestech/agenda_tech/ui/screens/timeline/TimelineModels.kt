@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.ui.screens.timeline
 
 import com.filestech.agenda_tech.domain.birthday.BirthdayAge
+import com.filestech.agenda_tech.domain.holiday.Holiday
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.domain.recurrence.EventOccurrence
 import com.filestech.agenda_tech.domain.recurrence.shownEndUtcMillis
@@ -48,6 +49,22 @@ fun List<EventOccurrence>.toTimelineItems(
         )
     }
 
+/**
+ * What a timeline view reads for its days: the occurrences and the public holidays of its window, with the
+ * zone they were read in — the day and the week build their days in that zone, never in a newer one.
+ *
+ * [start] is the first day the window was read for (the day, the week's first day, today for the agenda).
+ * A screen builds its days from it, never from the date it was just asked for (external review,
+ * 2026-10-13): combined apart, the next day was drawn for an instant with the previous day's events and
+ * holidays — "no event", no holiday — until its own query answered.
+ */
+data class TimelineWindow(
+    val start: LocalDate,
+    val zone: ZoneId,
+    val occurrences: List<EventOccurrence>,
+    val holidays: Map<LocalDate, List<Holiday>>,
+)
+
 /** One day of the timeline: its all-day items (shown in a strip) and its positioned timed blocks. */
 data class DayTimelineData(
     val date: LocalDate,
@@ -56,6 +73,8 @@ data class DayTimelineData(
     val isToday: Boolean,
     /** Minutes since midnight for the "now" line, or null when [date] is not today. */
     val nowMinute: Int?,
+    /** The day's public holidays (see ObserveHolidaysUseCase): its date in red, its name above the events. */
+    val holidays: List<Holiday> = emptyList(),
 )
 
 /**
@@ -71,6 +90,7 @@ object TimelineBuilder {
         zone: ZoneId,
         todayDate: LocalDate,
         nowUtcMillis: Long,
+        holidays: List<Holiday> = emptyList(),
     ): DayTimelineData {
         val dayStart = date.atStartOfDay(zone).toInstant().toEpochMilli()
 
@@ -94,6 +114,7 @@ object TimelineBuilder {
             positioned = DayLayout.layout(timed),
             isToday = isToday,
             nowMinute = nowMinute,
+            holidays = holidays,
         )
     }
 

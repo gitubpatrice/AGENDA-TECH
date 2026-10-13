@@ -12,6 +12,8 @@ import com.filestech.agenda_tech.domain.usecase.FakeReminderRepository
 import com.filestech.agenda_tech.domain.usecase.FakeSettingsRepository
 import com.filestech.agenda_tech.domain.usecase.UpsertEventUseCase
 import com.filestech.agenda_tech.system.AgendaChangeNotifier
+import com.filestech.agenda_tech.system.DeletionUndo
+import com.filestech.agenda_tech.system.SharedFiles
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.filestech.agenda_tech.ui.navigation.Routes
 import io.mockk.mockk
@@ -50,6 +52,12 @@ internal abstract class EventEditorTestBase {
     /** Audit AG-2 — la couture qui rafraichit le widget apres chaque ecriture. */
     protected val agendaChanged: AgendaChangeNotifier = mockk(relaxed = true)
 
+    /** Mocked: what the editor OFFERS to undo is the question; restoring is DeletionUndo's own test. */
+    protected val deletionUndo: DeletionUndo = mockk(relaxed = true)
+
+    /** Mocked: writing a file needs a Context; what the editor puts IN it is EventShare's own test. */
+    protected val sharedFiles: SharedFiles = mockk(relaxed = true)
+
     protected val dispatcher = StandardTestDispatcher()
 
     @BeforeEach
@@ -57,6 +65,8 @@ internal abstract class EventEditorTestBase {
         // viewModelScope pins Dispatchers.Main, which does not exist off-device.
         Dispatchers.setMain(dispatcher)
         calendarRepo.stored += Calendar(id = 1, name = "Perso", isDefault = true)
+        // The database's cascade: an event's reminders leave with it.
+        eventRepo.onRowRemoved = { id -> reminderRepo.rows.values.removeIf { it.eventId == id } }
     }
 
     @AfterEach
@@ -78,6 +88,8 @@ internal abstract class EventEditorTestBase {
             reminderRepository = reminderRepo,
             reminderScheduler = scheduler,
             agendaChanged = agendaChanged,
+            deletionUndo = deletionUndo,
+            sharedFiles = sharedFiles,
             settingsRepository = settingsRepo,
             expander = RecurrenceExpander(),
             savedStateHandle = SavedStateHandle(args),

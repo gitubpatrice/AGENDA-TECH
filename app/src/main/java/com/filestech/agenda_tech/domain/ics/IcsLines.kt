@@ -117,6 +117,22 @@ internal object IcsLines {
             .replace("\u0085", "\\n")
             .replace(",", "\\,")
             .replace(";", "\\;")
+            .withoutControls()
+
+    /**
+     * Every other control character becomes a space (security audit, 2026-10-13): RFC 5545 allows none in
+     * a TEXT value but the tab, and five of them — U+000B, U+000C, U+001C to U+001E — end a line for
+     * Python's `str.splitlines`, so a reader built on it would split a title from an imported file into
+     * properties the user never wrote. The line breaks are already escapes by now, so none is touched.
+     */
+    private fun String.withoutControls(): String =
+        if (none { it.isISOControl() && it != TAB }) {
+            this
+        } else {
+            buildString(length) { this@withoutControls.forEach { append(if (it.isISOControl() && it != TAB) ' ' else it) } }
+        }
+
+    private val TAB = Char(9)
 
     fun unescapeText(text: String): String {
         val out = StringBuilder(text.length)

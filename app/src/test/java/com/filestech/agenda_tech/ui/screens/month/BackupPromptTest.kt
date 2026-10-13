@@ -9,6 +9,7 @@ import com.filestech.agenda_tech.domain.settings.AppSettings
 import com.filestech.agenda_tech.domain.usecase.FakeCalendarRepository
 import com.filestech.agenda_tech.domain.usecase.FakeEventRepository
 import com.filestech.agenda_tech.domain.usecase.FakeSettingsRepository
+import com.filestech.agenda_tech.domain.usecase.ObserveHolidaysUseCase
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,7 @@ class BackupPromptTest {
         observeOccurrences = ObserveOccurrencesInRangeUseCase(eventRepo, calendarRepo, RecurrenceExpander(), dispatcher),
         calendarRepository = calendarRepo,
         eventRepository = eventRepo,
+        observeHolidays = ObserveHolidaysUseCase(settings),
         settingsRepository = settings,
         deviceZone = deviceZone,
     ).apply { nowUtcMillis = { now } }

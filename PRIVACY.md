@@ -1,6 +1,6 @@
 # Privacy Policy — Agenda Tech
 
-_Last updated: 29 September 2026_ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
+_Last updated: 13 October 2026_ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
 
 > This is a translation. **In case of discrepancy, the [French version](PRIVACY.fr.md) prevails**:
 > the publisher is based in France and the French text is the one he writes and answers for.
@@ -24,6 +24,13 @@ Agenda Tech (`com.filestech.agenda_tech`) is a **fully local** calendar app, bui
 Everything you enter (events, titles, places, notes, reminders, calendars) is stored **only on your
 device**, in an **encrypted** database (SQLCipher, AES-256; the key is protected by the Android
 KeyStore — hardware/TEE on supported devices).
+
+There is a single exception, **temporary and at your request**: when you share an event as an
+`.ics` file, that file is written **unencrypted** in the app's private storage, while the app you
+chose reads it — see "Sharing an event" below.
+
+**Public holidays**: if you choose a country in the settings, its public holidays are **calculated
+on the phone**. Nothing is downloaded, and the chosen country stays a local setting.
 
 The developer has **no access** to this data and receives **no copy** of it.
 
@@ -95,10 +102,20 @@ from one app to another:
   held in the device's secure hardware, which never leaves it. Turning the option off erases the
   password and that key. The trade is deliberate — a backup only you can open, kept usable on the
   day the phone is gone. `SECURITY.md` states it in full.
-- **Opening a place on a map**: if you enter GPS coordinates on an event and tap the marker, the app
-  hands **those coordinates and the event's label** to your phone's maps app. Nothing else is sent,
-  and nothing leaves if you don't tap the marker. What that maps app then does with the information
-  is governed by its own privacy policy.
+- **Opening a place on a map**: when you tap the pin of a place field in the editor, or the place
+  line in a day's list, the app hands your phone's maps app **that place only**: the GPS coordinates
+  if they are valid, labelled with the place name if there is one (never with the event's title),
+  otherwise the address (street, postal code, city), otherwise the place name. Nothing else is
+  sent, and nothing leaves if you don't tap
+  anything. What that maps app then does with the information — an address search often goes over
+  the internet — is governed by its own privacy policy.
+- **Sharing an event**: from the editor (⋮ menu), "Share as text…" or "Share .ics…" hands over the
+  event **as it is saved** (title, date and times, the place in full, description; for a series, the
+  whole series) to the app **you** pick in Android's share sheet. The app itself sends nothing. For
+  the `.ics`, the file is written in the app's private storage; only the chosen app is granted
+  permission to read it, for that file alone. It is deleted at the next share, when you delete the
+  event, and otherwise at the first start of the app more than an hour after the share. What the
+  receiving app does with the event is governed by its own privacy policy.
 - **Reminder sound**: you choose a ringtone from those already registered on the device, through the
   system ringtone picker. The app stores the identifier of the chosen ringtone and takes **no
   persistent access permission** on your files — it declares neither `READ_MEDIA_AUDIO` nor
@@ -116,6 +133,8 @@ from one app to another:
 Since the app processes no personal data outside your device, there is no remote processing to
 access, rectify or erase. You keep full control: deleting an event, a calendar, or uninstalling the
 app removes the corresponding data from the device. Uninstalling deletes the encrypted database.
+(After a deletion, the event stays a while in the app's RAM — never in storage — so that "Undo" can
+bring it back; it is gone from there at the latest when the app is closed.)
 
 ## Children
 

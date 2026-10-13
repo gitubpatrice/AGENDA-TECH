@@ -16,11 +16,32 @@ object PlaceLabel {
      * and city are held together by a no-break space: wrapped, the line left `84000` at the end of one
      * line and `Avignon` alone on the next (seen on the S9).
      */
-    fun of(event: Event): String? {
-        val town = listOfNotNull(event.postalCode.filled(), event.city.filled()).joinToString(NO_BREAK_SPACE)
-        return listOfNotNull(event.location.filled(), event.address.filled(), town.ifEmpty { null })
-            .joinToString(", ")
-            .ifEmpty { null }
+    fun of(event: Event): String? = line(event, townSeparator = NO_BREAK_SPACE)
+
+    /**
+     * The same line for text leaving the app — a message, the `LOCATION` of a shared `.ics` — with a
+     * plain space: the reader's own calendar may hand it to a maps search.
+     */
+    fun forSharing(event: Event): String? = line(event, townSeparator = " ")
+
+    private fun line(event: Event, townSeparator: String): String? =
+        listOfNotNull(
+            event.location.filled(),
+            postalAddress(event.address, event.postalCode, event.city, townSeparator),
+        ).joinToString(", ").ifEmpty { null }
+
+    /**
+     * The postal address alone (`12 rue des Lices, 84000 Avignon`), for a maps app to search; null when
+     * none of its three fields is filled in. The place's name is left out — `Cabinet du Dr Martin` is
+     * not something a maps app can find — and the space is a plain one: this text is a query, not a
+     * line to wrap.
+     */
+    fun addressQuery(address: String?, postalCode: String?, city: String?): String? =
+        postalAddress(address, postalCode, city, townSeparator = " ")
+
+    private fun postalAddress(address: String?, postalCode: String?, city: String?, townSeparator: String): String? {
+        val town = listOfNotNull(postalCode.filled(), city.filled()).joinToString(townSeparator)
+        return listOfNotNull(address.filled(), town.ifEmpty { null }).joinToString(", ").ifEmpty { null }
     }
 
     private fun String?.filled(): String? = this?.trim()?.ifEmpty { null }

@@ -3,8 +3,12 @@ package com.filestech.agenda_tech.ui.screens.month
 import app.cash.turbine.test
 import com.filestech.agenda_tech.core.time.FakeDeviceZone
 import com.filestech.agenda_tech.core.time.FarZones
+import com.filestech.agenda_tech.domain.holiday.HolidayCountry
+import com.filestech.agenda_tech.domain.holiday.HolidayName
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.Event
+import com.filestech.agenda_tech.domain.model.RecurrenceFreq
+import com.filestech.agenda_tech.domain.model.RecurrenceRule
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
 import com.filestech.agenda_tech.domain.settings.AppSettings
@@ -13,6 +17,8 @@ import com.filestech.agenda_tech.domain.settings.WeekStart
 import com.filestech.agenda_tech.domain.usecase.FakeCalendarRepository
 import com.filestech.agenda_tech.domain.usecase.FakeEventRepository
 import com.filestech.agenda_tech.domain.usecase.FakeSettingsRepository
+import com.filestech.agenda_tech.domain.usecase.GatedEventRepository
+import com.filestech.agenda_tech.domain.usecase.ObserveHolidaysUseCase
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
@@ -63,10 +69,14 @@ class MonthCellsTest {
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(settings: FakeSettingsRepository = FakeSettingsRepository()) = MonthViewModel(
-        observeOccurrences = ObserveOccurrencesInRangeUseCase(eventRepo, calendarRepo, RecurrenceExpander(), dispatcher),
+    private fun viewModel(
+        settings: FakeSettingsRepository = FakeSettingsRepository(),
+        events: EventRepository = eventRepo,
+    ) = MonthViewModel(
+        observeOccurrences = ObserveOccurrencesInRangeUseCase(events, calendarRepo, RecurrenceExpander(), dispatcher),
         calendarRepository = calendarRepo,
         eventRepository = eventRepo,
+        observeHolidays = ObserveHolidaysUseCase(settings),
         settingsRepository = settings,
         deviceZone = deviceZone,
     )
@@ -258,6 +268,7 @@ class MonthCellsTest {
             ),
             calendarRepository = calendarRepo,
             eventRepository = eventRepo,
+            observeHolidays = ObserveHolidaysUseCase(settings),
             settingsRepository = settings,
             deviceZone = deviceZone,
         )
@@ -286,6 +297,7 @@ class MonthCellsTest {
             ),
             calendarRepository = calendarRepo,
             eventRepository = eventRepo,
+            observeHolidays = ObserveHolidaysUseCase(settings),
             settingsRepository = settings,
             deviceZone = deviceZone,
         )
@@ -362,5 +374,105 @@ class MonthCellsTest {
         testScheduler.advanceUntilIdle()
 
         assertThat(settings.current().monthDisplay).isEqualTo(MonthDisplay.TITLES)
+    }
+
+    @Test
+    fun `with no country picked, no day carries a holiday`() = runTest(dispatcher) {
+        val state = viewModel().state(testScheduler)
+
+        assertThat(state.pages.values.flatten().flatten().flatMap { it.holidays }).isEmpty()
+        assertThat(state.selectedDayHolidays).isEmpty()
+    }
+
+    @Test
+    fun `a picked country puts its holidays on their days and in the selected day's list`() = runTest(dispatcher) {
+        val vm = viewModel(FakeSettingsRepository(AppSettings(holidayCountry = HolidayCountry.FR)))
+        val bastilleDay = LocalDate.of(2026, 7, 14)
+        vm.onSelectDate(bastilleDay)
+
+        val state = vm.state(testScheduler)
+
+        val days = state.weeks.flatten()
+        assertThat(days.single { it.date == bastilleDay }.holidays.map { it.name }).containsExactly(HolidayName.NATIONAL_DAY)
+        assertThat(days.single { it.date == bastilleDay.plusDays(1) }.holidays).isEmpty()
+        assertThat(state.selectedDayHolidays.map { it.name }).containsExactly(HolidayName.NATIONAL_DAY)
+    }
+
+    @Test
+    fun `the occurrences of a series share one place and one map link, not a copy each`() = runTest(dispatcher) {
+        // Security audit, 2026-10-13: an imported place of 4 000 characters was copied, and URL-encoded,
+        // for every occurrence — a few hundred daily series filled the memory and crashed the app at start.
+        val start = millis(month.atDay(1), 9)
+        eventRepo.rows[1] = Event(
+            id = 1,
+            calendarId = 1,
+            title = "Daily",
+            location = "Salle " + "x".repeat(3_000),
+            address = "12 rue des Lices",
+            startUtcMillis = start,
+            endUtcMillis = start + 3_600_000,
+            timeZoneId = zone.id,
+            recurrence = RecurrenceRule(freq = RecurrenceFreq.DAILY),
+        )
+
+        val occurrences = viewModel().state(testScheduler).weeks.flatten().flatMap { it.events }
+            .filter { it.eventId == 1L }
+
+        assertThat(occurrences.size).isAtLeast(2)
+        val first = occurrences.first()
+        assertThat(first.place).isNotNull()
+        occurrences.drop(1).forEach {
+            assertThat(it.place).isSameInstanceAs(first.place)
+            assertThat(it.mapUri).isSameInstanceAs(first.mapUri)
+        }
+    }
+
+    @Test
+    fun `a jump past the neighbouring months keeps the month shown until its own window is read`() =
+        runTest(dispatcher) {
+            // External review, 2026-10-13: drawn from the window already read, the far month showed for an
+            // instant without its events and holidays, its days "with no event".
+            val far = month.plusMonths(4)
+            val day = far.atDay(15)
+            seed(1, "Far", millis(day, 9), millis(day, 10))
+            val events = GatedEventRepository(eventRepo)
+            val vm = viewModel(events = events)
+
+            vm.uiState.test {
+                testScheduler.advanceUntilIdle()
+                assertThat(expectMostRecentItem().yearMonth).isEqualTo(month)
+
+                vm.showMonth(far)
+                testScheduler.advanceUntilIdle()
+                expectNoEvents()
+
+                events.gate.complete(Unit)
+                testScheduler.advanceUntilIdle()
+                val state = expectMostRecentItem()
+                assertThat(state.yearMonth).isEqualTo(far)
+                assertThat(state.cell(day).events.map { it.title }).containsExactly("Far")
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a swipe to the next month is drawn at once, from the window already read`() = runTest(dispatcher) {
+        // The neighbours are read in advance for this: a swipe waiting for its own read would undo it.
+        val next = month.plusMonths(1).atDay(15)
+        seed(1, "Next", millis(next, 9), millis(next, 10))
+        val vm = viewModel(events = GatedEventRepository(eventRepo)) // its gate never opens
+
+        vm.uiState.test {
+            testScheduler.advanceUntilIdle()
+            expectMostRecentItem()
+
+            vm.onNextMonth()
+            testScheduler.advanceUntilIdle()
+
+            val state = expectMostRecentItem()
+            assertThat(state.yearMonth).isEqualTo(month.plusMonths(1))
+            assertThat(state.cell(next).events.map { it.title }).containsExactly("Next")
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

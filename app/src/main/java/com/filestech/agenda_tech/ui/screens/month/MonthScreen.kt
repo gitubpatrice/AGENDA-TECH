@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -89,6 +90,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.ImportLimits
 import com.filestech.agenda_tech.domain.birthday.displayTitle
+import com.filestech.agenda_tech.domain.holiday.Holiday
 import com.filestech.agenda_tech.domain.settings.MonthDisplay
 import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.ui.ics.IcsResult
@@ -97,7 +99,9 @@ import com.filestech.agenda_tech.ui.navigation.CalendarView
 import com.filestech.agenda_tech.ui.theme.LogoShape
 import com.filestech.agenda_tech.ui.theme.BrandDanger
 import com.filestech.agenda_tech.ui.util.DatePickerModal
+import com.filestech.agenda_tech.ui.util.HolidayLine
 import com.filestech.agenda_tech.ui.util.LocalDeviceZone
+import com.filestech.agenda_tech.ui.util.openMapLink
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import java.time.DayOfWeek
 import java.time.Instant
@@ -255,10 +259,17 @@ private fun MonthScreenContent(
         scrollTargetDay = date.toEpochDay()
         scrollRequest++
     }
+    // With the titles, the grid fills the screen and has no list under it: a tap on a day opens the
+    // day over the grid. Saved, so coming back from the editor reopens the day just edited.
+    var daySheetOpen by rememberSaveable { mutableStateOf(false) }
+    val daySheetShown = daySheetOpen && display == MonthDisplay.TITLES
 
     CalendarScaffold(
         currentView = CalendarView.MONTH,
         onSelectView = onSelectView,
+        // The day's sheet is a window over the screen: an undo offered under it went unseen (S9). While
+        // it is open, the sheet shows the offer instead.
+        undoSnackbar = !daySheetShown,
         topBar = {
             TopAppBar(
                 title = {
@@ -339,9 +350,6 @@ private fun MonthScreenContent(
         val haptic = LocalHapticFeedback.current
         val latestDisplay by rememberUpdatedState(display)
         val latestOnDisplayChange by rememberUpdatedState(onDisplayChange)
-        // With the titles, the grid fills the screen and has no list under it: a tap on a day opens the
-        // day over the grid. Saved, so coming back from the editor reopens the day just edited.
-        var daySheetOpen by rememberSaveable { mutableStateOf(false) }
         // Selected first, so on coming back from the editor the grid shows the day the event went to.
         val onDayLongClick: (LocalDate) -> Unit = { date ->
             onSelectDate(date)
@@ -476,6 +484,7 @@ private fun MonthScreenContent(
                 )
                 SelectedDayOccurrences(
                     occurrences = state.selectedDayOccurrences,
+                    holidays = state.selectedDayHolidays,
                     locale = locale,
                     onOccurrenceClick = onOccurrenceClick,
                     modifier = Modifier
@@ -484,10 +493,11 @@ private fun MonthScreenContent(
                 )
             }
         }
-        if (daySheetOpen && display == MonthDisplay.TITLES) {
+        if (daySheetShown) {
             DaySheet(
                 date = state.selectedDate,
                 occurrences = state.selectedDayOccurrences,
+                holidays = state.selectedDayHolidays,
                 locale = locale,
                 onChangeDay = onSelectDate,
                 onAddEvent = onAddEvent,
@@ -632,25 +642,43 @@ private fun RowScope.DayCell(
     }
 }
 
+/**
+ * The day's list, under the grid or in the day's sheet: its public holidays first — not events, nothing
+ * to open — then its events.
+ */
 @Composable
 internal fun SelectedDayOccurrences(
     occurrences: List<OccurrenceData>,
+    holidays: List<Holiday>,
     locale: Locale,
     onOccurrenceClick: (Long, Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (occurrences.isEmpty()) {
-        Box(modifier = modifier, contentAlignment = Alignment.Center) {
-            Text(
-                text = stringResource(R.string.month_no_events),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        // Centred, not weighted: a weighted child makes a Column take all the height it may, and the day's
+        // sheet — sized to its content — grew to the whole screen for an empty day (external review,
+        // 2026-10-13). Under the grid, the caller's own weight still gives it the free space.
+        Column(modifier = modifier, verticalArrangement = Arrangement.Center) {
+            holidays.forEach { HolidayLine(it, Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) }
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.month_no_events),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         return
     }
     val zone = LocalDeviceZone.current
     LazyColumn(modifier = modifier) {
+        items(holidays, key = { "holiday-${it.name}-${it.observed}" }) { holiday ->
+            HolidayLine(holiday, Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = lightLineColor())
+        }
         itemsIndexed(
             occurrences,
             key = { _, occurrence -> occurrence.eventId to occurrence.occurrenceStartUtcMillis },
@@ -702,23 +730,7 @@ private fun OccurrenceRow(
             // one tap away, in the editor.
             occurrence.place?.let { place ->
                 DetailDivider()
-                Row {
-                    Icon(
-                        imageVector = Icons.Outlined.Place,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .padding(top = 2.dp, end = 4.dp)
-                            .size(16.dp),
-                    )
-                    Text(
-                        text = place,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = PLACE_MAX_LINES,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                PlaceLine(place, occurrence.mapUri)
             }
             occurrence.description?.let { description ->
                 DetailDivider()
@@ -730,6 +742,50 @@ private fun OccurrenceRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+    }
+}
+
+/**
+ * The event's place, which opens in the phone's maps app when tapped — the rest of the row opens the
+ * editor. The pin takes the primary colour to say so, and the line keeps a full touch height: on one
+ * line of text alone, a tap a little too low opened the editor instead.
+ */
+@Composable
+private fun PlaceLine(place: String, mapUri: String?) {
+    val context = LocalContext.current
+    val openLabel = stringResource(R.string.editor_gps_open)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .then(
+                if (mapUri == null) {
+                    Modifier
+                } else {
+                    Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable(onClickLabel = openLabel, role = Role.Button) { openMapLink(context, mapUri) }
+                },
+            ),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Row {
+            Icon(
+                imageVector = Icons.Outlined.Place,
+                contentDescription = null,
+                tint = if (mapUri == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(top = 2.dp, end = 4.dp)
+                    .size(16.dp),
+            )
+            Text(
+                text = place,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = PLACE_MAX_LINES,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

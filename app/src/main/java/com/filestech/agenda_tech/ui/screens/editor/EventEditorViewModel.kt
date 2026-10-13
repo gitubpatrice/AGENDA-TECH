@@ -1,16 +1,19 @@
 package com.filestech.agenda_tech.ui.screens.editor
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.core.result.Outcome
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
+import com.filestech.agenda_tech.domain.model.DeletedEvents
 import com.filestech.agenda_tech.core.time.TimeZones
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.model.EventKind
 import com.filestech.agenda_tech.domain.model.RecurrenceFreq
 import com.filestech.agenda_tech.domain.model.RecurrenceRule
+import com.filestech.agenda_tech.domain.model.SeriesExclusion
 import com.filestech.agenda_tech.domain.model.Reminder
 import com.filestech.agenda_tech.domain.model.Weekday
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
@@ -19,9 +22,13 @@ import com.filestech.agenda_tech.domain.repository.CalendarRepository
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import com.filestech.agenda_tech.domain.repository.ReminderRepository
 import com.filestech.agenda_tech.domain.repository.SettingsRepository
+import com.filestech.agenda_tech.domain.share.EventShare
+import com.filestech.agenda_tech.domain.share.ShareSource
 import com.filestech.agenda_tech.domain.usecase.DeleteEventUseCase
 import com.filestech.agenda_tech.domain.usecase.UpsertEventUseCase
 import com.filestech.agenda_tech.system.AgendaChangeNotifier
+import com.filestech.agenda_tech.system.DeletionUndo
+import com.filestech.agenda_tech.system.SharedFiles
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.filestech.agenda_tech.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,6 +44,11 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 @HiltViewModel
 class EventEditorViewModel @Inject constructor(
@@ -47,6 +59,8 @@ class EventEditorViewModel @Inject constructor(
     private val reminderRepository: ReminderRepository,
     private val reminderScheduler: ReminderScheduler,
     private val agendaChanged: AgendaChangeNotifier,
+    private val deletionUndo: DeletionUndo,
+    private val sharedFiles: SharedFiles,
     private val settingsRepository: SettingsRepository,
     private val expander: RecurrenceExpander,
     savedStateHandle: SavedStateHandle,
@@ -196,11 +210,8 @@ class EventEditorViewModel @Inject constructor(
         loadedEndUtcMillis = event.endUtcMillis
         loadedAllDayZone = event.dateZone(zone).takeIf { event.allDay }
 
-        // For a tapped occurrence of a recurring master, show that occurrence's times (not the base).
         val editingOccurrence = event.recurrence != null && occurrenceStart > 0L
-        val startMillis = if (editingOccurrence) occurrenceStart else event.startUtcMillis
-        // Ended the way the views end it, in local time: see RecurrenceExpander.occurrenceEndUtcMillis.
-        val endMillis = if (editingOccurrence) expander.occurrenceEndUtcMillis(event, occurrenceStart) else event.endUtcMillis
+        val (startMillis, endMillis) = expander.shownSpan(event, occurrenceStart)
 
         // An all-day event's dates are read in its own zone, a timed event's times on the phone's clock.
         val dateZone = event.dateZone(zone)
@@ -245,6 +256,43 @@ class EventEditorViewModel @Inject constructor(
                 isLoaded = true,
             )
         }
+    }
+
+    /**
+     * The event to share, as the AGENDA holds it — not the form: typing not yet saved is not part of the
+     * event, and sending it would send something the agenda does not contain. Null until the event is
+     * loaded, or while a write is running.
+     */
+    /** A share and a deletion take turns — see [calendarFileToShare] and [launchDeletion]. */
+    private val shareOrDelete = Mutex()
+
+    suspend fun shareSource(): ShareSource? {
+        val current = _state.value
+        if (!current.isEditing || !current.isLoaded || current.busy) return null
+        val event = eventRepository.getById(eventId) ?: return null
+        val (start, end) = expander.shownSpan(event, occurrenceStart)
+        return ShareSource(event, start, end)
+    }
+
+    /**
+     * The `.ics` of the event, written for another app to read (SharedFiles). A series goes whole, with
+     * its moved occurrences — as the agenda's own export writes it.
+     */
+    suspend fun calendarFileToShare(source: ShareSource): Uri? = shareOrDelete.withLock {
+        // Asked for a moment before a deletion and written after it, the copy would outlive the event: the
+        // two take turns, and a share that comes second gives up (external review, 2026-10-13).
+        if (_state.value.busy) return@withLock null
+        // A moved occurrence is part of a series: its .ics is the series' (external review, 2026-10-13).
+        val event = source.event.recurrenceParentId?.let { eventRepository.getById(it) } ?: source.event
+        val overrides = if (event.isRecurring) {
+            eventRepository.observeOverrides().first().filter { it.recurrenceParentId == event.id }
+        } else {
+            emptyList()
+        }
+        val ics = EventShare.ics(event, overrides, System.currentTimeMillis())
+        // Filed under the series, so deleting any part of it — see launchDeletion — deletes the copy.
+        val owner = source.event.recurrenceParentId ?: source.event.id
+        sharedFiles.calendarFile(owner, EventShare.fileStem(event.title), ics)
     }
 
     fun onAddReminder(minutesBefore: Int) = _state.update {
@@ -408,18 +456,16 @@ class EventEditorViewModel @Inject constructor(
      */
     private fun deleteOverrideAndExclude(parentId: Long, originalStart: Long) {
         launchDeletion {
+            // Read before the write: the reminders leave with the row, by cascade.
+            val removed = reminderRepository.removedWith(listOfNotNull(eventRepository.getById(eventId)))
             reminderScheduler.cancelEvent(eventId)
-            val master = eventRepository.getById(parentId)
-            val rule = master?.recurrence
-            if (master != null && rule != null && originalStart !in rule.exDatesUtcMillis) {
-                val updated = master.copy(recurrence = rule.copy(exDatesUtcMillis = rule.exDatesUtcMillis + originalStart))
-                // ROB-NEW-2 — exclude on the master and drop the override in one transaction.
-                eventRepository.upsertAndDelete(updated, eventId)
-                reminderScheduler.rescheduleEvent(parentId)
-            } else {
-                deleteEvent(eventId)
-            }
+            // ROB-NEW-2, then external review 2026-10-13: the override dropped and its date excluded from the
+            // series AS IT IS NOW, in one transaction — never from a copy read before it.
+            val added = eventRepository.excludeOccurrence(parentId, originalStart, deleteId = eventId)
+            if (added) reminderScheduler.rescheduleEvent(parentId)
             agendaChanged.onAgendaChanged(rearmReminders = false)
+            // The exclusion is only this deletion's to lift if this deletion added it — see DeletedEvents.
+            deletionUndo.offer(removed.copy(addedExclusion = SeriesExclusion(parentId, originalStart).takeIf { added }))
             _state.update { it.copy(isDeleted = true) }
         }
     }
@@ -612,12 +658,27 @@ class EventEditorViewModel @Inject constructor(
      *
      * L'echec est dit, pas seulement relache : une suppression qui ne se produit pas et ne dit rien
      * laisse croire qu'elle a eu lieu.
+     *
+     * Le .ics partage de l'evenement (de sa serie, pour une occurrence) est efface ici, une fois pour les
+     * quatre chemins (audit de securite du 2026-10-13) : il survivait en clair a la suppression. AVANT
+     * l'ecriture et non apres : `isDeleted` referme l'ecran, et la coroutine qui suivrait serait annulee
+     * avec lui. Une suppression qui echoue ensuite aura seulement fait perdre un partage a refaire.
      */
     private fun launchDeletion(block: suspend () -> Unit) {
         _state.update { it.copy(busy = true) }
+        val sharedOwner = loadedParentId ?: eventId
         viewModelScope.launch {
             try {
-                block()
+                // Once begun, finished (external review, 2026-10-13): leaving the editor cancels this scope,
+                // and a deletion cut between its write and its offer was gone with no way to undo it.
+                withContext(NonCancellable) {
+                    shareOrDelete.withLock {
+                        sharedFiles.forget(sharedOwner)
+                        block()
+                    }
+                }
+            } catch (c: CancellationException) {
+                throw c
             } catch (t: Throwable) {
                 Timber.w(t, "Event deletion failed")
                 _state.update { it.copy(error = EditorError.DELETE_FAILED, busy = false) }
@@ -627,9 +688,11 @@ class EventEditorViewModel @Inject constructor(
 
     private fun deleteDirect() {
         launchDeletion {
+            val undo = reminderRepository.removedWith(listOfNotNull(eventRepository.getById(eventId)))
             reminderScheduler.cancelEvent(eventId)
             deleteEvent(eventId)
             agendaChanged.onAgendaChanged(rearmReminders = false)
+            deletionUndo.offer(undo)
             _state.update { it.copy(isDeleted = true) }
         }
     }
@@ -650,11 +713,14 @@ class EventEditorViewModel @Inject constructor(
             // F7 ne fermait pas.
             //
             // Énumérées AVANT la suppression : après, plus rien ne permet de les retrouver.
-            eventRepository.observeOverrides().first()
+            val overrides = eventRepository.observeOverrides().first()
                 .filter { it.recurrenceParentId == eventId }
-                .forEach { reminderScheduler.cancelEvent(it.id) }
+            overrides.forEach { reminderScheduler.cancelEvent(it.id) }
+            // The master first: an override names it.
+            val undo = reminderRepository.removedWith(listOfNotNull(eventRepository.getById(eventId)) + overrides)
             eventRepository.deleteSeriesAtomic(eventId) // ROB-NEW-2 — master + overrides in one transaction
             agendaChanged.onAgendaChanged(rearmReminders = false)
+            deletionUndo.offer(undo)
             _state.update { it.copy(isDeleted = true) }
         }
     }
@@ -670,9 +736,13 @@ class EventEditorViewModel @Inject constructor(
                 deleteDirect()
                 return@launchDeletion
             }
-            eventRepository.upsert(master.copy(recurrence = rule.excluding(occurrenceStart)))
+            // Added on the series as it is now, in one transaction (external review, 2026-10-13).
+            val addsExclusion = eventRepository.excludeOccurrence(eventId, occurrenceStart, deleteId = null)
             reminderScheduler.rescheduleEvent(eventId)
             agendaChanged.onAgendaChanged(rearmReminders = false)
+            // Nothing was removed — one date was excluded; undoing lifts that exclusion and nothing else.
+            val exclusion = SeriesExclusion(eventId, occurrenceStart).takeIf { addsExclusion }
+            deletionUndo.offer(reminderRepository.removedWith(emptyList(), exclusion))
             _state.update { it.copy(isDeleted = true) }
         }
     }
@@ -737,3 +807,31 @@ class EventEditorViewModel @Inject constructor(
         const val MAX_COUNT = 999
     }
 }
+
+/**
+ * The instants the editor shows for [event]: for an occurrence of a series opened at [occurrenceStart],
+ * that occurrence — not the series' first — ended the way the views end it, in local time (see
+ * [RecurrenceExpander.occurrenceEndUtcMillis]). Shared by the form and by "Share", so both show the same
+ * day. [occurrenceStart] at or below 0 means no occurrence was tapped.
+ */
+private fun RecurrenceExpander.shownSpan(event: Event, occurrenceStart: Long): Pair<Long, Long> =
+    if (event.recurrence != null && occurrenceStart > 0L) {
+        occurrenceStart to occurrenceEndUtcMillis(event, occurrenceStart)
+    } else {
+        event.startUtcMillis to event.endUtcMillis
+    }
+
+/**
+ * What a deletion is about to remove, with the reminders those rows carry — read BEFORE the rows go: the
+ * reminders leave with them, by cascade. What [DeletionUndo] puts back if asked.
+ */
+private suspend fun ReminderRepository.removedWith(
+    events: List<Event>,
+    addedExclusion: SeriesExclusion? = null,
+) = DeletedEvents(
+    events = events,
+    reminderMinutesByEventId = events
+        .associate { event -> event.id to getForEvent(event.id).map { it.minutesBefore } }
+        .filterValues { it.isNotEmpty() },
+    addedExclusion = addedExclusion,
+)

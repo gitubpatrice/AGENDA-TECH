@@ -6,7 +6,9 @@ Esiste perché il suo calendario non debba vivere altrove che sul suo telefono. 
 
 <ul>
 <li>Quattro viste — Mese (scorrimento tra i mesi; punti, titoli nella griglia o una riga al giorno, con un pizzico), Settimana, Giorno ed elenco Agenda</li>
-<li>Eventi — tutto il giorno, descrizione, colore per evento, indirizzo postale e coordinate GPS che si aprono nella sua app di mappe (senza autorizzazione di posizione)</li>
+<li>Eventi — tutto il giorno, descrizione, colore per evento, indirizzo postale e coordinate GPS che si aprono nella sua app di mappe (senza autorizzazione di posizione); eliminato per errore? «Annulla» lo ripristina</li>
+<li>Condivisione — invii un evento come testo o come file .ics all'app di sua scelta</li>
+<li>Giorni festivi — quelli di nove paesi europei e degli Stati Uniti, calcolati sul telefono, disattivati per impostazione predefinita</li>
 <li>Eventi ricorrenti (RFC 5545) — ogni giorno, ogni settimana nei giorni scelti, ogni mese, ogni anno; fine dopo N occorrenze o a una data; modifica o eliminazione di una singola occorrenza</li>
 <li>Promemoria — sveglie esatte, riprogrammate dopo un riavvio, anticipo libero, il suo suono e un pulsante «Posticipa di 10 min» nella notifica</li>
 <li>Backup cifrato — esporti l'intero calendario in un file .atbak protetto da password (PBKDF2 a 600.000 iterazioni + AES-256-GCM). Lo conservi ovunque, cloud compreso: senza la sua password resta illeggibile</li>
@@ -30,7 +32,7 @@ Esiste perché il suo calendario non debba vivere altrove che sul suo telefono. 
 
 <ul>
 <li>Non è una sincronizzazione. L'importazione copia ciò che c'è sul telefono; un evento creato qui non torna nel calendario d'origine. È il prezzo di zero rete, ed è voluto</li>
-<li>Niente CalDAV, niente condivisione di calendari, niente inviti: richiedono tutti una rete</li>
+<li>Niente CalDAV, niente calendari condivisi, niente inviti: richiedono tutti una rete. Può inviare un evento, non condividere un calendario</li>
 <li>Il backup cifrato è il ponte tra i suoi dispositivi, ed è un ponte manuale</li>
 </ul>
 

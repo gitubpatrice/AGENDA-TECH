@@ -3,6 +3,30 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [Unreleased]
+
+### Added
+
+- **The day's list shows where and what**: under each event's time, its place (name, street,
+  postal code and city) and its notes, with light lines between the parts and between events — in
+  the day opened over the month and in the list under the grid.
+- **Open a place in your maps app** from its address or its name, not only from GPS coordinates:
+  the place line of the day's list, and a pin on the Address and Place fields of the editor. The app
+  still sends nothing itself; with no maps app on the phone, it says so.
+- **Share an event** as text or as an `.ics` file, from the editor's new "⋮" menu (which also holds
+  Duplicate). The `.ics` carries the full place; a series goes with its moved occurrences.
+- **Undo a deletion**: a red bar offers "Undo" for a few seconds — the event comes back with its
+  reminders, or the date comes back to its series.
+- **Public holidays** of ten countries (Austria, Belgium, France, Germany, Italy, Luxembourg, Spain,
+  Switzerland, the United Kingdom, the United States), national ones, worked out on the phone and off
+  by default (Settings → Appearance): the date in red in every view, the name in grey.
+
+### Fixed
+
+- **The week view never showed all-day events.** They now sit under the days, with the holidays.
+- The editor's title broke in the middle of a word on a narrow screen; it now keeps one line.
+- The delete confirmation no longer says "permanently": the event can be brought back.
+
 ## [1.2.0] — 2026-10-05
 
 The month now shows what each day holds, the app speaks German, Italian and Spanish, and all-day

@@ -1,6 +1,6 @@
 # Conditions d'utilisation — Agenda Tech
 
-_Dernière mise à jour : 29 septembre 2026_ · 🇬🇧 [English](TERMS.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
+_Dernière mise à jour : 13 octobre 2026_ · 🇬🇧 [English](TERMS.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
 
 > **Version de référence.** En cas de divergence entre ces conditions et l'une de leurs traductions,
 > c'est cette version française qui fait foi.
@@ -35,6 +35,11 @@ leur base.
 - L'application n'a aucun accès réseau : elle ne synchronise rien. Un événement créé ici n'apparaît
   dans aucun autre agenda, et l'import depuis le calendrier de l'appareil est une copie à sens
   unique.
+- **Les jours fériés affichés sont indicatifs.** Ils sont calculés d'après les règles nationales
+  connues à la publication de la version installée : ils ne comprennent ni les fériés régionaux ou
+  locaux (Alsace-Moselle, Länder, cantons, communautés autonomes, nations du Royaume-Uni…), ni un
+  jour férié décidé après cette publication, ni les ponts. Pour ce qui engage — un jour travaillé,
+  une échéance —, vérifiez auprès des sources officielles.
 
 ## Perte de données
 
@@ -61,6 +66,10 @@ L'application propose d'en faire une, et peut en faire une chaque semaine toute 
 Toutes vos données sont stockées **localement et chiffrées** sur votre téléphone — voir la
 [politique de confidentialité](PRIVACY.fr.md). Agenda Tech n'envoie rien sur Internet et n'a pas la
 permission technique de le faire (pas de permission `INTERNET` Android).
+
+Partager un événement, ou ouvrir un lieu sur la carte, le remet à **l'application que vous
+choisissez** (messagerie, courriel, application de cartes…) : ce qu'elle en fait relève alors de ses
+propres conditions et de sa propre politique de confidentialité.
 
 ## Mises à jour
 
