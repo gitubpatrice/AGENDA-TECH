@@ -37,7 +37,8 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
   date retirée d'une série.
 - **Jours fériés** nationaux de dix pays (Allemagne, Autriche, Belgique, Espagne, États-Unis, France,
   Italie, Luxembourg, Royaume-Uni, Suisse), calculés sur le téléphone, désactivés par défaut —
-  vérifiés jour par jour de 1990 à 2060 contre une référence indépendante.
+  vérifiés jour par jour de 1990 (1991 pour l'Allemagne, 2008 pour l'Espagne) à 2060 contre une
+  référence indépendante.
 - **Récurrences** (RFC 5545) : quotidienne / hebdo (jours choisis) / mensuelle / annuelle, avec
   intervalle, fin après N occurrences ou à une date, et **modification/suppression d'une seule
   occurrence** (modèle iCalendar `RECURRENCE-ID`).
@@ -66,8 +67,8 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
 
 ## Confidentialité
 
-- **Aucune permission Internet.** Aucune donnée ne quitte l'appareil : ni cloud, ni analytics,
-  ni publicité, ni SDK tiers de traçage.
+- **Aucune permission Internet.** Rien ne quitte l'appareil, sauf ce que vous partagez ou exportez
+  vous-même : ni cloud, ni analytics, ni publicité, ni SDK tiers de traçage.
 - **Chiffré au repos.** Base Room adossée à **SQLCipher** (AES-256) ; clé maître enveloppée par
   l'**AndroidKeyStore** (matériel/TEE sur les appareils compatibles).
 - **Sauvegardes chiffrées de bout en bout.** Le fichier `.atbak` est chiffré par votre mot de passe

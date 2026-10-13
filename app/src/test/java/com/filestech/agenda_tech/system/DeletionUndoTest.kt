@@ -108,6 +108,19 @@ class DeletionUndoTest {
     }
 
     @Test
+    fun `an offer withdrawn because the agenda changed cannot be undone`() = runTest(dispatcher) {
+        // Pre-release audit, 2026-10-13: undone after a backup restore, a deletion put its event back into
+        // the agenda that had replaced it.
+        undo.offer(deleted)
+        val offer = undo.pending.value!!
+        undo.withdraw()
+
+        assertThat(undo.pending.value).isNull()
+        assertThat(undo.undo(offer)).isEqualTo(UndoResult.GONE)
+        assertThat(restored).isEmpty()
+    }
+
+    @Test
     fun `dismissing an old offer leaves the newer one alone`() = runTest(dispatcher) {
         undo.offer(deleted)
         val old = undo.pending.value!!

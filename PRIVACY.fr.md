@@ -6,7 +6,8 @@ _Dernière mise à jour : 13 octobre 2026_ · 🇬🇧 [English](PRIVACY.md) · 
 > c'est cette version française qui fait foi.
 
 Agenda Tech (`com.filestech.agenda_tech`) est une application d'agenda **entièrement locale**.
-Elle est conçue autour d'un principe simple : **vos données ne quittent jamais votre appareil.**
+Elle est conçue autour d'un principe simple : **vos données ne quittent jamais votre appareil** —
+sauf ce que vous choisissez vous-même d'en faire sortir : un événement partagé, un export, une sauvegarde.
 
 ## En résumé
 

@@ -22,7 +22,6 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -40,6 +39,7 @@ import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.birthday.displayTitle
 import com.filestech.agenda_tech.ui.util.HolidayChip
 import com.filestech.agenda_tech.ui.util.LocalDeviceZone
+import com.filestech.agenda_tech.ui.util.MoreEventsLabel
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -225,20 +225,10 @@ private fun CellTitles(
     }
 }
 
-/** "+2" on the last line — said in words to a screen reader, which would otherwise read "plus two". */
+/** "+2" on the last line, lined up with the titles' text. */
 @Composable
-private fun MoreEvents(hidden: Int, style: TextStyle) {
-    val more = pluralStringResource(R.plurals.month_more_events, hidden, hidden)
-    Text(
-        text = "+$hidden",
-        style = style,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            // Lined up with the titles' text.
-            .padding(start = CHIP_MARGIN + CHIP_TEXT_PADDING)
-            .semantics { contentDescription = more },
-    )
-}
+private fun MoreEvents(hidden: Int, style: TextStyle) =
+    MoreEventsLabel(hidden, style, Modifier.padding(start = CHIP_MARGIN + CHIP_TEXT_PADDING))
 
 /**
  * One title on a solid block of its event's colour — the colour of its calendar, or the one chosen in

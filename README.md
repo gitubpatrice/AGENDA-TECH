@@ -35,7 +35,8 @@ The APK is **universal** (works on every device, no variant to pick) and **signe
   of a series.
 - **Public holidays** of ten countries (Austria, Belgium, France, Germany, Italy, Luxembourg, Spain,
   Switzerland, the United Kingdom, the United States), national ones, worked out on the phone, off by
-  default — checked day by day from 1990 to 2060 against an independent reference.
+  default — checked day by day from 1990 (1991 for Germany, 2008 for Spain) to 2060 against an
+  independent reference.
 - **Recurrence** (RFC 5545): daily / weekly (chosen days) / monthly / yearly, with interval, ending
   after N occurrences or on a date, and **editing/deleting a single occurrence** (the iCalendar
   `RECURRENCE-ID` model).
@@ -63,8 +64,8 @@ The APK is **universal** (works on every device, no variant to pick) and **signe
 
 ## Privacy
 
-- **No internet permission.** No data leaves the device: no cloud, no analytics, no ads, no
-  third-party tracking SDK.
+- **No internet permission.** Nothing leaves the device unless you share or export it yourself: no
+  cloud, no analytics, no ads, no third-party tracking SDK.
 - **Encrypted at rest.** A Room database backed by **SQLCipher** (AES-256); the master key is
   wrapped by the **Android KeyStore** (hardware/TEE on supported devices).
 - **End-to-end encrypted backups.** The `.atbak` file is encrypted by your password alone: it stays

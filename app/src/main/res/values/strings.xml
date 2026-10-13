@@ -270,7 +270,7 @@
     <!-- About · Privacy -->
     <string name="about_privacy_title">Privacy</string>
     <string name="about_privacy_card_title">100% private — zero surveillance</string>
-    <string name="about_privacy_body">Your agenda never leaves this phone. The app declares no Internet permission at all — it is technically unable to send anything anywhere.</string>
+    <string name="about_privacy_body">The app declares no Internet permission at all — it is technically unable to send anything anywhere. Your agenda only leaves this phone if you share or export it yourself.</string>
     <string name="about_badge_no_network">No network</string>
     <string name="about_badge_no_ads">No ads</string>
     <string name="about_badge_no_tracker">No tracker</string>

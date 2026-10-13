@@ -4,10 +4,12 @@
 
 ## Modèle de menace
 
-Agenda Tech est un agenda **local, hors-ligne**. Les données (événements, lieux, notes, rappels)
-ne quittent jamais l'appareil : aucune permission `INTERNET` n'est déclarée et aucune ne doit
-l'être. La surface d'attaque réseau est donc nulle par construction ; la protection porte sur les
-données **au repos** et sur l'**exposition à l'écran**.
+Agenda Tech est un agenda **local, hors-ligne**. L'application n'envoie jamais ses données
+(événements, lieux, notes, rappels) nulle part : aucune permission `INTERNET` n'est déclarée et
+aucune ne doit l'être. Les données ne quittent l'appareil que si l'utilisateur les en sort — un
+événement partagé, un export, un fichier de sauvegarde. La surface d'attaque réseau est donc nulle
+par construction ; la protection porte sur les données **au repos** et sur l'**exposition à
+l'écran**.
 
 ## Chiffrement au repos
 

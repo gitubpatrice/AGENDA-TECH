@@ -101,6 +101,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -134,25 +135,32 @@ fun EventEditorScreen(
     val scope = rememberCoroutineScope()
     val onShare: (ShareKind) -> Unit = { kind ->
         scope.launch {
-            val source = viewModel.shareSource() ?: return@launch
-            // The editor's zone: the one it read the event's hours in.
-            val zone = ZoneId.systemDefault()
-            val title = birthdayDisplayTitle(
-                resources,
-                source.event.title,
-                BirthdayAge.of(source.event, source.startUtcMillis, zone),
-            )
-            when (kind) {
-                ShareKind.TEXT -> shareText(
-                    context,
-                    subject = title,
-                    text = EventShare.text(source, zone, locale, title, resources.getString(R.string.month_all_day)),
+            // Reading the event and writing the .ics both reach the disk: a failure there loses the share,
+            // never the app — and leaving the screen still cancels it (pre-release audit, 2026-10-13: a
+            // runCatching logged the cancellation as a failure, and the read before it had no guard).
+            try {
+                val source = viewModel.shareSource() ?: return@launch
+                // The editor's zone: the one it read the event's hours in.
+                val zone = ZoneId.systemDefault()
+                val title = birthdayDisplayTitle(
+                    resources,
+                    source.event.title,
+                    BirthdayAge.of(source.event, source.startUtcMillis, zone),
                 )
-                ShareKind.CALENDAR_FILE ->
-                    runCatching { viewModel.calendarFileToShare(source) }
-                        // Null: a deletion came first, and the event is no longer there to share.
-                        .onSuccess { uri -> uri?.let { shareCalendarFile(context, subject = title, uri = it) } }
-                        .onFailure { Timber.w(it, "EventEditor: the .ics to share could not be written") }
+                when (kind) {
+                    ShareKind.TEXT -> shareText(
+                        context,
+                        subject = title,
+                        text = EventShare.text(source, zone, locale, title, resources.getString(R.string.month_all_day)),
+                    )
+                    // Null: a deletion came first, and the event is no longer there to share.
+                    ShareKind.CALENDAR_FILE -> viewModel.calendarFileToShare(source)
+                        ?.let { shareCalendarFile(context, subject = title, uri = it) }
+                }
+            } catch (c: CancellationException) {
+                throw c
+            } catch (t: Throwable) {
+                Timber.w(t, "EventEditor: the event could not be shared")
             }
         }
     }
