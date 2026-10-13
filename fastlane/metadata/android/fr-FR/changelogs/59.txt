@@ -1,0 +1,14 @@
+v1.3.0 — Fériés, partage, annulation
+
+• Les jours fériés de dix pays, calculés
+  sur le téléphone (Réglages → Apparence).
+• Partager un événement en texte ou en
+  fichier .ics.
+• Annuler une suppression depuis la barre
+  rouge.
+• Ouvrir un lieu dans l'appli de cartes
+  depuis son adresse ou son nom.
+• La liste du jour montre le lieu et la
+  description.
+• La vue Semaine affiche enfin les
+  journées entières.

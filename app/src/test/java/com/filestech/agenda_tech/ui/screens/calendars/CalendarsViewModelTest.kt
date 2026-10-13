@@ -6,12 +6,14 @@ import com.filestech.agenda_tech.domain.usecase.FakeCalendarRepository
 import com.filestech.agenda_tech.domain.usecase.FakeEventRepository
 import com.filestech.agenda_tech.domain.usecase.UpsertCalendarUseCase
 import com.filestech.agenda_tech.system.AgendaChangeNotifier
+import com.filestech.agenda_tech.system.DeletionUndo
 import com.filestech.agenda_tech.system.SharedFiles
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coVerify
 import kotlinx.coroutines.launch
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -56,6 +58,7 @@ class CalendarsViewModelTest {
     private val scheduler: ReminderScheduler = mockk(relaxed = true)
     private val agendaChanged: AgendaChangeNotifier = mockk(relaxed = true)
     private val sharedFiles: SharedFiles = mockk(relaxed = true)
+    private val deletionUndo: DeletionUndo = mockk(relaxed = true)
 
     @BeforeEach
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -70,6 +73,7 @@ class CalendarsViewModelTest {
         reminderScheduler = scheduler,
         agendaChanged = agendaChanged,
         sharedFiles = sharedFiles,
+        deletionUndo = deletionUndo,
     )
 
     private fun seed() {
@@ -109,7 +113,7 @@ class CalendarsViewModelTest {
     }
 
     @Test
-    fun `deleting a calendar deletes the ics shared of one of its events`() = runTest(dispatcher) {
+    fun `deleting a calendar deletes the ics shared of one of its events and withdraws the undo`() = runTest(dispatcher) {
         // External review, 2026-10-13: only the editor deleted it, so a calendar's deletion left the copy
         // of its event behind, readable by the app it was sent to.
         seed()
@@ -121,6 +125,8 @@ class CalendarsViewModelTest {
         testScheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { sharedFiles.forgetAll() }
+        // Pre-release audit, 2026-10-13: an undo offered before would restore into the changed agenda.
+        verify(exactly = 1) { deletionUndo.withdraw() }
     }
 
     @Test
@@ -245,5 +251,6 @@ class CalendarsViewModelTest {
         assertThat(calendars.stored.map { it.id }).contains(2L)
         // Nothing went: the share stays, as its event does.
         coVerify(exactly = 0) { sharedFiles.forgetAll() }
+        verify(exactly = 0) { deletionUndo.withdraw() }
     }
 }

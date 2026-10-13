@@ -7,7 +7,8 @@ _Traducción de la versión del 13 de octubre de 2026._ · 🇫🇷 [Français](
 > [versión francesa](PRIVACY.fr.md).**
 
 Agenda Tech (`com.filestech.agenda_tech`) es una app de calendario **totalmente local**, construida
-sobre un principio: **sus datos nunca salen de su dispositivo.**
+sobre un principio: **sus datos nunca salen de su dispositivo** — salvo lo que
+usted decida sacar: un evento compartido, una exportación, una copia de seguridad.
 
 ## En resumen
 

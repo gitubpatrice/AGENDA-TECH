@@ -80,6 +80,15 @@ class DeletionUndo @Inject constructor(
     }
 
     /**
+     * Withdraws the offer, whatever it is: the agenda changed under it — a backup restored, a calendar
+     * deleted, the imported calendars cleared. Undone after a restore, a deletion put its event back into
+     * the agenda that had replaced it (pre-release audit, 2026-10-13).
+     */
+    fun withdraw() {
+        _pending.value = null
+    }
+
+    /**
      * Puts back what [pending] removed. Claimed first, atomically: two screens showing the same offer
      * during a transition, or a double tap, restore it once — the second claim finds nothing.
      */

@@ -258,14 +258,14 @@ class EventEditorViewModel @Inject constructor(
         }
     }
 
+    /** A share and a deletion take turns — see [calendarFileToShare] and [launchDeletion]. */
+    private val shareOrDelete = Mutex()
+
     /**
      * The event to share, as the AGENDA holds it — not the form: typing not yet saved is not part of the
      * event, and sending it would send something the agenda does not contain. Null until the event is
      * loaded, or while a write is running.
      */
-    /** A share and a deletion take turns — see [calendarFileToShare] and [launchDeletion]. */
-    private val shareOrDelete = Mutex()
-
     suspend fun shareSource(): ShareSource? {
         val current = _state.value
         if (!current.isEditing || !current.isLoaded || current.busy) return null

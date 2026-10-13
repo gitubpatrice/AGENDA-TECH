@@ -48,6 +48,7 @@ import com.filestech.agenda_tech.ui.navigation.CalendarView
 import com.filestech.agenda_tech.ui.util.AddFab
 import com.filestech.agenda_tech.ui.util.HolidayChip
 import com.filestech.agenda_tech.ui.util.HolidayDayShape
+import com.filestech.agenda_tech.ui.util.MoreEventsLabel
 import com.filestech.agenda_tech.ui.util.holidayColor
 import com.filestech.agenda_tech.ui.util.onHolidayColor
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
@@ -193,12 +194,8 @@ private fun WeekAllDayRow(days: List<DayTimelineData>, onItemClick: (Long, Long)
                 day.allDayItems.take(MAX_ALL_DAY_PER_DAY).forEach { item -> WeekAllDayChip(item, onItemClick) }
                 val hidden = day.allDayItems.size - MAX_ALL_DAY_PER_DAY
                 if (hidden > 0) {
-                    Text(
-                        text = "+$hidden",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 3.dp),
-                    )
+                    // Said in words to a screen reader, as in the month (pre-release audit, 2026-10-13).
+                    MoreEventsLabel(hidden, MaterialTheme.typography.labelSmall, Modifier.padding(horizontal = 3.dp))
                 }
             }
         }

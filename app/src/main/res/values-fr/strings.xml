@@ -281,7 +281,7 @@
     <!-- À propos · Confidentialité -->
     <string name="about_privacy_title">Confidentialité</string>
     <string name="about_privacy_card_title">100 % privé — zéro surveillance</string>
-    <string name="about_privacy_body">Votre agenda ne quitte jamais ce téléphone. L\'app ne déclare aucune permission Internet — elle est techniquement incapable d\'envoyer quoi que ce soit où que ce soit.</string>
+    <string name="about_privacy_body">L\'app ne déclare aucune permission Internet — elle est techniquement incapable d\'envoyer quoi que ce soit où que ce soit. Votre agenda ne quitte ce téléphone que si vous le partagez ou l\'exportez vous-même.</string>
     <string name="about_badge_no_network">Zéro réseau</string>
     <string name="about_badge_no_ads">Zéro pub</string>
     <string name="about_badge_no_tracker">Zéro tracker</string>

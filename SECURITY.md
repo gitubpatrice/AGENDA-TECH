@@ -4,9 +4,11 @@ English · 🇫🇷 [Version française](SECURITY.fr.md)
 
 ## Threat model
 
-Agenda Tech is a **local, offline** calendar. Its data (events, places, notes, reminders) never leaves
-the device: no `INTERNET` permission is declared, and none may be. The network attack surface is
-therefore zero by construction; protection is about data **at rest** and **exposure on screen**.
+Agenda Tech is a **local, offline** calendar. The app never sends its data (events, places, notes,
+reminders) anywhere: no `INTERNET` permission is declared, and none may be. The data leaves the
+device only when the user takes it out — a shared event, an export, a backup file. The network attack
+surface is therefore zero by construction; protection is about data **at rest** and **exposure on
+screen**.
 
 ## Encryption at rest
 

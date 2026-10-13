@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
 import com.filestech.agenda_tech.domain.usecase.ImportDeviceEventsUseCase
 import com.filestech.agenda_tech.system.AgendaChangeNotifier
+import com.filestech.agenda_tech.system.DeletionUndo
 import com.filestech.agenda_tech.system.SharedFiles
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,6 +23,7 @@ class DeviceImportViewModel @Inject constructor(
     private val reminderScheduler: ReminderScheduler,
     private val agendaChanged: AgendaChangeNotifier,
     private val sharedFiles: SharedFiles,
+    private val deletionUndo: DeletionUndo,
 ) : ViewModel() {
 
     sealed interface UiState {
@@ -114,8 +116,10 @@ class DeviceImportViewModel @Inject constructor(
         // ne fermait pas la porte — plongee securite du 2026-09-11.)
         importDeviceEvents.importedEventIds().forEach { reminderScheduler.cancelEvent(it) }
         importDeviceEvents.clearImported()
-        // The imported events are gone: so is the .ics shared of one of them.
+        // The imported events are gone: so are the .ics shared of one of them, and the offer to undo a
+        // deletion made before — the agenda changed under it.
         sharedFiles.forgetAll()
+        deletionUndo.withdraw()
         agendaChanged.onAgendaChanged()
         _cleared.value = true
     }

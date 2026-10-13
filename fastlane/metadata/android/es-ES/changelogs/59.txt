@@ -1,0 +1,15 @@
+v1.3.0 — Festivos, compartir, deshacer
+
+• Los días festivos de diez países,
+  calculados en el teléfono (Ajustes →
+  Apariencia).
+• Compartir un evento como texto o como
+  archivo .ics.
+• Deshacer una eliminación desde la barra
+  roja.
+• Abrir un lugar en la app de mapas desde
+  su dirección o su nombre.
+• La lista del día muestra el lugar y la
+  descripción.
+• La vista Semana ahora muestra los eventos
+  de todo el día.

@@ -268,7 +268,7 @@
     <!-- About · Privacy -->
     <string name="about_privacy_title">Datenschutz</string>
     <string name="about_privacy_card_title">100 % privat — null Überwachung</string>
-    <string name="about_privacy_body">Ihre Agenda verlässt dieses Telefon nie. Die App fordert überhaupt keine Internetberechtigung an — sie ist technisch nicht in der Lage, irgendetwas irgendwohin zu senden.</string>
+    <string name="about_privacy_body">Die App fordert überhaupt keine Internetberechtigung an — sie ist technisch nicht in der Lage, irgendetwas irgendwohin zu senden. Ihre Agenda verlässt dieses Telefon nur, wenn Sie sie selbst teilen oder exportieren.</string>
     <string name="about_badge_no_network">Kein Netzwerk</string>
     <string name="about_badge_no_ads">Keine Werbung</string>
     <string name="about_badge_no_tracker">Kein Tracker</string>

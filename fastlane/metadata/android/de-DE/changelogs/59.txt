@@ -1,0 +1,15 @@
+v1.3.0 — Feiertage, Teilen, Rückgängig
+
+• Gesetzliche Feiertage aus zehn Ländern,
+  auf dem Telefon berechnet (Einstellungen
+  → Darstellung).
+• Einen Termin als Text oder als .ics-Datei
+  teilen.
+• Ein Löschen über die rote Leiste
+  rückgängig machen.
+• Einen Ort über seine Adresse oder seinen
+  Namen in der Karten-App öffnen.
+• Die Tagesliste zeigt Ort und
+  Beschreibung.
+• Die Wochenansicht zeigt jetzt ganztägige
+  Termine.
