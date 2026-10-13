@@ -70,17 +70,16 @@ class WeekViewModel @Inject constructor(
             combine(
                 observeOccurrences(startMillis, endMillis, weekZone),
                 observeHolidays(start, start.plusWeeks(1)),
-            ) { occurrences, holidays -> TimelineWindow(weekZone, occurrences, holidays) }
+            ) { occurrences, holidays -> TimelineWindow(start, weekZone, occurrences, holidays) }
         }
 
     val uiState: StateFlow<WeekUiState> = combine(
-        weekStartFlow,
         window,
         calendarRepository.observeAll(),
-    ) { start, window, calendars ->
-        // Built in the zone the list was read in, never in a newer one the list does not cover.
+    ) { window, calendars ->
+        // The week the window was read for, in the zone it was read in — see TimelineWindow.start.
         val items = window.occurrences.toTimelineItems(calendars.associate { it.id to it.color.argb }, window.zone)
-        buildWeek(start, items, window.holidays, window.zone)
+        buildWeek(window.start, items, window.holidays, window.zone)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),

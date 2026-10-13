@@ -13,6 +13,8 @@ import java.io.File
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * The file a "Share as .ics" hands to another app.
@@ -40,10 +42,17 @@ class SharedFiles @Inject constructor(
     internal var clock: () -> Long = System::currentTimeMillis
 
     /**
+     * One operation at a time (external review, 2026-10-13): two shares listing the folder together kept
+     * two files — "only ever one" was not — or deleted the other's file before the app it was sent to
+     * could read it; a start's clean-up could do the same.
+     */
+    private val folder = Mutex()
+
+    /**
      * Writes [content] as `<stem>.ics`, for the event [eventId] — the series, for an occurrence — and
      * returns the `content://` link another app may be granted.
      */
-    suspend fun calendarFile(eventId: Long, stem: String, content: String): Uri = withContext(io) {
+    suspend fun calendarFile(eventId: Long, stem: String, content: String): Uri = locked {
         val root = root()
         root.listFiles()?.forEach(::deleteShare)
         val folder = File(root, "$eventId$SEPARATOR${UUID.randomUUID()}").apply { mkdirs() }
@@ -53,7 +62,7 @@ class SharedFiles @Inject constructor(
     }
 
     /** Deletes what was shared of the event [eventId]: it is gone from the agenda, so is its copy. */
-    suspend fun forget(eventId: Long) = withContext(io) {
+    suspend fun forget(eventId: Long) = locked {
         root().listFiles()
             ?.filter { it.name.startsWith("$eventId$SEPARATOR") }
             ?.forEach(::deleteShare)
@@ -63,12 +72,14 @@ class SharedFiles @Inject constructor(
      * Deletes what a share left behind more than [STALE_AFTER_MS] ago. Not everything: the app may start
      * again — for a reminder, the widget — while the app the user shared to has not read its file yet.
      */
-    suspend fun clearStale() = withContext(io) {
+    suspend fun clearStale() = locked {
         val now = clock()
         root().listFiles()
             ?.filter { now - it.lastModified() > STALE_AFTER_MS }
             ?.forEach(::deleteShare)
     }
+
+    private suspend fun <T> locked(block: () -> T): T = folder.withLock { withContext(io) { block() } }
 
     private fun root(): File = File(context.cacheDir, DIRECTORY).apply { mkdirs() }
 

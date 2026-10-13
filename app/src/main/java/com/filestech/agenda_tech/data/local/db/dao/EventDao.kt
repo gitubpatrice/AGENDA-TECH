@@ -61,13 +61,6 @@ interface EventDao {
         delete(parentId)
     }
 
-    /** ROB-NEW-2 — upsert one event and delete another atomically (exclude-from-master + drop override). */
-    @Transaction
-    suspend fun upsertAndDelete(entity: EventEntity, deleteId: Long) {
-        upsert(entity)
-        delete(deleteId)
-    }
-
     /**
      * Writes a per-occurrence override and its master's updated rule in one transaction, returning
      * the override's rowid.

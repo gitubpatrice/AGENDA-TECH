@@ -43,15 +43,15 @@ class DayViewModel @Inject constructor(
             combine(
                 observeOccurrences(start, end, dayZone),
                 observeHolidays(date, date.plusDays(1)),
-            ) { occurrences, holidays -> TimelineWindow(dayZone, occurrences, holidays) }
+            ) { occurrences, holidays -> TimelineWindow(date, dayZone, occurrences, holidays) }
         }
 
     val uiState: StateFlow<DayUiState> = combine(
-        displayedDate,
         window,
         calendarRepository.observeAll(),
-    ) { date, window, calendars ->
-        // Built in the zone the list was read in, never in a newer one the list does not cover.
+    ) { window, calendars ->
+        // The day the window was read for, in the zone it was read in — see TimelineWindow.start.
+        val date = window.start
         val items = window.occurrences.toTimelineItems(calendars.associate { it.id to it.color.argb }, window.zone)
         DayUiState(
             TimelineBuilder.build(

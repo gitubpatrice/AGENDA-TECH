@@ -655,12 +655,13 @@ internal fun SelectedDayOccurrences(
     modifier: Modifier = Modifier,
 ) {
     if (occurrences.isEmpty()) {
-        Column(modifier = modifier) {
+        // Centred, not weighted: a weighted child makes a Column take all the height it may, and the day's
+        // sheet — sized to its content — grew to the whole screen for an empty day (external review,
+        // 2026-10-13). Under the grid, the caller's own weight still gives it the free space.
+        Column(modifier = modifier, verticalArrangement = Arrangement.Center) {
             holidays.forEach { HolidayLine(it, Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) }
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(

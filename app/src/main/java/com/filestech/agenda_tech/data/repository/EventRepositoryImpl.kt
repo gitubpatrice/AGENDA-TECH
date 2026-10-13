@@ -1,7 +1,9 @@
 package com.filestech.agenda_tech.data.repository
 
+import androidx.room.withTransaction
 import com.filestech.agenda_tech.data.local.db.dao.EventDao
 import com.filestech.agenda_tech.core.di.IoDispatcher
+import com.filestech.agenda_tech.data.local.db.AppDatabase
 import com.filestech.agenda_tech.domain.model.AgendaStats
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.repository.EventRepository
@@ -15,6 +17,7 @@ import javax.inject.Singleton
 
 @Singleton
 class EventRepositoryImpl @Inject constructor(
+    private val db: AppDatabase,
     private val dao: EventDao,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : EventRepository {
@@ -57,10 +60,24 @@ class EventRepositoryImpl @Inject constructor(
         dao.deleteSeriesAtomic(parentId)
     }
 
-    override suspend fun upsertAndDelete(event: Event, deleteId: Long) = withContext(io) {
-        val now = System.currentTimeMillis()
-        val createdAt = if (event.id != 0L) dao.getById(event.id)?.createdAt ?: now else now
-        dao.upsertAndDelete(event.toEntity(createdAt = createdAt, updatedAt = now), deleteId)
+    override suspend fun excludeOccurrence(
+        masterId: Long,
+        occurrenceStartUtcMillis: Long,
+        deleteId: Long?,
+    ): Boolean = withContext(io) {
+        db.withTransaction {
+            deleteId?.let { dao.delete(it) }
+            val row = dao.getById(masterId)
+            val master = row?.toDomain()
+            val rule = master?.recurrence
+            if (row == null || rule == null || occurrenceStartUtcMillis in rule.exDatesUtcMillis) {
+                false
+            } else {
+                val excluded = master.copy(recurrence = rule.excluding(occurrenceStartUtcMillis))
+                dao.upsert(excluded.toEntity(createdAt = row.createdAt, updatedAt = System.currentTimeMillis()))
+                true
+            }
+        }
     }
 
     override suspend fun upsertOverrideAtomic(

@@ -78,7 +78,7 @@ class AgendaViewModel @Inject constructor(
                 windowZone,
             ),
             observeHolidays(from, until),
-        ) { occurrences, holidays -> TimelineWindow(windowZone, occurrences, holidays) }
+        ) { occurrences, holidays -> TimelineWindow(from, windowZone, occurrences, holidays) }
     }
 
     val uiState: StateFlow<AgendaUiState> = combine(

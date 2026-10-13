@@ -13,7 +13,7 @@ internal val BrandDanger = Color(0xFFC62828)
 
 /**
  * A public holiday's red in the light theme: a light red, as asked on the S9, under a near-black date —
- * about 6.6:1, above the 4.5:1 of WCAG AA (white would fall to 3:1 on it). The dark theme keeps its own
+ * about 5.7:1, above the 4.5:1 of WCAG AA (white would fall to 3:1 on it). The dark theme keeps its own
  * error red, already light and under dark text too (see HolidayUi).
  */
 internal val HolidayRedLight = Color(0xFFE57373)

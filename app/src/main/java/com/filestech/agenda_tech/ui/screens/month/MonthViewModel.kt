@@ -42,6 +42,7 @@ import java.time.ZoneId
 import java.time.temporal.WeekFields
 import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.flow.filterNotNull
 
 /**
  * Drives the month view: tracks the displayed [YearMonth] and selected day, streams the occurrences
@@ -119,14 +120,14 @@ class MonthViewModel @Inject constructor(
             ),
             // The same window, so a holiday is on the page as soon as its events are.
             observeHolidays(startDate, endDate),
-        ) { occurrences, holidays -> MonthWindow(windowZone, occurrences, holidays) }
+        ) { occurrences, holidays -> MonthWindow(month, windowZone, occurrences, holidays) }
     }
 
     // The last values the two database sources gave, replayed whenever they start again. The occurrences
     // keep the zone they were read in, and the state is built in that zone: a list read before a journey
     // and days counted after it would put events on the wrong day until the new query answered
     // (external review, 2026-10-05).
-    private var lastWindow = MonthWindow(zone, emptyList(), emptyMap())
+    private var lastWindow = MonthWindow(YearMonth.now(zone), zone, emptyList(), emptyMap())
     private var lastCalendars: List<Calendar> = emptyList()
 
     // The two database sources start with their last values: the grid is then drawn as soon as the
@@ -144,6 +145,11 @@ class MonthViewModel @Inject constructor(
         calendarRepository.observeAll().onEach { lastCalendars = it }.onStart { emit(lastCalendars) },
         monthSettingsFlow,
     ) { month, selected, window, calendars, settingsPair ->
+        // A window covers its month and the two beside it: a swipe is drawn from the window already
+        // read. A jump further — the date picker, "Today" from far away — keeps the screen as it was
+        // until its own window answers (external review, 2026-10-13): built from the old one, the new
+        // month showed for an instant without its events and holidays, its days "with no event".
+        if (!window.covers(month)) return@combine null
         buildState(
             zone = window.zone,
             month = month,
@@ -155,7 +161,7 @@ class MonthViewModel @Inject constructor(
             showWeekNumbers = settingsPair.second,
             isLoading = false,
         )
-    }.stateIn(
+    }.filterNotNull().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
         initialValue = buildState(
@@ -393,12 +399,19 @@ class MonthViewModel @Inject constructor(
     }
 }
 
-/** What the window of three months holds: its occurrences and its holidays, with the zone they were read in. */
+/**
+ * What the window of three months around [month] holds: its occurrences and its holidays, with the zone
+ * they were read in.
+ */
 private data class MonthWindow(
+    val month: YearMonth,
     val zone: ZoneId,
     val occurrences: List<EventOccurrence>,
     val holidays: Map<LocalDate, List<Holiday>>,
-)
+) {
+    /** Whether [shown] is this window's month or one of the two beside it. */
+    fun covers(shown: YearMonth): Boolean = shown in month.minusMonths(1)..month.plusMonths(1)
+}
 
 /** What the day's list shows of an event beyond its title and times — computed once per event. */
 private class EventDetails(val place: String?, val mapUri: String?, val description: String?) {

@@ -150,7 +150,8 @@ fun EventEditorScreen(
                 )
                 ShareKind.CALENDAR_FILE ->
                     runCatching { viewModel.calendarFileToShare(source) }
-                        .onSuccess { uri -> shareCalendarFile(context, subject = title, uri = uri) }
+                        // Null: a deletion came first, and the event is no longer there to share.
+                        .onSuccess { uri -> uri?.let { shareCalendarFile(context, subject = title, uri = it) } }
                         .onFailure { Timber.w(it, "EventEditor: the .ics to share could not be written") }
             }
         }

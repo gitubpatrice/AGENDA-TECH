@@ -175,10 +175,14 @@ internal class FakeEventRepository : EventRepository {
         remove(parentId)
     }
 
-    /** Mirrors the real DAO: writes [event] and removes [deleteId] in one go. */
-    override suspend fun upsertAndDelete(event: Event, deleteId: Long) {
-        upsert(event)
-        remove(deleteId)
+    /** Mirrors the real implementation: the override dropped and the date excluded from the series as it is. */
+    override suspend fun excludeOccurrence(masterId: Long, occurrenceStartUtcMillis: Long, deleteId: Long?): Boolean {
+        deleteId?.let { remove(it) }
+        val master = rows[masterId] ?: return false
+        val rule = master.recurrence ?: return false
+        if (occurrenceStartUtcMillis in rule.exDatesUtcMillis) return false
+        rows[masterId] = master.copy(recurrence = rule.excluding(occurrenceStartUtcMillis))
+        return true
     }
 
     /** Mirrors the real implementation: writes the override AND the master's new EXDATE together. */

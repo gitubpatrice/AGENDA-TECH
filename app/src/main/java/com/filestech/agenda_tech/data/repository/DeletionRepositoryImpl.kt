@@ -37,7 +37,10 @@ class DeletionRepositoryImpl @Inject constructor(
 
             // Lifted on the series as it is NOW, not written back as it was: it may have changed since.
             deleted.addedExclusion?.let { exclusion ->
-                val row = eventDao.getById(exclusion.masterId) ?: return@let
+                // The series gone meanwhile: nothing to bring the date back to. Said as a failure — the
+                // transaction rolls back and the bar says so — rather than reported as restored
+                // (external review, 2026-10-13).
+                val row = checkNotNull(eventDao.getById(exclusion.masterId)) { "The series is gone" }
                 val master = row.toDomain()
                 val rule = master.recurrence ?: return@let
                 if (exclusion.occurrenceStartUtcMillis in rule.exDatesUtcMillis) {

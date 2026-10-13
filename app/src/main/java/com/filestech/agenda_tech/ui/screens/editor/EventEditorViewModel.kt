@@ -44,6 +44,11 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 @HiltViewModel
 class EventEditorViewModel @Inject constructor(
@@ -258,6 +263,9 @@ class EventEditorViewModel @Inject constructor(
      * event, and sending it would send something the agenda does not contain. Null until the event is
      * loaded, or while a write is running.
      */
+    /** A share and a deletion take turns — see [calendarFileToShare] and [launchDeletion]. */
+    private val shareOrDelete = Mutex()
+
     suspend fun shareSource(): ShareSource? {
         val current = _state.value
         if (!current.isEditing || !current.isLoaded || current.busy) return null
@@ -270,16 +278,21 @@ class EventEditorViewModel @Inject constructor(
      * The `.ics` of the event, written for another app to read (SharedFiles). A series goes whole, with
      * its moved occurrences — as the agenda's own export writes it.
      */
-    suspend fun calendarFileToShare(source: ShareSource): Uri {
-        val overrides = if (source.event.isRecurring) {
-            eventRepository.observeOverrides().first().filter { it.recurrenceParentId == source.event.id }
+    suspend fun calendarFileToShare(source: ShareSource): Uri? = shareOrDelete.withLock {
+        // Asked for a moment before a deletion and written after it, the copy would outlive the event: the
+        // two take turns, and a share that comes second gives up (external review, 2026-10-13).
+        if (_state.value.busy) return@withLock null
+        // A moved occurrence is part of a series: its .ics is the series' (external review, 2026-10-13).
+        val event = source.event.recurrenceParentId?.let { eventRepository.getById(it) } ?: source.event
+        val overrides = if (event.isRecurring) {
+            eventRepository.observeOverrides().first().filter { it.recurrenceParentId == event.id }
         } else {
             emptyList()
         }
-        val ics = EventShare.ics(source.event, overrides, System.currentTimeMillis())
+        val ics = EventShare.ics(event, overrides, System.currentTimeMillis())
         // Filed under the series, so deleting any part of it — see launchDeletion — deletes the copy.
         val owner = source.event.recurrenceParentId ?: source.event.id
-        return sharedFiles.calendarFile(owner, EventShare.fileStem(source.event.title), ics)
+        sharedFiles.calendarFile(owner, EventShare.fileStem(event.title), ics)
     }
 
     fun onAddReminder(minutesBefore: Int) = _state.update {
@@ -443,25 +456,16 @@ class EventEditorViewModel @Inject constructor(
      */
     private fun deleteOverrideAndExclude(parentId: Long, originalStart: Long) {
         launchDeletion {
-            val master = eventRepository.getById(parentId)
-            val rule = master?.recurrence
-            val addsExclusion = master != null && rule != null && originalStart !in rule.exDatesUtcMillis
-            // The exclusion is only this deletion's to lift if this deletion added it — see DeletedEvents.
-            val undo = reminderRepository.removedWith(
-                listOfNotNull(eventRepository.getById(eventId)),
-                SeriesExclusion(parentId, originalStart).takeIf { addsExclusion },
-            )
+            // Read before the write: the reminders leave with the row, by cascade.
+            val removed = reminderRepository.removedWith(listOfNotNull(eventRepository.getById(eventId)))
             reminderScheduler.cancelEvent(eventId)
-            if (addsExclusion) {
-                val updated = master.copy(recurrence = rule.copy(exDatesUtcMillis = rule.exDatesUtcMillis + originalStart))
-                // ROB-NEW-2 — exclude on the master and drop the override in one transaction.
-                eventRepository.upsertAndDelete(updated, eventId)
-                reminderScheduler.rescheduleEvent(parentId)
-            } else {
-                deleteEvent(eventId)
-            }
+            // ROB-NEW-2, then external review 2026-10-13: the override dropped and its date excluded from the
+            // series AS IT IS NOW, in one transaction — never from a copy read before it.
+            val added = eventRepository.excludeOccurrence(parentId, originalStart, deleteId = eventId)
+            if (added) reminderScheduler.rescheduleEvent(parentId)
             agendaChanged.onAgendaChanged(rearmReminders = false)
-            deletionUndo.offer(undo)
+            // The exclusion is only this deletion's to lift if this deletion added it — see DeletedEvents.
+            deletionUndo.offer(removed.copy(addedExclusion = SeriesExclusion(parentId, originalStart).takeIf { added }))
             _state.update { it.copy(isDeleted = true) }
         }
     }
@@ -665,8 +669,16 @@ class EventEditorViewModel @Inject constructor(
         val sharedOwner = loadedParentId ?: eventId
         viewModelScope.launch {
             try {
-                sharedFiles.forget(sharedOwner)
-                block()
+                // Once begun, finished (external review, 2026-10-13): leaving the editor cancels this scope,
+                // and a deletion cut between its write and its offer was gone with no way to undo it.
+                withContext(NonCancellable) {
+                    shareOrDelete.withLock {
+                        sharedFiles.forget(sharedOwner)
+                        block()
+                    }
+                }
+            } catch (c: CancellationException) {
+                throw c
             } catch (t: Throwable) {
                 Timber.w(t, "Event deletion failed")
                 _state.update { it.copy(error = EditorError.DELETE_FAILED, busy = false) }
@@ -724,8 +736,8 @@ class EventEditorViewModel @Inject constructor(
                 deleteDirect()
                 return@launchDeletion
             }
-            val addsExclusion = occurrenceStart !in rule.exDatesUtcMillis
-            eventRepository.upsert(master.copy(recurrence = rule.excluding(occurrenceStart)))
+            // Added on the series as it is now, in one transaction (external review, 2026-10-13).
+            val addsExclusion = eventRepository.excludeOccurrence(eventId, occurrenceStart, deleteId = null)
             reminderScheduler.rescheduleEvent(eventId)
             agendaChanged.onAgendaChanged(rearmReminders = false)
             // Nothing was removed — one date was excluded; undoing lifts that exclusion and nothing else.
