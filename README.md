@@ -26,8 +26,16 @@ The APK is **universal** (works on every device, no variant to pick) and **signe
 - **Views**: Month (smooth swipe between months; dots, titles in the grid or one row per day, pinch
   to switch), Week, Day and Agenda (list).
 - **Events**: create/edit, all-day, description, per-event colour.
-- **Place**: label, postal address (street, postcode, city) and GPS coordinates — one tap opens the
-  point in your maps app (with no location permission at all).
+- **Place**: label, postal address (street, postcode, city) and GPS coordinates — a tap on the pin,
+  in the editor or in a day's list, opens the place in your maps app: the coordinates when they are
+  valid, else the address, else the place name (with no location permission at all).
+- **Share an event** as text or as an `.ics` file (editor's ⋮ menu), to the app of your choice — the
+  app sends nothing itself.
+- **Undo a deletion**: "Undo" in the bar brings back the event, its reminders, or the date taken out
+  of a series.
+- **Public holidays** of ten countries (Austria, Belgium, France, Germany, Italy, Luxembourg, Spain,
+  Switzerland, the United Kingdom, the United States), national ones, worked out on the phone, off by
+  default — checked day by day from 1990 to 2060 against an independent reference.
 - **Recurrence** (RFC 5545): daily / weekly (chosen days) / monthly / yearly, with interval, ending
   after N occurrences or on a date, and **editing/deleting a single occurrence** (the iCalendar
   `RECURRENCE-ID` model).

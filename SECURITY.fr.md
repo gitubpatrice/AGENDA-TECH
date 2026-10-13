@@ -297,6 +297,28 @@ le plafond de longueur s'y appliquent désormais comme aux deux autres.
   par toute une passe de rendu : un agenda pathologique est **tronqué** (et journalisé), jamais
   transformé en gel de l'interface.
 
+## Partage, cartes et annulation
+
+- **Partager un événement en `.ics`.** C'est le seul endroit où un événement existe **en clair hors
+  de la base** : le fichier écrit dans `cache/shared/` (stockage privé de l'application) pour
+  l'application choisie dans le menu de partage. Il est remis par un `FileProvider` **non exporté**,
+  limité à ce dossier (`res/xml/share_paths.xml`), avec un droit de lecture **temporaire accordé à la
+  seule application choisie** (`FLAG_GRANT_READ_URI_PERMISSION` et `ClipData`). Un seul fichier à la
+  fois : chaque partage efface le précédent, chaque démarrage de l'application efface le dernier. Il
+  ne peut pas être effacé à l'envoi : l'application destinataire peut ne le lire qu'au moment où l'on
+  touche « Envoyer ». Son nom vient du titre, privé de tout ce qui pourrait désigner un chemin (`/`,
+  `.`). Le partage **en texte** n'écrit aucun fichier.
+- **Ouvrir sur la carte.** Un lien `geo:` remis à l'application de cartes (`ACTION_VIEW`) : les
+  coordonnées GPS validées, sinon une recherche de l'adresse ou du nom du lieu, encodés. Ni
+  permission de localisation ni permission réseau ; la recherche est faite par l'application de cartes.
+- **Annuler une suppression.** Ce qu'une suppression retire est gardé **en mémoire vive seulement**
+  (`DeletionUndo`), jamais écrit sur le stockage, jusqu'à l'annulation, l'expiration de l'offre ou la
+  fin du processus. La restauration se fait en **une transaction** ; une ligne revient sous son propre
+  identifiant, et un identifiant déjà pris est **refusé, jamais écrasé** (`OnConflictStrategy.ABORT`) ;
+  une date exclue d'une série est rétablie sur la série **telle qu'elle est**, jamais en réécrivant une
+  ancienne copie de la série.
+- **Jours fériés.** Calculés sur l'appareil (`domain/holiday`) : aucune liste téléchargée.
+
 ## Sauvegardes
 
 - `allowBackup="false"` + règles d'exclusion (`data_extraction_rules.xml`, `backup_rules.xml`) :

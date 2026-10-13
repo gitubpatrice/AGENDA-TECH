@@ -1,6 +1,6 @@
 # Nutzungsbedingungen — Agenda Tech
 
-_Übersetzung der Fassung vom 29. September 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
+_Übersetzung der Fassung vom 13. Oktober 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
 
 > Diese Übersetzung wurde vom Entwickler maschinengestützt erstellt und noch nicht von einer
 > Muttersprachlerin oder einem Muttersprachler geprüft. **Bei Abweichungen gilt die
@@ -37,6 +37,12 @@ darauf stützen.
 - Die App hat keinen Netzwerkzugriff: Sie synchronisiert nichts. Ein hier angelegter Termin
   erscheint in keinem anderen Kalender, und der Import aus dem Gerätekalender ist eine Kopie in nur
   eine Richtung.
+- **Die angezeigten Feiertage sind unverbindlich.** Sie werden nach den nationalen Regeln
+  berechnet, die bei der Veröffentlichung der installierten Version bekannt waren: Weder regionale
+  oder örtliche Feiertage (Elsass-Mosel, Bundesländer, Schweizer Kantone, spanische autonome
+  Gemeinschaften, die Landesteile des Vereinigten Königreichs…) noch ein nach dieser
+  Veröffentlichung beschlossener Feiertag noch Brückentage sind darin enthalten. Wo es darauf
+  ankommt — ein Arbeitstag, eine Frist —, prüfen Sie die amtlichen Quellen.
 
 ## Datenverlust
 
@@ -63,6 +69,10 @@ bietet an, eine zu erstellen, und kann jede Woche selbst eine erstellen.
 Alle Ihre Daten werden **lokal und verschlüsselt** auf Ihrem Telefon gespeichert — siehe die
 [Datenschutzerklärung](PRIVACY.de.md). Agenda Tech sendet nichts über das Internet und hat keine
 technische Berechtigung dazu (keine Android-Berechtigung `INTERNET`).
+
+Wenn Sie einen Termin teilen oder einen Ort auf der Karte öffnen, geht er an **die App Ihrer Wahl**
+(Messenger, E-Mail, Karten-App…): Was diese App damit macht, unterliegt dann ihren eigenen
+Bedingungen und ihrer eigenen Datenschutzerklärung.
 
 ## Updates
 

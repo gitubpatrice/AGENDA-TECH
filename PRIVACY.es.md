@@ -1,6 +1,6 @@
 # Política de privacidad — Agenda Tech
 
-_Traducción de la versión del 29 de septiembre de 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md)
+_Traducción de la versión del 13 de octubre de 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md)
 
 > Esta traducción la ha realizado el desarrollador con ayuda de herramientas automáticas y todavía
 > no la ha revisado un hablante nativo. **En caso de discrepancia, prevalece la
@@ -25,6 +25,13 @@ sobre un principio: **sus datos nunca salen de su dispositivo.**
 Todo lo que introduce (eventos, títulos, lugares, notas, recordatorios, calendarios) se guarda
 **únicamente en su dispositivo**, en una base de datos **cifrada** (SQLCipher, AES-256; la clave está
 protegida por el Android KeyStore — hardware/TEE en los dispositivos compatibles).
+
+Hay una única excepción, **temporal y a petición suya**: cuando comparte un evento como archivo
+`.ics`, ese archivo se escribe **sin cifrar** en el espacio privado de la app, el tiempo que tarde
+la app que usted ha elegido en leerlo — consulte «Compartir un evento» más abajo.
+
+**Días festivos**: si elige un país en los ajustes, los días festivos de ese país se **calculan en
+el teléfono**. No se descarga nada, y el país elegido sigue siendo un ajuste local.
 
 El desarrollador **no tiene acceso** a estos datos y **no recibe ninguna copia** de ellos.
 
@@ -102,10 +109,20 @@ dispositivo, de una app a otra:
   de él. Desactivar la opción borra la contraseña y esa clave. El compromiso es deliberado — una
   copia que solo usted puede abrir, y que sigue siendo utilizable el día en que el teléfono ya no
   está. `SECURITY.md` lo describe por completo.
-- **Abrir un lugar en el mapa**: si introduce coordenadas GPS en un evento y toca el marcador, la app
-  pasa **esas coordenadas y el título del evento** a la app de mapas de su teléfono. No se envía
-  nada más, y nada sale si no toca el marcador. Lo que esa app de mapas haga después con la
-  información se rige por su propia política de privacidad.
+- **Abrir un lugar en el mapa**: cuando toca la chincheta de un campo de lugar en el editor, o la
+  línea del lugar en la lista de un día, la app pasa a la app de mapas de su teléfono **solo ese
+  lugar**: las coordenadas GPS y el título del evento si las coordenadas son válidas, o, en su
+  defecto, la dirección (calle, código postal, ciudad), o, en su defecto, el nombre del lugar. No
+  se envía nada más, y nada sale si no toca nada. Lo que esa app de mapas haga después con la
+  información — una búsqueda de dirección suele pasar por Internet — se rige por su propia política
+  de privacidad.
+- **Compartir un evento**: desde el editor (menú ⋮), «Compartir como texto…» o «Compartir .ics…»
+  entrega el evento **tal como está guardado** (título, fecha y horas, lugar completo, descripción;
+  si es una serie, la serie entera) a la app que **usted** elija en el menú para compartir de
+  Android. La app no envía nada por sí misma. Para el `.ics`, el archivo se escribe en el espacio
+  privado de la app; solo la app elegida recibe el derecho de leerlo, y el archivo se borra la
+  próxima vez que vuelva a compartir o que la app se inicie. Lo que la app destinataria haga con
+  el evento se rige por su propia política de privacidad.
 - **Sonido del recordatorio**: usted elige un tono entre los ya registrados en el dispositivo,
   mediante el selector de tonos del sistema. La app guarda el identificador del tono elegido y **no
   toma ningún permiso de acceso persistente** a sus archivos — no declara ni `READ_MEDIA_AUDIO` ni
@@ -123,7 +140,9 @@ dispositivo, de una app a otra:
 Como la app no trata ningún dato personal fuera de su dispositivo, no existe ningún tratamiento
 remoto al que acceder, que rectificar o que suprimir. Usted conserva el control total: eliminar un
 evento, un calendario o desinstalar la app borra los datos correspondientes del dispositivo.
-Desinstalar elimina la base de datos cifrada.
+Desinstalar elimina la base de datos cifrada. (Tras una eliminación, el evento permanece un rato en
+la memoria RAM de la app — nunca en el almacenamiento — para que «Deshacer» pueda restaurarlo;
+desaparece de ella, a más tardar, al cerrar la app.)
 
 ## Menores
 

@@ -1,6 +1,6 @@
 # Informativa sulla privacy — Agenda Tech
 
-_Traduzione della versione del 29 settembre 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇪🇸 [Español](PRIVACY.es.md)
+_Traduzione della versione del 13 ottobre 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇪🇸 [Español](PRIVACY.es.md)
 
 > Questa traduzione è stata prodotta dallo sviluppatore con l'aiuto di strumenti automatici e non è
 > ancora stata rivista da un madrelingua. **In caso di discordanza prevale la
@@ -25,6 +25,14 @@ un principio: **i suoi dati non lasciano mai il suo dispositivo.**
 Tutto ciò che inserisce (eventi, titoli, luoghi, note, promemoria, calendari) è memorizzato
 **unicamente sul suo dispositivo**, in un database **cifrato** (SQLCipher, AES-256; la chiave è
 protetta dall'Android KeyStore — hardware/TEE sui dispositivi supportati).
+
+C'è un'unica eccezione, **temporanea e su sua richiesta**: quando condivide un evento come file
+`.ics`, questo file viene scritto **in chiaro** nello spazio privato dell'app, il tempo necessario
+perché l'app che ha scelto lo legga — veda «Condividere un evento» più sotto.
+
+**Giorni festivi**: se sceglie un paese nelle impostazioni, i giorni festivi di quel paese sono
+**calcolati sul telefono**. Non viene scaricato nulla, e il paese scelto resta un'impostazione
+locale.
 
 Lo sviluppatore **non ha accesso** a questi dati e **non ne riceve alcuna copia**.
 
@@ -102,10 +110,20 @@ dispositivo, da un'app all'altra:
   dispositivo, che non ne esce mai. Disattivare l'opzione cancella la password e quella chiave. Il
   compromesso è voluto — un backup che solo lei può aprire, e che resta utilizzabile il giorno in cui
   il telefono non c'è più. `SECURITY.md` lo descrive per intero.
-- **Aprire un luogo sulla mappa**: se inserisce coordinate GPS in un evento e tocca il segnaposto,
-  l'app passa **quelle coordinate e il titolo dell'evento** all'app di mappe del suo telefono. Non
-  viene inviato nient'altro, e nulla esce se non tocca il segnaposto. Ciò che l'app di mappe fa poi
-  con queste informazioni è regolato dalla sua informativa sulla privacy.
+- **Aprire un luogo sulla mappa**: quando tocca lo spillo di un campo del luogo nell'editor, o la
+  riga del luogo nell'elenco di un giorno, l'app passa all'app di mappe del suo telefono **solo quel
+  luogo**: le coordinate GPS e il titolo dell'evento se le coordinate sono valide, altrimenti
+  l'indirizzo (via, codice postale, città), altrimenti il nome del luogo. Non viene inviato
+  nient'altro, e nulla esce se non tocca nulla. Ciò che l'app di mappe fa poi con queste
+  informazioni — una ricerca di indirizzo passa spesso da Internet — è regolato dalla propria
+  informativa sulla privacy.
+- **Condividere un evento**: dall'editor (menu ⋮), «Condividi come testo…» o «Condividi .ics…»
+  passa l'evento **così come è salvato** (titolo, data e orari, luogo completo, descrizione;
+  per una serie, l'intera serie) all'app che **lei** sceglie nel menu di condivisione di Android.
+  L'app non invia nulla da sé. Per il `.ics`, il file viene scritto nello spazio privato dell'app;
+  solo l'app scelta riceve il diritto di leggerlo, e il file viene cancellato alla condivisione
+  successiva o al prossimo avvio dell'app. Ciò che l'app destinataria fa dell'evento è regolato
+  dalla propria informativa sulla privacy.
 - **Suono del promemoria**: sceglie una suoneria tra quelle già registrate sul dispositivo, tramite
   il selettore di suonerie del sistema. L'app memorizza l'identificativo della suoneria scelta e
   **non prende alcuna autorizzazione di accesso permanente** ai suoi file — non dichiara né
@@ -123,7 +141,9 @@ dispositivo, da un'app all'altra:
 Poiché l'app non tratta dati personali al di fuori del suo dispositivo, non esiste alcun trattamento
 remoto a cui accedere, da rettificare o cancellare. Lei mantiene il pieno controllo: eliminare un
 evento, un calendario o disinstallare l'app rimuove i dati corrispondenti dal dispositivo. La
-disinstallazione elimina il database cifrato.
+disinstallazione elimina il database cifrato. (Dopo un'eliminazione, l'evento resta per un po'
+nella memoria RAM dell'app — mai nello spazio di archiviazione — perché «Annulla» possa
+ripristinarlo; ne scompare al più tardi alla chiusura dell'app.)
 
 ## Minori
 

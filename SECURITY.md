@@ -275,6 +275,26 @@ apply to it as to the other two.
   events, and that is exactly what an import controls. A single `ExpansionBudget` is shared by a whole
   rendering pass: a pathological agenda is **truncated** (and logged), never turned into a frozen UI.
 
+## Sharing, maps and undo
+
+- **Sharing an event as `.ics`.** The one place an event exists **unencrypted outside the database**:
+  the file written in `cache/shared/` (the app's private storage) for the app picked in the share
+  sheet. It is handed out by a **non-exported** `FileProvider`, limited to that folder
+  (`res/xml/share_paths.xml`), with a read grant **given to the picked app only, and temporary**
+  (`FLAG_GRANT_READ_URI_PERMISSION` and `ClipData`). One file at a time: each share deletes the
+  previous one, each start of the app deletes the last. It cannot be deleted on sending: the
+  receiving app may read it only when the user taps "Send". Its name comes from the title, stripped
+  of anything that could name a path (`/`, `.`). Sharing **as text** writes no file.
+- **Opening on the map.** A `geo:` link handed to the maps app (`ACTION_VIEW`): the validated GPS
+  coordinates, else a search for the address or the place name, encoded. Neither a location nor a
+  network permission; the search is the maps app's.
+- **Undoing a deletion.** What a deletion removes is kept **in memory only** (`DeletionUndo`), never
+  written to storage, until it is undone, the offer runs out, or the process ends. The restore runs in
+  **one transaction**; a row comes back under its own id, and an id already taken is **refused, never
+  overwritten** (`OnConflictStrategy.ABORT`); a date excluded from a series is restored on the series
+  **as it is now**, never by writing back an old copy of the series.
+- **Public holidays.** Worked out on the device (`domain/holiday`): no list is downloaded.
+
 ## Backups
 
 - `allowBackup="false"` plus exclusion rules (`data_extraction_rules.xml`, `backup_rules.xml`): no

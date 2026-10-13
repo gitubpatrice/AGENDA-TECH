@@ -1,6 +1,6 @@
 # Politique de confidentialité — Agenda Tech
 
-_Dernière mise à jour : 29 septembre 2026_ · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
+_Dernière mise à jour : 13 octobre 2026_ · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
 
 > **Version de référence.** En cas de divergence entre cette politique et l'une de ses traductions,
 > c'est cette version française qui fait foi.
@@ -24,6 +24,13 @@ Elle est conçue autour d'un principe simple : **vos données ne quittent jamais
 Tout ce que vous saisissez (événements, titres, lieux, notes, rappels, calendriers) est stocké
 **uniquement sur votre appareil**, dans une base de données **chiffrée** (SQLCipher, AES-256 ;
 la clé est protégée par l'AndroidKeyStore, matériel/TEE sur les appareils compatibles).
+
+Une seule exception, **temporaire et à votre demande** : quand vous partagez un événement en fichier
+`.ics`, ce fichier est écrit **en clair** dans l'espace privé de l'application, le temps que
+l'application que vous avez choisie le lise — voir « Partager un événement » plus bas.
+
+**Jours fériés** : si vous choisissez un pays dans les réglages, ses jours fériés sont **calculés sur
+le téléphone**. Rien n'est téléchargé, et le pays choisi reste un réglage local.
 
 Le développeur n'a **aucun accès** à ces données et n'en reçoit **aucune copie**.
 
@@ -100,11 +107,20 @@ votre appareil, d'une application à l'autre :
   matériel sécurisé de l'appareil, qui ne le quitte jamais. Désactiver l'option efface le mot de
   passe et cette clé. L'arbitrage est assumé — une sauvegarde que vous seul pouvez ouvrir, et qui
   reste utilisable le jour où le téléphone n'est plus là. `SECURITY.fr.md` l'énonce en entier.
-- **Ouvrir un lieu sur la carte** : si vous saisissez des coordonnées GPS sur un événement et que
-  vous touchez le repère, l'application transmet **ces coordonnées et le libellé de l'événement** à
-  l'application de cartes de votre téléphone. Rien d'autre n'est transmis, et rien ne part si vous
-  ne touchez pas le repère. Ce que cette application de cartes fait ensuite de ces informations
+- **Ouvrir un lieu sur la carte** : quand vous touchez le repère d'un champ de lieu dans l'éditeur,
+  ou la ligne du lieu dans la liste d'un jour, l'application transmet à l'application de cartes de
+  votre téléphone **ce lieu seulement** : les coordonnées GPS et le libellé de l'événement si les
+  coordonnées sont valides, sinon l'adresse (rue, code postal, ville), sinon le nom du lieu. Rien
+  d'autre n'est transmis, et rien ne part si vous ne touchez rien. Ce que cette application de
+  cartes fait ensuite de ces informations — une recherche d'adresse passe souvent par Internet —
   relève de sa propre politique de confidentialité.
+- **Partager un événement** : depuis l'éditeur (menu ⋮), « Partager en texte… » ou « Partager .ics… »
+  remet l'événement **tel qu'il est enregistré** (titre, date et heures, lieu complet, description ;
+  pour une série, la série entière) à l'application que **vous** choisissez dans le menu de partage
+  d'Android. L'application n'envoie rien elle-même. Pour le `.ics`, le fichier est écrit dans
+  l'espace privé de l'application ; seule l'application choisie reçoit le droit de le lire, et il est
+  effacé au partage suivant ou au prochain démarrage de l'application. Ce que l'application
+  destinataire fait de l'événement relève de sa propre politique de confidentialité.
 - **Son de rappel** : vous choisissez une sonnerie parmi celles **déjà enregistrées sur l'appareil**,
   via le sélecteur système. L'application mémorise l'identifiant de la sonnerie choisie et ne prend
   **aucune autorisation d'accès persistante** sur vos fichiers — elle ne déclare ni
@@ -123,7 +139,9 @@ votre appareil, d'une application à l'autre :
 L'application ne traitant aucune donnée personnelle en dehors de votre appareil, il n'existe aucun
 traitement distant à consulter, rectifier ou supprimer. Vous gardez le contrôle total : supprimer
 un événement, un calendrier, ou désinstaller l'application efface les données correspondantes de
-l'appareil. La désinstallation supprime la base chiffrée.
+l'appareil. La désinstallation supprime la base chiffrée. (Après une suppression, l'événement reste
+un moment dans la mémoire vive de l'application — jamais sur le stockage — pour que « Annuler »
+puisse le rétablir ; il en disparaît au plus tard à la fermeture de l'application.)
 
 ## Enfants
 

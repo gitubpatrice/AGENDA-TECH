@@ -28,7 +28,16 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
   ligne par jour, au pincement), Semaine, Jour et Agenda (liste).
 - **Événements** : création/édition, journée entière, description, couleur par événement.
 - **Lieu** : libellé, adresse postale (adresse, code postal, ville) et coordonnées GPS — un appui
-  ouvre le point dans votre application de cartes (sans aucune permission de localisation).
+  sur le repère, dans l'éditeur ou dans la liste d'un jour, ouvre le lieu dans votre application de
+  cartes : les coordonnées si elles sont valides, sinon l'adresse, sinon le nom du lieu (sans
+  aucune permission de localisation).
+- **Partager un événement** en texte ou en fichier `.ics` (menu ⋮ de l'éditeur), vers l'application
+  de votre choix — l'app n'envoie rien elle-même.
+- **Annuler une suppression** : « Annuler » dans le bandeau rétablit l'événement, ses rappels, ou la
+  date retirée d'une série.
+- **Jours fériés** nationaux de dix pays (Allemagne, Autriche, Belgique, Espagne, États-Unis, France,
+  Italie, Luxembourg, Royaume-Uni, Suisse), calculés sur le téléphone, désactivés par défaut —
+  vérifiés jour par jour de 1990 à 2060 contre une référence indépendante.
 - **Récurrences** (RFC 5545) : quotidienne / hebdo (jours choisis) / mensuelle / annuelle, avec
   intervalle, fin après N occurrences ou à une date, et **modification/suppression d'une seule
   occurrence** (modèle iCalendar `RECURRENCE-ID`).

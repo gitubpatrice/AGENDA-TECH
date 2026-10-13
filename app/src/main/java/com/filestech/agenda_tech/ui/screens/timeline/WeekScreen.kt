@@ -44,7 +44,9 @@ import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.ui.navigation.CalendarView
 import com.filestech.agenda_tech.ui.util.AddFab
 import com.filestech.agenda_tech.ui.util.HolidayChip
+import com.filestech.agenda_tech.ui.util.HolidayDayShape
 import com.filestech.agenda_tech.ui.util.holidayColor
+import com.filestech.agenda_tech.ui.util.onHolidayColor
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -135,17 +137,25 @@ private fun WeekDayHeader(days: List<DayTimelineData>, locale: Locale) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
+                // Today in blue; a public holiday in its red square, as in the month — today first.
+                val holiday = day.holidays.isNotEmpty() && !day.isToday
                 Text(
                     text = day.date.dayOfMonth.toString(),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = if (day.isToday) FontWeight.Bold else FontWeight.Normal,
-                    // Today in blue; a public holiday in red, as in the month.
                     color = when {
                         day.isToday -> MaterialTheme.colorScheme.primary
-                        day.holidays.isNotEmpty() -> holidayColor()
+                        holiday -> onHolidayColor()
                         else -> MaterialTheme.colorScheme.onSurface
                     },
                     textAlign = TextAlign.Center,
+                    modifier = if (holiday) {
+                        Modifier
+                            .background(holidayColor(), HolidayDayShape)
+                            .padding(horizontal = 4.dp)
+                    } else {
+                        Modifier
+                    },
                 )
             }
         }

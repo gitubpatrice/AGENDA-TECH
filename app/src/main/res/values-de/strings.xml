@@ -278,6 +278,10 @@
     <string name="about_features_title">Funktionen</string>
     <string name="about_feat_views_label">Monats-, Wochen-, Tages- und Agendaansicht</string>
     <string name="about_feat_views_desc">Zwischen Monaten wischen, als Punkte, Titel oder eine Zeile pro Tag anzeigen, zu heute springen, mehrere Kalender.</string>
+    <string name="about_feat_holidays_label">Feiertage</string>
+    <string name="about_feat_holidays_desc">Die von zehn Ländern, auf dem Telefon berechnet: Belgien, Deutschland, Frankreich, Italien, Luxemburg, Österreich, die Schweiz, Spanien, das Vereinigte Königreich und die USA.</string>
+    <string name="about_feat_share_label">Teilen und Karten</string>
+    <string name="about_feat_share_desc">Einen Termin als Text oder als .ics-Datei teilen, seine Adresse in der Karten-App öffnen — Sie wählen die App, Agenda Tech sendet selbst nichts. Versehentlich gelöscht? „Rückgängig“ holt ihn zurück.</string>
     <string name="about_feat_recurrence_label">Wiederkehrende Termine</string>
     <string name="about_feat_recurrence_desc">Täglich bis jährlich, eigene Intervalle, Enddatum — einen einzelnen Termin oder die ganze Serie bearbeiten.</string>
     <string name="about_feat_reminders_label">Erinnerungen</string>

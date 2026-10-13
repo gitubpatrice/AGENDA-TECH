@@ -288,6 +288,10 @@
     <string name="about_features_title">Funciones</string>
     <string name="about_feat_views_label">Vistas Mes, Semana, Día y Agenda</string>
     <string name="about_feat_views_desc">Deslice entre meses, véalos como puntos, títulos o una fila por día, vuelva a hoy, varios calendarios.</string>
+    <string name="about_feat_holidays_label">Días festivos</string>
+    <string name="about_feat_holidays_desc">Los de diez países, calculados en el teléfono: Alemania, Austria, Bélgica, España, Estados Unidos, Francia, Italia, Luxemburgo, Reino Unido y Suiza.</string>
+    <string name="about_feat_share_label">Compartir y mapas</string>
+    <string name="about_feat_share_desc">Comparta un evento como texto o como archivo .ics, abra su dirección en su aplicación de mapas — usted elige la aplicación, Agenda Tech no envía nada por sí misma. ¿Eliminado por error? «Deshacer» lo recupera.</string>
     <string name="about_feat_recurrence_label">Eventos periódicos</string>
     <string name="about_feat_recurrence_desc">De diario a anual, intervalos personalizados, fecha de fin — edite una sola repetición o toda la serie.</string>
     <string name="about_feat_reminders_label">Recordatorios</string>

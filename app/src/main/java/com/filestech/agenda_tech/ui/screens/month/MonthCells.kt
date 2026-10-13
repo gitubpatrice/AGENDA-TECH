@@ -29,8 +29,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.ui.util.HolidayDayShape
 import com.filestech.agenda_tech.ui.util.holidayColor
 import com.filestech.agenda_tech.ui.util.holidayName
+import com.filestech.agenda_tech.ui.util.onHolidayColor
 import java.util.Locale
 
 // What the three month displays share: how a day number looks, how a day answers a tap and a long
@@ -57,30 +59,51 @@ internal fun weekNumberWidth(): Dp =
 @Composable
 internal fun DayNumber(cell: DayCellData, size: Dp, style: TextStyle) {
     val holiday = cell.holidays.isNotEmpty()
-    val color = when {
-        cell.isToday -> MaterialTheme.colorScheme.onPrimary
-        !cell.isInMonth && holiday -> holidayColor().copy(alpha = OUT_OF_MONTH_ALPHA)
-        !cell.isInMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = OUT_OF_MONTH_ALPHA)
-        holiday -> holidayColor()
-        else -> MaterialTheme.colorScheme.onSurface
-    }
+    val diameter = dayNumberDiameter(size, style)
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(dayNumberDiameter(size, style))
-            .clip(CircleShape)
-            .then(if (cell.isToday) Modifier.background(MaterialTheme.colorScheme.primary) else Modifier)
+            .size(diameter)
+            .clip(if (holiday && !cell.isToday) HolidayDayShape else CircleShape)
+            .then(
+                when {
+                    cell.isToday -> Modifier.background(MaterialTheme.colorScheme.primary)
+                    holiday -> Modifier.background(holidayColor().copy(alpha = if (cell.isInMonth) 1f else OUT_OF_MONTH_ALPHA))
+                    else -> Modifier
+                },
+            )
             // The cell around it announces the full date; a screen reader saying "6" on top adds nothing.
             .clearAndSetSemantics {},
     ) {
-        Text(
-            text = cell.date.dayOfMonth.toString(),
-            style = style,
-            fontWeight = if (cell.isToday) FontWeight.Bold else FontWeight.Normal,
-            color = color,
-        )
+        val number: @Composable () -> Unit = {
+            Text(
+                text = cell.date.dayOfMonth.toString(),
+                style = style,
+                fontWeight = if (cell.isToday) FontWeight.Bold else FontWeight.Normal,
+                color = when {
+                    holiday -> onHolidayColor()
+                    cell.isToday -> MaterialTheme.colorScheme.onPrimary
+                    !cell.isInMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = OUT_OF_MONTH_ALPHA)
+                    else -> MaterialTheme.colorScheme.onSurface
+                },
+            )
+        }
+        if (cell.isToday && holiday) {
+            // Both marks, as asked on the S9: today's blue circle as a ring around the holiday's red square.
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(diameter - TODAY_RING * 2)
+                    .background(holidayColor(), HolidayDayShape),
+            ) { number() }
+        } else {
+            number()
+        }
     }
 }
+
+/** The blue left around a holiday's square when the holiday is today. */
+private val TODAY_RING = 3.dp
 
 /**
  * A coloured dot per event, at most [MAX_DOTS], then a "+" — the fifth event of a day used to vanish

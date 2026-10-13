@@ -291,6 +291,10 @@
     <string name="about_features_title">Fonctionnalités</string>
     <string name="about_feat_views_label">Vues Mois, Semaine, Jour et Agenda</string>
     <string name="about_feat_views_desc">Balayez d\'un mois à l\'autre, affichez-le en points, en titres ou en une ligne par jour, revenez à aujourd\'hui, gérez plusieurs calendriers.</string>
+    <string name="about_feat_holidays_label">Jours fériés</string>
+    <string name="about_feat_holidays_desc">Ceux de dix pays, calculés sur le téléphone : Allemagne, Autriche, Belgique, Espagne, États-Unis, France, Italie, Luxembourg, Royaume-Uni et Suisse.</string>
+    <string name="about_feat_share_label">Partage et cartes</string>
+    <string name="about_feat_share_desc">Partagez un événement en texte ou en fichier .ics, ouvrez son adresse dans votre appli de cartes — c\'est vous qui choisissez l\'appli, Agenda Tech n\'envoie rien lui-même. Supprimé par erreur ? « Annuler » le rétablit.</string>
     <string name="about_feat_recurrence_label">Événements récurrents</string>
     <string name="about_feat_recurrence_desc">Du quotidien à l\'annuel, intervalles personnalisés, date de fin — modifiez une seule occurrence ou toute la série.</string>
     <string name="about_feat_reminders_label">Rappels</string>

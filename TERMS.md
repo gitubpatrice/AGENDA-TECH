@@ -1,6 +1,6 @@
 # Terms of use — Agenda Tech
 
-_Last updated: 29 September 2026_ · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
+_Last updated: 13 October 2026_ · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
 
 > This is a translation. **In case of discrepancy, the [French version](TERMS.fr.md) prevails**:
 > the publisher is based in France and these terms are governed by French law.
@@ -32,6 +32,11 @@ responsible for the events you enter and for any decision you base on them.
   delivery. **Do not rely on it alone for anything critical** (medication, a court date, a deadline).
 - The app has no network access: it does not synchronise anything. An event created here does not
   appear in any other calendar, and importing from the device calendar is a one-way copy.
+- **The public holidays shown are indicative.** They are worked out from the national rules known
+  when the installed version was published: they include neither regional or local holidays
+  (Alsace-Moselle, German Länder, Swiss cantons, Spanish autonomous communities, the nations of the
+  United Kingdom…), nor a holiday decided after that publication, nor bridge days. For anything
+  that matters — a working day, a deadline — check with official sources.
 
 ## Data loss
 
@@ -56,6 +61,10 @@ to make one, and can make one every week on its own.
 All your data is stored **locally and encrypted** on your phone — see the
 [privacy policy](PRIVACY.md). Agenda Tech sends nothing over the Internet and has no technical
 permission to do so (no Android `INTERNET` permission).
+
+Sharing an event, or opening a place on the map, hands it to **the app you choose** (messaging,
+email, maps app…): what that app does with it is then governed by its own terms and its own privacy
+policy.
 
 ## Updates
 

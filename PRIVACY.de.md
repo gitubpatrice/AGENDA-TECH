@@ -1,6 +1,6 @@
 # Datenschutzerklärung — Agenda Tech
 
-_Übersetzung der Fassung vom 29. September 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
+_Übersetzung der Fassung vom 13. Oktober 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
 
 > Diese Übersetzung wurde vom Entwickler maschinengestützt erstellt und noch nicht von einer
 > Muttersprachlerin oder einem Muttersprachler geprüft. **Bei Abweichungen gilt die
@@ -25,6 +25,15 @@ einem Grundsatz: **Ihre Daten verlassen nie Ihr Gerät.**
 Alles, was Sie eingeben (Termine, Titel, Orte, Notizen, Erinnerungen, Kalender), wird **nur auf
 Ihrem Gerät** gespeichert, in einer **verschlüsselten** Datenbank (SQLCipher, AES-256; der
 Schlüssel wird vom Android KeyStore geschützt — Hardware/TEE auf unterstützten Geräten).
+
+Es gibt eine einzige Ausnahme, **vorübergehend und auf Ihren Wunsch**: Wenn Sie einen Termin als
+`.ics`-Datei teilen, wird diese Datei **unverschlüsselt** in den privaten Speicherbereich der App
+geschrieben, solange die von Ihnen gewählte App sie liest — siehe „Einen Termin teilen“ weiter
+unten.
+
+**Feiertage**: Wenn Sie in den Einstellungen ein Land wählen, werden dessen Feiertage **auf dem
+Telefon berechnet**. Es wird nichts heruntergeladen, und das gewählte Land bleibt eine lokale
+Einstellung.
 
 Der Entwickler hat **keinen Zugriff** auf diese Daten und erhält **keine Kopie** davon.
 
@@ -104,11 +113,20 @@ von einer App zur anderen:
   Hardware des Geräts, der sie nie verlässt. Das Ausschalten der Option löscht das Passwort und
   diesen Schlüssel. Der Kompromiss ist gewollt — eine Sicherung, die nur Sie öffnen können, und die
   an dem Tag nutzbar bleibt, an dem das Telefon weg ist. `SECURITY.md` beschreibt es vollständig.
-- **Einen Ort auf der Karte öffnen**: Wenn Sie bei einem Termin GPS-Koordinaten eingeben und auf die
-  Markierung tippen, übergibt die App **diese Koordinaten und die Bezeichnung des Termins** an die
-  Karten-App Ihres Telefons. Sonst wird nichts übergeben, und nichts verlässt die App, wenn Sie
-  nicht auf die Markierung tippen. Was diese Karten-App dann mit den Informationen macht, regelt
-  ihre eigene Datenschutzerklärung.
+- **Einen Ort auf der Karte öffnen**: Wenn Sie im Editor auf die Stecknadel eines Ortsfelds tippen
+  oder in der Liste eines Tages auf die Zeile des Orts, übergibt die App der Karten-App Ihres
+  Telefons **nur diesen Ort**: die GPS-Koordinaten und die Bezeichnung des Termins, wenn die
+  Koordinaten gültig sind, andernfalls die Adresse (Straße, Postleitzahl, Stadt), andernfalls den
+  Namen des Orts. Sonst wird nichts übergeben, und nichts verlässt die App, wenn Sie nichts
+  antippen. Was diese Karten-App dann mit den Informationen macht — eine Adresssuche läuft oft über
+  das Internet —, regelt ihre eigene Datenschutzerklärung.
+- **Einen Termin teilen**: Im Editor (Menü ⋮) übergibt „Als Text teilen…“ oder „.ics teilen…“ den
+  Termin **so, wie er gespeichert ist** (Titel, Datum und Uhrzeiten, vollständiger Ort,
+  Beschreibung; bei einer Serie die ganze Serie) an die App, die **Sie** im Teilen-Menü von Android
+  auswählen. Die App selbst sendet nichts. Bei `.ics` wird die Datei in den privaten
+  Speicherbereich der App geschrieben; nur die gewählte App erhält das Recht, sie zu lesen, und sie
+  wird beim nächsten Teilen oder beim nächsten Start der App gelöscht. Was die empfangende App mit
+  dem Termin macht, regelt ihre eigene Datenschutzerklärung.
 - **Erinnerungston**: Sie wählen über die Klingeltonauswahl des Systems einen der Klingeltöne, die
   bereits auf dem Gerät registriert sind. Die App speichert die Kennung des gewählten Klingeltons
   und nimmt **keine dauerhafte Zugriffsberechtigung** auf Ihre Dateien — sie fordert weder
@@ -128,6 +146,9 @@ Da die App keine personenbezogenen Daten außerhalb Ihres Geräts verarbeitet, g
 entfernte Verarbeitung, auf die man zugreifen, die man berichtigen oder löschen könnte. Sie behalten
 die volle Kontrolle: Das Löschen eines Termins, eines Kalenders oder die Deinstallation der App
 entfernt die entsprechenden Daten vom Gerät. Die Deinstallation löscht die verschlüsselte Datenbank.
+(Nach einer Löschung bleibt der Termin eine Weile im Arbeitsspeicher der App — nie im dauerhaften
+Speicher —, damit „Rückgängig“ ihn wiederherstellen kann; spätestens beim Schließen der App ist er
+daraus verschwunden.)
 
 ## Kinder
 

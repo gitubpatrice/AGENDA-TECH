@@ -6,7 +6,9 @@ It exists so that your calendar never has to live anywhere but on your phone. A 
 
 <ul>
 <li>Four views — Month (swipe between months; dots, titles in the grid or one row per day, pinch to switch), Week, Day and Agenda list</li>
-<li>Events — all-day, description, per-event colour, postal address and GPS coordinates that open in your maps app (with no location permission)</li>
+<li>Events — all-day, description, per-event colour, postal address and GPS coordinates that open in your maps app (with no location permission); deleted by mistake? "Undo" brings it back</li>
+<li>Share — send an event as text or as an .ics file to the app of your choice</li>
+<li>Public holidays — those of nine European countries and the United States, worked out on the phone, off by default</li>
 <li>Recurring events (RFC 5545) — daily, weekly on chosen days, monthly, yearly; ending after N occurrences or on a date; edit or delete a single occurrence</li>
 <li>Reminders — exact alarms, re-armed after a reboot, free delay, your own sound, and a "snooze 10 min" button on the notification</li>
 <li>Encrypted backup — export your whole calendar to a password-protected .atbak file (PBKDF2-HMAC-SHA256 at 600,000 iterations + AES-256-GCM). Keep it anywhere, cloud included: it stays unreadable without your password</li>
@@ -30,6 +32,6 @@ It exists so that your calendar never has to live anywhere but on your phone. A 
 
 <ul>
 <li>Not a sync. Importing copies what is on the phone; an event created here does not travel back to the original calendar. That is the price of zero network, and it is deliberate</li>
-<li>No CalDAV, no calendar sharing, no invitations — all of it needs a network</li>
+<li>No CalDAV, no shared calendars, no invitations — all of it needs a network. You can send an event, not share a calendar</li>
 <li>The encrypted backup is the bridge between your devices, and it is a manual one</li>
 </ul>

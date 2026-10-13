@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material3.Icon
@@ -18,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.holiday.Holiday
 import com.filestech.agenda_tech.domain.holiday.HolidayName
+import com.filestech.agenda_tech.ui.theme.HolidayRedLight
+import com.filestech.agenda_tech.ui.theme.OnHolidayRedLight
 
 /*
  * How a public holiday looks, in every view that shows one — the month's three displays, the day's list,
@@ -33,9 +37,28 @@ import com.filestech.agenda_tech.domain.holiday.HolidayName
  * apart.
  */
 
-/** The red a holiday is marked with: the theme's, which keeps its contrast in the dark theme too. */
+/**
+ * The red a holiday is marked with: a light red of its own in the light theme ([HolidayRedLight]), the
+ * theme's error red — already light — in the dark one.
+ */
 @Composable
-fun holidayColor(): Color = MaterialTheme.colorScheme.error
+fun holidayColor(): Color = if (isLightTheme()) HolidayRedLight else MaterialTheme.colorScheme.error
+
+/** The colour of a holiday's date drawn on [holidayColor]: near-black in both themes, on a light red. */
+@Composable
+fun onHolidayColor(): Color = if (isLightTheme()) OnHolidayRedLight else MaterialTheme.colorScheme.onError
+
+/** The app picks its theme from a setting, not only from the system: the surface says which one is drawn. */
+@Composable
+private fun isLightTheme(): Boolean = MaterialTheme.colorScheme.surface.luminance() > LIGHT_SURFACE_LUMINANCE
+
+private const val LIGHT_SURFACE_LUMINANCE = 0.5f
+
+/**
+ * A holiday's date sits in a small red square — today's is a circle, so the two never read alike. A red
+ * number alone was hard to make out among the titles and the dots (asked on the S9).
+ */
+val HolidayDayShape = RoundedCornerShape(4.dp)
 
 /** The holiday's name in the app's language; a day standing in for one says so. */
 fun holidayName(resources: Resources, holiday: Holiday): String {

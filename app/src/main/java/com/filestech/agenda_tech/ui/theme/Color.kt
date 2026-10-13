@@ -12,6 +12,16 @@ internal val BrandBlueDark = Color(0xFFA9C7FF)
 internal val BrandDanger = Color(0xFFC62828)
 
 /**
+ * A public holiday's red in the light theme: a light red, as asked on the S9, under a near-black date —
+ * about 6.6:1, above the 4.5:1 of WCAG AA (white would fall to 3:1 on it). The dark theme keeps its own
+ * error red, already light and under dark text too (see HolidayUi).
+ */
+internal val HolidayRedLight = Color(0xFFE57373)
+
+/** The date drawn on [HolidayRedLight]. */
+internal val OnHolidayRedLight = Color(0xFF1B1B1F)
+
+/**
  * Light blue-grey for every popup surface (menus, dialogs, sheets) in the light theme. Deliberately
  * a soft wash rather than the logo's saturated blue, which reads far too dark behind text.
  */

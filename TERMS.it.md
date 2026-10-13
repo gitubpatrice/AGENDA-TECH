@@ -1,6 +1,6 @@
 # Condizioni d'uso — Agenda Tech
 
-_Traduzione della versione del 29 settembre 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇪🇸 [Español](TERMS.es.md)
+_Traduzione della versione del 13 ottobre 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇪🇸 [Español](TERMS.es.md)
 
 > Questa traduzione è stata prodotta dallo sviluppatore con l'aiuto di strumenti automatici e non è
 > ancora stata rivista da un madrelingua. **In caso di discordanza prevale la
@@ -34,6 +34,12 @@ responsabile degli eventi che vi inserisce e delle decisioni che prende sulla lo
   critico** (un farmaco, un'udienza, una scadenza).
 - L'app non ha accesso alla rete: non sincronizza nulla. Un evento creato qui non compare in nessun
   altro calendario, e l'importazione dal calendario del dispositivo è una copia a senso unico.
+- **I giorni festivi mostrati sono indicativi.** Sono calcolati in base alle regole nazionali note
+  al momento della pubblicazione della versione installata: non comprendono né le festività
+  regionali o locali (Alsazia-Mosella, Länder tedeschi, cantoni svizzeri, comunità autonome
+  spagnole, nazioni del Regno Unito…), né un giorno festivo deciso dopo tale pubblicazione, né i
+  ponti. Per ciò che conta — un giorno lavorativo, una scadenza — verifichi presso le fonti
+  ufficiali.
 
 ## Perdita di dati
 
@@ -60,6 +66,10 @@ propone di crearne uno, e può crearne uno ogni settimana da sola.
 Tutti i suoi dati sono memorizzati **localmente e in forma cifrata** sul suo telefono — veda
 l'[informativa sulla privacy](PRIVACY.it.md). Agenda Tech non invia nulla su Internet e non ha
 l'autorizzazione tecnica per farlo (nessuna autorizzazione Android `INTERNET`).
+
+Condividere un evento, o aprire un luogo sulla mappa, lo affida **all'app che lei sceglie**
+(messaggistica, e-mail, app di mappe…): ciò che quell'app ne fa è allora regolato dalle condizioni
+d'uso e dall'informativa sulla privacy di quest'ultima.
 
 ## Aggiornamenti
 
