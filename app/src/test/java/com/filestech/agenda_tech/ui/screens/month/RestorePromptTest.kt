@@ -11,6 +11,7 @@ import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
 import app.cash.turbine.test
+import com.filestech.agenda_tech.domain.usecase.ObserveHolidaysUseCase
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.resetMain
@@ -53,6 +54,7 @@ class RestorePromptTest {
         ),
         calendarRepository = calendarRepo,
         eventRepository = eventRepo,
+        observeHolidays = ObserveHolidaysUseCase(settings),
         settingsRepository = settings,
         deviceZone = deviceZone,
     )

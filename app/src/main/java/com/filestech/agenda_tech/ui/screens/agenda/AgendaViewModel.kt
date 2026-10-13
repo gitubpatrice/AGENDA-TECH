@@ -3,9 +3,12 @@ package com.filestech.agenda_tech.ui.screens.agenda
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.filestech.agenda_tech.core.time.DeviceZone
+import com.filestech.agenda_tech.domain.holiday.Holiday
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
+import com.filestech.agenda_tech.domain.usecase.ObserveHolidaysUseCase
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import com.filestech.agenda_tech.ui.screens.timeline.TimelineItem
+import com.filestech.agenda_tech.ui.screens.timeline.TimelineWindow
 import com.filestech.agenda_tech.ui.screens.timeline.toTimelineItems
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -13,17 +16,17 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 
-/** A day and its events, for the agenda list. */
+/** A day, its public holidays and its events, for the agenda list. */
 data class AgendaDay(
     val date: LocalDate,
     val items: List<TimelineItem>,
+    val holidays: List<Holiday> = emptyList(),
 )
 
 data class AgendaUiState(
@@ -41,6 +44,7 @@ data class AgendaUiState(
 @HiltViewModel
 class AgendaViewModel @Inject constructor(
     observeOccurrences: ObserveOccurrencesInRangeUseCase,
+    observeHolidays: ObserveHolidaysUseCase,
     calendarRepository: CalendarRepository,
     private val deviceZone: DeviceZone,
 ) : ViewModel() {
@@ -63,29 +67,35 @@ class AgendaViewModel @Inject constructor(
 
     // The window is read again when the zone changes, and each list is grouped in the zone it was read in.
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val windowOccurrences = deviceZone.zone.flatMapLatest { windowZone ->
+    private val window = deviceZone.zone.flatMapLatest { windowZone ->
         val today = LocalDate.now(windowZone)
-        observeOccurrences(
-            today.minusDays(PAST_DAYS).atStartOfDay(windowZone).toInstant().toEpochMilli(),
-            today.plusDays(FUTURE_DAYS).atStartOfDay(windowZone).toInstant().toEpochMilli(),
-            windowZone,
-        ).map { occurrences -> windowZone to occurrences }
+        val from = today.minusDays(PAST_DAYS)
+        val until = today.plusDays(FUTURE_DAYS)
+        combine(
+            observeOccurrences(
+                from.atStartOfDay(windowZone).toInstant().toEpochMilli(),
+                until.atStartOfDay(windowZone).toInstant().toEpochMilli(),
+                windowZone,
+            ),
+            observeHolidays(from, until),
+        ) { occurrences, holidays -> TimelineWindow(windowZone, occurrences, holidays) }
     }
 
     val uiState: StateFlow<AgendaUiState> = combine(
-        windowOccurrences,
+        window,
         calendarRepository.observeAll(),
-    ) { (listZone, occurrences), calendars ->
-        val items = occurrences.toTimelineItems(calendars.associate { it.id to it.color.argb }, listZone)
-        val days = items
-            .groupBy { Instant.ofEpochMilli(it.startUtcMillis).atZone(listZone).toLocalDate() }
-            .toSortedMap()
-            .map { (date, dayItems) ->
-                AgendaDay(
-                    date = date,
-                    items = dayItems.sortedWith(compareBy({ !it.allDay }, { it.startUtcMillis })),
-                )
-            }
+    ) { window, calendars ->
+        val listZone = window.zone
+        val items = window.occurrences.toTimelineItems(calendars.associate { it.id to it.color.argb }, listZone)
+        val itemsByDate = items.groupBy { Instant.ofEpochMilli(it.startUtcMillis).atZone(listZone).toLocalDate() }
+        // A day with a holiday and no event is listed too: the holiday is worth knowing on its own.
+        val days = (itemsByDate.keys + window.holidays.keys).sorted().map { date ->
+            AgendaDay(
+                date = date,
+                items = itemsByDate[date].orEmpty().sortedWith(compareBy({ !it.allDay }, { it.startUtcMillis })),
+                holidays = window.holidays[date].orEmpty(),
+            )
+        }
         AgendaUiState(days = days, isLoading = false, zone = listZone)
     }.stateIn(
         scope = viewModelScope,

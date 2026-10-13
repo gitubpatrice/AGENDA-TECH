@@ -3,11 +3,16 @@ package com.filestech.agenda_tech.ui.screens.agenda
 import app.cash.turbine.test
 import com.filestech.agenda_tech.core.time.FakeDeviceZone
 import com.filestech.agenda_tech.core.time.FarZones
+import com.filestech.agenda_tech.domain.holiday.HolidayCountry
+import com.filestech.agenda_tech.domain.holiday.HolidayName
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.recurrence.RecurrenceExpander
+import com.filestech.agenda_tech.domain.settings.AppSettings
 import com.filestech.agenda_tech.domain.usecase.FakeCalendarRepository
 import com.filestech.agenda_tech.domain.usecase.FakeEventRepository
+import com.filestech.agenda_tech.domain.usecase.FakeSettingsRepository
+import com.filestech.agenda_tech.domain.usecase.ObserveHolidaysUseCase
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
@@ -58,6 +63,7 @@ class AgendaViewModelTest {
         )
         val vm = AgendaViewModel(
             ObserveOccurrencesInRangeUseCase(eventRepo, calendarRepo, RecurrenceExpander(), dispatcher),
+            ObserveHolidaysUseCase(FakeSettingsRepository()),
             calendarRepo,
             FakeDeviceZone(zone),
         )
@@ -91,6 +97,7 @@ class AgendaViewModelTest {
         )
         val vm = AgendaViewModel(
             ObserveOccurrencesInRangeUseCase(eventRepo, calendarRepo, RecurrenceExpander(), dispatcher),
+            ObserveHolidaysUseCase(FakeSettingsRepository()),
             calendarRepo,
             deviceZone,
         )
@@ -103,6 +110,27 @@ class AgendaViewModelTest {
             testScheduler.advanceUntilIdle()
 
             assertThat(expectMostRecentItem().days.map { it.date }).containsExactly(day.minusDays(1))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a holiday is listed on its day, even a day without events`() = runTest(dispatcher) {
+        val vm = AgendaViewModel(
+            ObserveOccurrencesInRangeUseCase(eventRepo, calendarRepo, RecurrenceExpander(), dispatcher),
+            ObserveHolidaysUseCase(FakeSettingsRepository(AppSettings(holidayCountry = HolidayCountry.FR))),
+            calendarRepo,
+            FakeDeviceZone(zone),
+        )
+        // The next Christmas always falls in the year ahead the agenda reads.
+        val today = LocalDate.now(zone)
+        val christmas = LocalDate.of(today.year, 12, 25).let { if (it.isBefore(today)) it.plusYears(1) else it }
+
+        vm.uiState.test {
+            testScheduler.advanceUntilIdle()
+            val day = expectMostRecentItem().days.single { it.date == christmas }
+            assertThat(day.items).isEmpty()
+            assertThat(day.holidays.map { it.name }).containsExactly(HolidayName.CHRISTMAS)
             cancelAndIgnoreRemainingEvents()
         }
     }

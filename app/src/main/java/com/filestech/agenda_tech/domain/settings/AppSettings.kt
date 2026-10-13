@@ -1,6 +1,7 @@
 package com.filestech.agenda_tech.domain.settings
 
 import com.filestech.agenda_tech.domain.backup.AutoBackupOutcome
+import com.filestech.agenda_tech.domain.holiday.HolidayCountry
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import timber.log.Timber
 
@@ -68,6 +69,11 @@ data class AppSettings(
     val showWeekNumbers: Boolean = false,
     /** Dots by default: the month looks the same after the update until the user asks otherwise. */
     val monthDisplay: MonthDisplay = MonthDisplay.DOTS,
+    /**
+     * Whose national public holidays the calendar shows. None by default: the agenda looks the same after
+     * the update until the user picks a country (see [com.filestech.agenda_tech.domain.holiday.Holidays]).
+     */
+    val holidayCountry: HolidayCountry? = null,
     val defaultEventColor: CalendarColor = CalendarColor.DEFAULT,
     val defaultDurationMinutes: Int = DEFAULT_DURATION_MINUTES,
     /** Minutes-before for a new event's reminder; -1 means no default reminder. */

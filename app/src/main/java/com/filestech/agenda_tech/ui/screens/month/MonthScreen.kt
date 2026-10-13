@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -89,6 +90,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.ImportLimits
 import com.filestech.agenda_tech.domain.birthday.displayTitle
+import com.filestech.agenda_tech.domain.holiday.Holiday
 import com.filestech.agenda_tech.domain.settings.MonthDisplay
 import com.filestech.agenda_tech.ui.CalendarScaffold
 import com.filestech.agenda_tech.ui.ics.IcsResult
@@ -97,6 +99,7 @@ import com.filestech.agenda_tech.ui.navigation.CalendarView
 import com.filestech.agenda_tech.ui.theme.LogoShape
 import com.filestech.agenda_tech.ui.theme.BrandDanger
 import com.filestech.agenda_tech.ui.util.DatePickerModal
+import com.filestech.agenda_tech.ui.util.HolidayLine
 import com.filestech.agenda_tech.ui.util.LocalDeviceZone
 import com.filestech.agenda_tech.ui.util.openMapLink
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
@@ -481,6 +484,7 @@ private fun MonthScreenContent(
                 )
                 SelectedDayOccurrences(
                     occurrences = state.selectedDayOccurrences,
+                    holidays = state.selectedDayHolidays,
                     locale = locale,
                     onOccurrenceClick = onOccurrenceClick,
                     modifier = Modifier
@@ -493,6 +497,7 @@ private fun MonthScreenContent(
             DaySheet(
                 date = state.selectedDate,
                 occurrences = state.selectedDayOccurrences,
+                holidays = state.selectedDayHolidays,
                 locale = locale,
                 onChangeDay = onSelectDate,
                 onAddEvent = onAddEvent,
@@ -637,25 +642,42 @@ private fun RowScope.DayCell(
     }
 }
 
+/**
+ * The day's list, under the grid or in the day's sheet: its public holidays first — not events, nothing
+ * to open — then its events.
+ */
 @Composable
 internal fun SelectedDayOccurrences(
     occurrences: List<OccurrenceData>,
+    holidays: List<Holiday>,
     locale: Locale,
     onOccurrenceClick: (Long, Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (occurrences.isEmpty()) {
-        Box(modifier = modifier, contentAlignment = Alignment.Center) {
-            Text(
-                text = stringResource(R.string.month_no_events),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Column(modifier = modifier) {
+            holidays.forEach { HolidayLine(it, Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.month_no_events),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         return
     }
     val zone = LocalDeviceZone.current
     LazyColumn(modifier = modifier) {
+        items(holidays, key = { "holiday-${it.name}-${it.observed}" }) { holiday ->
+            HolidayLine(holiday, Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = lightLineColor())
+        }
         itemsIndexed(
             occurrences,
             key = { _, occurrence -> occurrence.eventId to occurrence.occurrenceStartUtcMillis },

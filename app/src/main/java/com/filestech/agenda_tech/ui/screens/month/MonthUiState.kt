@@ -1,5 +1,6 @@
 package com.filestech.agenda_tech.ui.screens.month
 
+import com.filestech.agenda_tech.domain.holiday.Holiday
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -15,6 +16,8 @@ data class DayCellData(
     val isToday: Boolean,
     val isSelected: Boolean,
     val events: List<OccurrenceData>,
+    /** The public holidays on this day (see ObserveHolidaysUseCase) — none unless a country is picked. */
+    val holidays: List<Holiday> = emptyList(),
 )
 
 /**
@@ -68,6 +71,8 @@ data class MonthUiState(
     val pages: Map<YearMonth, List<List<DayCellData>>>,
     val selectedDate: LocalDate,
     val selectedDayOccurrences: List<OccurrenceData>,
+    /** The selected day's public holidays, shown above its events in the day's list. */
+    val selectedDayHolidays: List<Holiday> = emptyList(),
     val showWeekNumbers: Boolean,
     /** ISO week number for each of the 6 grid rows (parallel to [weeks]); shown when [showWeekNumbers]. */
     val weekNumbers: List<Int>,

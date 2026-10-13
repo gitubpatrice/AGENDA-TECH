@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.domain.holiday.HolidayCountry
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.security.StrongBiometrics
 import com.filestech.agenda_tech.ui.lock.MIN_PIN_LENGTH
@@ -71,8 +72,11 @@ import kotlinx.coroutines.withContext
 import com.filestech.agenda_tech.domain.settings.AppSettings
 import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.domain.settings.WeekStart
+import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import com.filestech.agenda_tech.ui.util.rememberReminderNotifications
 import com.filestech.agenda_tech.ui.util.reminderLabel
+import java.text.Collator
+import java.util.Locale
 
 private val DURATION_OPTIONS = listOf(15, 30, 45, 60, 90, 120, 240)
 private val REMINDER_OPTIONS = listOf(AppSettings.NO_DEFAULT_REMINDER, 0, 5, 10, 15, 30, 60, 24 * 60)
@@ -154,6 +158,7 @@ fun SettingsScreen(
                 checked = settings.showWeekNumbers,
                 onCheckedChange = viewModel::setShowWeekNumbers,
             )
+            HolidayCountryRow(settings.holidayCountry, viewModel::setHolidayCountry)
             // The per-app language picker (res/xml/locales_config.xml) lives in Android's settings,
             // where nobody looks for it: declaring the languages without leading there offers them by
             // half. Android 13+ only - below, the page does not exist and the row would open nothing,
@@ -499,12 +504,39 @@ private fun ClickRow(title: String, onClick: () -> Unit, subtitle: String? = nul
     }
 }
 
+/**
+ * Whose public holidays the calendar shows: none, or one country. The countries are named by the system
+ * in the app's language and listed in that language's order, so each user finds theirs where they expect.
+ */
+@Composable
+private fun HolidayCountryRow(current: HolidayCountry?, onSelect: (HolidayCountry?) -> Unit) {
+    val locale = rememberAppLocale()
+    val none = stringResource(R.string.settings_holidays_none)
+    val collator = remember(locale) { Collator.getInstance(locale) }
+    val countries = remember(locale) {
+        HolidayCountry.entries
+            .map { it to countryName(it, locale) }
+            .sortedWith(compareBy(collator) { it.second })
+    }
+    ChoiceRow(
+        title = stringResource(R.string.settings_holidays),
+        subtitle = stringResource(R.string.settings_holidays_sub),
+        currentLabel = current?.let { countryName(it, locale) } ?: none,
+        options = listOf<Pair<HolidayCountry?, String>>(null to none) + countries,
+        onSelect = onSelect,
+    )
+}
+
+private fun countryName(country: HolidayCountry, locale: Locale): String =
+    Locale.Builder().setRegion(country.name).build().getDisplayCountry(locale)
+
 @Composable
 private fun <T> ChoiceRow(
     title: String,
     currentLabel: String,
     options: List<Pair<T, String>>,
     onSelect: (T) -> Unit,
+    subtitle: String? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
@@ -515,7 +547,16 @@ private fun <T> ChoiceRow(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge)
+                if (subtitle != null) {
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             Text(
                 currentLabel,
                 style = MaterialTheme.typography.bodyMedium,

@@ -3,6 +3,8 @@ package com.filestech.agenda_tech.ui.screens.month
 import app.cash.turbine.test
 import com.filestech.agenda_tech.core.time.FakeDeviceZone
 import com.filestech.agenda_tech.core.time.FarZones
+import com.filestech.agenda_tech.domain.holiday.HolidayCountry
+import com.filestech.agenda_tech.domain.holiday.HolidayName
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.repository.EventRepository
@@ -13,6 +15,7 @@ import com.filestech.agenda_tech.domain.settings.WeekStart
 import com.filestech.agenda_tech.domain.usecase.FakeCalendarRepository
 import com.filestech.agenda_tech.domain.usecase.FakeEventRepository
 import com.filestech.agenda_tech.domain.usecase.FakeSettingsRepository
+import com.filestech.agenda_tech.domain.usecase.ObserveHolidaysUseCase
 import com.filestech.agenda_tech.domain.usecase.ObserveOccurrencesInRangeUseCase
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
@@ -67,6 +70,7 @@ class MonthCellsTest {
         observeOccurrences = ObserveOccurrencesInRangeUseCase(eventRepo, calendarRepo, RecurrenceExpander(), dispatcher),
         calendarRepository = calendarRepo,
         eventRepository = eventRepo,
+        observeHolidays = ObserveHolidaysUseCase(settings),
         settingsRepository = settings,
         deviceZone = deviceZone,
     )
@@ -258,6 +262,7 @@ class MonthCellsTest {
             ),
             calendarRepository = calendarRepo,
             eventRepository = eventRepo,
+            observeHolidays = ObserveHolidaysUseCase(settings),
             settingsRepository = settings,
             deviceZone = deviceZone,
         )
@@ -286,6 +291,7 @@ class MonthCellsTest {
             ),
             calendarRepository = calendarRepo,
             eventRepository = eventRepo,
+            observeHolidays = ObserveHolidaysUseCase(settings),
             settingsRepository = settings,
             deviceZone = deviceZone,
         )
@@ -362,5 +368,27 @@ class MonthCellsTest {
         testScheduler.advanceUntilIdle()
 
         assertThat(settings.current().monthDisplay).isEqualTo(MonthDisplay.TITLES)
+    }
+
+    @Test
+    fun `with no country picked, no day carries a holiday`() = runTest(dispatcher) {
+        val state = viewModel().state(testScheduler)
+
+        assertThat(state.pages.values.flatten().flatten().flatMap { it.holidays }).isEmpty()
+        assertThat(state.selectedDayHolidays).isEmpty()
+    }
+
+    @Test
+    fun `a picked country puts its holidays on their days and in the selected day's list`() = runTest(dispatcher) {
+        val vm = viewModel(FakeSettingsRepository(AppSettings(holidayCountry = HolidayCountry.FR)))
+        val bastilleDay = LocalDate.of(2026, 7, 14)
+        vm.onSelectDate(bastilleDay)
+
+        val state = vm.state(testScheduler)
+
+        val days = state.weeks.flatten()
+        assertThat(days.single { it.date == bastilleDay }.holidays.map { it.name }).containsExactly(HolidayName.NATIONAL_DAY)
+        assertThat(days.single { it.date == bastilleDay.plusDays(1) }.holidays).isEmpty()
+        assertThat(state.selectedDayHolidays.map { it.name }).containsExactly(HolidayName.NATIONAL_DAY)
     }
 }

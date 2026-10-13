@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.birthday.displayTitle
+import com.filestech.agenda_tech.ui.util.HolidayLine
 import com.filestech.agenda_tech.ui.util.LocalDeviceZone
 import java.time.DayOfWeek
 import java.time.Instant
@@ -209,6 +210,10 @@ private fun DayRow(
                 .padding(start = 8.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
+            // Before the events, as in the day's list; padded like an event row so the names line up.
+            cell.holidays.forEach { holiday ->
+                HolidayLine(holiday, Modifier.padding(horizontal = 4.dp, vertical = 3.dp))
+            }
             cell.events.forEach { event ->
                 val time = rowTime(event, dayStart, dayEnd, zone, timeFormatter)
                 RowEvent(event, time, timeWidth, onOccurrenceClick)

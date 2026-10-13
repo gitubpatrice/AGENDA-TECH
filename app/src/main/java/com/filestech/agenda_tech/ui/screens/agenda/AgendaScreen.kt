@@ -31,6 +31,7 @@ import com.filestech.agenda_tech.ui.screens.timeline.TimelineItem
 import com.filestech.agenda_tech.ui.util.AddFab
 import com.filestech.agenda_tech.ui.util.EventRow
 import com.filestech.agenda_tech.ui.util.EventRowDetail
+import com.filestech.agenda_tech.ui.util.HolidayLine
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import java.time.Instant
 import java.time.LocalDate
@@ -99,6 +100,9 @@ fun AgendaScreen(
                 item(key = "header-${day.date}") {
                     DayHeader(day.date, locale)
                 }
+                items(day.holidays, key = { "holiday-${day.date}-${it.name}-${it.observed}" }) { holiday ->
+                    HolidayLine(holiday, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                }
                 items(day.items, key = { it.eventId to it.occurrenceStartUtcMillis }) { item ->
                     AgendaRow(item, zone, locale, onOccurrenceClick)
                 }
@@ -108,14 +112,14 @@ fun AgendaScreen(
 }
 
 /**
- * Flat LazyColumn index of the first day on/after [today] (each day = 1 header + N rows). Falls back
- * to the end of the list when every event is in the past.
+ * Flat LazyColumn index of the first day on/after [today] (each day = 1 header, its holidays, then its
+ * events). Falls back to the end of the list when every day is in the past.
  */
 private fun List<AgendaDay>.todayFlatIndex(today: LocalDate): Int {
     var index = 0
     for (day in this) {
         if (!day.date.isBefore(today)) return index
-        index += 1 + day.items.size
+        index += 1 + day.holidays.size + day.items.size
     }
     return (index - 1).coerceAtLeast(0)
 }

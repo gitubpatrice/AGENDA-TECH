@@ -73,8 +73,8 @@ fun DayScreen(
                 .padding(innerPadding)
                 .fillMaxSize(),
         ) {
-            if (state.day.allDayItems.isNotEmpty()) {
-                AllDayStrip(state.day.allDayItems, onOccurrenceClick)
+            if (state.day.allDayItems.isNotEmpty() || state.day.holidays.isNotEmpty()) {
+                AllDayStrip(state.day.holidays, state.day.allDayItems, onOccurrenceClick)
                 HorizontalDivider()
             }
             Row(

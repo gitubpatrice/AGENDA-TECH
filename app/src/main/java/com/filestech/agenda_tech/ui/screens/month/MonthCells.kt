@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
@@ -28,6 +29,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.filestech.agenda_tech.R
+import com.filestech.agenda_tech.ui.util.holidayColor
+import com.filestech.agenda_tech.ui.util.holidayName
 import java.util.Locale
 
 // What the three month displays share: how a day number looks, how a day answers a tap and a long
@@ -47,12 +50,18 @@ internal fun dayNumberDiameter(base: Dp, style: TextStyle): Dp =
 internal fun weekNumberWidth(): Dp =
     with(LocalDensity.current) { maxOf(WEEK_NUMBER_WIDTH, MaterialTheme.typography.labelSmall.fontSize.toDp() * 2.2f) }
 
-/** The day number, on a filled circle when it is today. [size] is the diameter at the default text size. */
+/**
+ * The day number, on a filled circle when it is today, in red on a public holiday — the one mark the three
+ * displays share for it, the dots having no room for a name. [size] is the diameter at the default text size.
+ */
 @Composable
 internal fun DayNumber(cell: DayCellData, size: Dp, style: TextStyle) {
+    val holiday = cell.holidays.isNotEmpty()
     val color = when {
         cell.isToday -> MaterialTheme.colorScheme.onPrimary
+        !cell.isInMonth && holiday -> holidayColor().copy(alpha = OUT_OF_MONTH_ALPHA)
         !cell.isInMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = OUT_OF_MONTH_ALPHA)
+        holiday -> holidayColor()
         else -> MaterialTheme.colorScheme.onSurface
     }
     Box(
@@ -137,15 +146,17 @@ internal fun Modifier.dayGestures(
 ): Modifier = combinedClickable(onClick = onClick, onLongClick = onLongClick, onLongClickLabel = longClickLabel)
 
 /**
- * What a screen reader says of a day: its full date, and — when the display shows no titles — how
- * many events it holds. A bare "6" said nothing of either.
+ * What a screen reader says of a day: its full date, its public holidays — the red of the number says
+ * nothing to it — and, when the display shows no titles, how many events it holds. A bare "6" said
+ * nothing of any of them.
  */
 @Composable
 internal fun dayDescription(cell: DayCellData, locale: Locale, withCount: Boolean): String {
-    val date = dayLabel(cell.date, locale)
+    val resources = LocalResources.current
+    val date = listOf(dayLabel(cell.date, locale)) + cell.holidays.map { holidayName(resources, it) }
     val count = cell.events.size
-    if (!withCount || count == 0) return date
-    return date + ", " + pluralStringResource(R.plurals.month_day_events, count, count)
+    val parts = if (!withCount || count == 0) date else date + pluralStringResource(R.plurals.month_day_events, count, count)
+    return parts.joinToString(", ")
 }
 
 internal const val MAX_DOTS = 4

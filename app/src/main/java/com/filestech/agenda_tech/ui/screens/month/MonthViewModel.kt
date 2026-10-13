@@ -33,8 +33,10 @@ import java.time.LocalDate
 import java.time.YearMonth
 import com.filestech.agenda_tech.core.time.DAY_MILLIS
 import com.filestech.agenda_tech.domain.birthday.BirthdayAge
+import com.filestech.agenda_tech.domain.holiday.Holiday
 import com.filestech.agenda_tech.domain.location.GeoLink
 import com.filestech.agenda_tech.domain.location.PlaceLabel
+import com.filestech.agenda_tech.domain.usecase.ObserveHolidaysUseCase
 import java.time.ZoneId
 import java.time.temporal.WeekFields
 import java.util.Locale
@@ -48,6 +50,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MonthViewModel @Inject constructor(
     private val observeOccurrences: ObserveOccurrencesInRangeUseCase,
+    private val observeHolidays: ObserveHolidaysUseCase,
     private val calendarRepository: CalendarRepository,
     private val eventRepository: EventRepository,
     private val settingsRepository: SettingsRepository,
@@ -107,18 +110,22 @@ class MonthViewModel @Inject constructor(
     }.flatMapLatest { (month, firstDay, windowZone) ->
         val startDate = MonthGrid.gridRange(month.minusMonths(1), firstDay).first
         val endDate = MonthGrid.gridRange(month.plusMonths(1), firstDay).second
-        observeOccurrences(
-            startDate.atStartOfDay(windowZone).toInstant().toEpochMilli(),
-            endDate.atStartOfDay(windowZone).toInstant().toEpochMilli(),
-            windowZone,
-        ).map { occurrences -> windowZone to occurrences }
+        combine(
+            observeOccurrences(
+                startDate.atStartOfDay(windowZone).toInstant().toEpochMilli(),
+                endDate.atStartOfDay(windowZone).toInstant().toEpochMilli(),
+                windowZone,
+            ),
+            // The same window, so a holiday is on the page as soon as its events are.
+            observeHolidays(startDate, endDate),
+        ) { occurrences, holidays -> MonthWindow(windowZone, occurrences, holidays) }
     }
 
     // The last values the two database sources gave, replayed whenever they start again. The occurrences
     // keep the zone they were read in, and the state is built in that zone: a list read before a journey
     // and days counted after it would put events on the wrong day until the new query answered
     // (external review, 2026-10-05).
-    private var lastWindow: Pair<ZoneId, List<EventOccurrence>> = zone to emptyList()
+    private var lastWindow = MonthWindow(zone, emptyList(), emptyMap())
     private var lastCalendars: List<Calendar> = emptyList()
 
     // The two database sources start with their last values: the grid is then drawn as soon as the
@@ -135,12 +142,13 @@ class MonthViewModel @Inject constructor(
         windowOccurrences.onEach { lastWindow = it }.onStart { emit(lastWindow) },
         calendarRepository.observeAll().onEach { lastCalendars = it }.onStart { emit(lastCalendars) },
         monthSettingsFlow,
-    ) { month, selected, (windowZone, occurrences), calendars, settingsPair ->
+    ) { month, selected, window, calendars, settingsPair ->
         buildState(
-            zone = windowZone,
+            zone = window.zone,
             month = month,
             selected = selected,
-            occurrences = occurrences,
+            occurrences = window.occurrences,
+            holidays = window.holidays,
             colorByCalendarId = calendars.associate { it.id to it.color.argb },
             firstDayOfWeek = settingsPair.first,
             showWeekNumbers = settingsPair.second,
@@ -154,6 +162,7 @@ class MonthViewModel @Inject constructor(
             month = YearMonth.now(zone),
             selected = LocalDate.now(zone),
             occurrences = emptyList(),
+            holidays = emptyMap(),
             colorByCalendarId = emptyMap(),
             firstDayOfWeek = WeekFields.of(appLocale.value).firstDayOfWeek,
             showWeekNumbers = false,
@@ -280,6 +289,7 @@ class MonthViewModel @Inject constructor(
         month: YearMonth,
         selected: LocalDate,
         occurrences: List<EventOccurrence>,
+        holidays: Map<LocalDate, List<Holiday>>,
         colorByCalendarId: Map<Long, Int>,
         firstDayOfWeek: DayOfWeek,
         showWeekNumbers: Boolean,
@@ -318,6 +328,7 @@ class MonthViewModel @Inject constructor(
                         isToday = date == today,
                         isSelected = date == selected,
                         events = sorted.overlapping(date, zone),
+                        holidays = holidays[date].orEmpty(),
                     )
                 }
             }
@@ -333,6 +344,7 @@ class MonthViewModel @Inject constructor(
             pages = pages,
             selectedDate = selected,
             selectedDayOccurrences = sorted.overlapping(selected, zone),
+            selectedDayHolidays = holidays[selected].orEmpty(),
             showWeekNumbers = showWeekNumbers,
             weekNumbers = weekNumbers,
             isLoading = isLoading,
@@ -374,3 +386,10 @@ class MonthViewModel @Inject constructor(
         private val PAGE_OFFSETS = -1L..1L
     }
 }
+
+/** What the window of three months holds: its occurrences and its holidays, with the zone they were read in. */
+private data class MonthWindow(
+    val zone: ZoneId,
+    val occurrences: List<EventOccurrence>,
+    val holidays: Map<LocalDate, List<Holiday>>,
+)
