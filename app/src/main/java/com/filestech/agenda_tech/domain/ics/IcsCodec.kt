@@ -94,6 +94,15 @@ object IcsCodec {
         return out.toString()
     }
 
+    /**
+     * [uid] as the export writes it: given the "@filestech" domain when it has none, so the domain never
+     * accumulates on round-trips.
+     *
+     * Public because the import has to recognise this spelling: an event imported as `abc123` leaves as
+     * `abc123@filestech`, and that file must find it again (ImportEventsUseCase).
+     */
+    fun uidAsWritten(uid: String): String = if (uid.contains("@")) uid else "$uid@filestech"
+
     private fun StringBuilder.appendContentLine(line: String) {
         append(IcsLines.fold(line)).append(IcsLines.CRLF)
     }
@@ -102,9 +111,8 @@ object IcsCodec {
         out.appendContentLine("BEGIN:VEVENT")
         // Stable UID (FIAB-NEW-2): from the event's identity, not its position — so re-exporting an
         // evolving agenda keeps each event's UID and a later re-import updates instead of duplicating.
-        // Only add the "@filestech" domain when the UID has none, so it never accumulates on round-trips.
         val base = event.uid?.takeIf { it.isNotBlank() } ?: "agenda-tech-$index-${event.startUtcMillis}"
-        val uid = if (base.contains("@")) base else "$base@filestech"
+        val uid = uidAsWritten(base)
         // Audit F2/F4 - the UID is attacker-controlled on any imported event and was the one TEXT
         // value written raw: real newlines in it became content lines, so an exported .ics could
         // carry whole VEVENTs the attacker wrote, under the user's name.

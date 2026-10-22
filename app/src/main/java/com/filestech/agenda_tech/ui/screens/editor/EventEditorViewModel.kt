@@ -289,7 +289,10 @@ class EventEditorViewModel @Inject constructor(
         } else {
             emptyList()
         }
-        val ics = EventShare.ics(event, overrides, System.currentTimeMillis())
+        // The UIDs the agenda's export writes too, so a calendar that receives both does not hold the event
+        // twice — and the recipient's next import of a newer share updates it instead of adding it.
+        val series = eventRepository.withIcsIdentities(listOf(event) + overrides)
+        val ics = EventShare.ics(series.first(), series.drop(1), System.currentTimeMillis())
         // Filed under the series, so deleting any part of it — see launchDeletion — deletes the copy.
         val owner = source.event.recurrenceParentId ?: source.event.id
         sharedFiles.calendarFile(owner, EventShare.fileStem(event.title), ics)

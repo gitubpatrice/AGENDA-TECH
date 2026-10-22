@@ -125,6 +125,13 @@ interface EventDao {
         entities.forEach { upsert(it) }
     }
 
+    /**
+     * Gives a row its iCalendar identity — only if it has none: once a file carries it, it must not change.
+     * `updated_at` moves with it, so the backup prompt sees a change a backup does not hold yet.
+     */
+    @Query("UPDATE events SET source_uid = :uid, updated_at = :updatedAt WHERE id = :id AND source_uid IS NULL")
+    suspend fun assignSourceUid(id: Long, uid: String, updatedAt: Long)
+
     /** (source_uid → id) of the imported events of a calendar, to update them in place on re-import. */
     @Query("SELECT id, source_uid FROM events WHERE calendar_id = :calendarId AND source_uid IS NOT NULL")
     suspend fun sourceUidRows(calendarId: Long): List<SourceUidRow>

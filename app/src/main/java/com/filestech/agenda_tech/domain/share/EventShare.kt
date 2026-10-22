@@ -73,7 +73,11 @@ object EventShare {
             .trim()
             .ifEmpty { "event" }
 
-    private fun place(event: Event): String? =
+    /**
+     * The place a share writes, `LOCATION` of its `.ics` included. Internal so the import can recognise
+     * it in a share that comes back (ImportEventsUseCase), and keep the place name the row holds.
+     */
+    internal fun place(event: Event): String? =
         PlaceLabel.forSharing(event) ?: event.gpsCoordinates?.trim()?.takeIf(GeoLink::isUsable)
 
     /** The day and the hours, read the way the editor reads them: an all-day event's dates in its own zone. */

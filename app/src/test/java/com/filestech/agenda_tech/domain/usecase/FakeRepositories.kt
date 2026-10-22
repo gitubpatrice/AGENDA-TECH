@@ -3,6 +3,7 @@ package com.filestech.agenda_tech.domain.usecase
 import com.filestech.agenda_tech.core.crypto.wipe
 import com.filestech.agenda_tech.domain.backup.AutoBackupSecret
 import com.filestech.agenda_tech.domain.backup.AutoBackupTarget
+import com.filestech.agenda_tech.domain.ics.newIcsSourceUid
 import com.filestech.agenda_tech.domain.model.AgendaStats
 import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.DeviceCalendar
@@ -141,7 +142,8 @@ internal class FakeEventRepository : EventRepository {
     override fun observeOverrides(): Flow<List<Event>> =
         flowOf(rows.values.filter { it.recurrenceParentId != null })
     override suspend fun getById(id: Long): Event? = rows[id]
-    override suspend fun getAll(): List<Event> = rows.values.toList()
+    /** Mirrors the real query's `ORDER BY start_utc_millis`: the export must not depend on id order. */
+    override suspend fun getAll(): List<Event> = rows.values.sortedBy { it.startUtcMillis }
     override fun observeAll(): Flow<List<Event>> = flowOf(rows.values.sortedBy { it.startUtcMillis })
     /** Mirrors the real query: count, and the most recent change (0 when empty). */
     override fun observeStats(): Flow<AgendaStats> = flowOf(
@@ -202,11 +204,23 @@ internal class FakeEventRepository : EventRepository {
         return id
     }
 
+    /** Mirrors EventRepositoryImpl: an update given no source uid keeps the one the row holds. */
     override suspend fun upsert(event: Event): Long {
         val id = if (event.id == 0L) nextId++ else event.id
-        rows[id] = event.copy(id = id)
+        val held = rows[id]?.sourceUid
+        rows[id] = event.copy(id = id, sourceUid = event.sourceUid ?: held)
         return id
     }
+
+    /** Mirrors EventRepositoryImpl: a uid given once, to the rows that have none, and read back. */
+    override suspend fun withIcsIdentities(events: List<Event>): List<Event> =
+        events.map { event ->
+            if (event.sourceUid != null) return@map event
+            val row = rows[event.id]
+            val uid = row?.sourceUid ?: newIcsSourceUid()
+            if (row != null && row.sourceUid == null) rows[event.id] = row.copy(sourceUid = uid)
+            event.copy(sourceUid = uid)
+        }
 
     /**
      * Mirrors EventRepositoryImpl: an import never carries address/GPS (no calendar source has them),

@@ -1,9 +1,13 @@
 package com.filestech.agenda_tech.domain.usecase
 
 import com.filestech.agenda_tech.domain.ImportLimits
+import com.filestech.agenda_tech.domain.ics.ICS_SOURCE_PREFIX
 import com.filestech.agenda_tech.domain.ics.IcsCodec
 import com.filestech.agenda_tech.domain.ics.toEvent
+import com.filestech.agenda_tech.domain.ics.updatedFrom
+import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.repository.CalendarRepository
+import com.filestech.agenda_tech.domain.share.EventShare
 import com.filestech.agenda_tech.domain.repository.EventRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
@@ -13,9 +17,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Parses an `.ics` document and inserts its events into the default calendar. Returns the number
- * imported (0 if the file has no valid VEVENT or no calendar exists yet). Reminders/VALARM are not
- * imported (out of scope for this codec).
+ * Parses an `.ics` document and inserts its events into the default calendar — or, for an event the
+ * agenda already holds under that UID, updates it where it is. Returns the number imported (0 if the
+ * file has no valid VEVENT or no calendar exists yet). Reminders/VALARM are not imported (out of scope
+ * for this codec).
  */
 // @Singleton, et pas par commodité : un Mutex d'instance ne sérialise rien si Hilt fabrique un
 // exemplaire par injection. Le jumeau ImportDeviceEventsUseCase porte la même annotation pour la
@@ -58,10 +63,18 @@ class ImportEventsUseCase @Inject constructor(
         // exactly like importing all of it.
         if (parsed.size > ImportLimits.MAX_EVENTS) throw TooManyEvents(parsed.size)
 
-        // FIAB-1 — idempotent re-import: an event whose VEVENT UID was already imported updates the
-        // same row instead of adding a duplicate (events without a UID still insert). Same pattern
-        // as the device-calendar import.
-        val existing = eventRepository.sourceUidGroups(targetId)
+        // FIAB-1 — idempotent re-import: an event whose VEVENT UID the agenda already holds updates that
+        // row instead of adding a duplicate (events without a UID still insert).
+        //
+        // 2026-10-22 — "already holds" was "already imported into the default calendar", and the agenda's
+        // OWN export did not come back through it: an event created here left under a UID nothing
+        // answered to, a re-import added a copy, and each round trip one more. The index now holds every
+        // calendar and every spelling the export writes (see [uidsRecognised]); the update keeps the row's
+        // calendar and what the file does not carry ([updatedFrom]).
+        val existing = HashMap<String, MutableList<Event>>()
+        eventRepository.getAll().sortedBy { it.id }.forEach { row ->
+            uidsRecognised(row).forEach { uid -> existing.getOrPut(uid) { mutableListOf() } += row }
+        }
         // Audit AG-14 — une ligne existante ne peut être revendiquée QU'UNE FOIS par import.
         //
         // En RFC 5545, un maître récurrent et chacune de ses occurrences modifiées PARTAGENT leur
@@ -83,17 +96,37 @@ class ImportEventsUseCase @Inject constructor(
         // d'une copie par passage, la ou le defaut d'origine, lui, stagnait. Signale par la
         // relecture gpt-5.2 du 2026-09-11 ; c'est la pluralite cote BASE qui manquait, pas un
         // garde cote fichier.
-        val consumed = HashMap<String, Int>()
+        //
+        // Revendiquer « la premiere ligne libre » plutot que « la n-ieme » (2026-10-22) : une ligne se
+        // trouve desormais sous deux cles (`abc123` et `abc123@filestech`), et un rang compte par cle
+        // laisserait deux VEVENT la revendiquer chacun par la sienne. Pour une seule cle, c'est le meme
+        // appariement.
+        val claimed = HashSet<Long>()
         val mapped = parsed.map { icsEvent ->
-            val event = icsEvent.toEvent(targetId)
-            val existingId = event.sourceUid?.let { uid ->
-                val rank = consumed.getOrDefault(uid, 0)
-                consumed[uid] = rank + 1
-                existing[uid]?.getOrNull(rank)
+            val row = icsEvent.uid?.let { uid -> existing[uid]?.firstOrNull { it.id !in claimed } }
+            if (row != null) {
+                claimed += row.id
+                row.updatedFrom(icsEvent, placesWritten = listOf(row.location, EventShare.place(row)))
+            } else {
+                icsEvent.toEvent(targetId)
             }
-            if (existingId != null) event.copy(id = existingId) else event
         }
         eventRepository.upsertAll(mapped) // PERF-1 — single atomic batch, not N transactions
         return@withLock mapped.size
+    }
+
+    /**
+     * The UIDs a file can name [row] by: its iCalendar UID, and that UID as the export writes it
+     * ([IcsCodec.uidAsWritten] gives a domain to one that has none).
+     *
+     * None for an event with no identity yet — no file has carried it — and none for a copy of a device
+     * event: its uid is the provider's `_SYNC_ID` (or `rowid:<n>`), which no standard makes unique across
+     * phones — an Exchange id reads `2:5` — so another phone's file could name an unrelated event by it.
+     * Such a copy still comes back as a copy, as it did up to 1.3.0.
+     */
+    private fun uidsRecognised(row: Event): Set<String> {
+        val uid = row.sourceUid?.takeIf { it.startsWith(ICS_SOURCE_PREFIX) } ?: return emptySet()
+        val own = uid.removePrefix(ICS_SOURCE_PREFIX)
+        return setOf(own, IcsCodec.uidAsWritten(own))
     }
 }

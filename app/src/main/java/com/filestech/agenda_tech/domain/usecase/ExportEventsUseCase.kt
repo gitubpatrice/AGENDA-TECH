@@ -10,7 +10,9 @@ class ExportEventsUseCase @Inject constructor(
     private val eventRepository: EventRepository,
 ) {
     suspend operator fun invoke(nowUtcMillis: Long): Result {
-        val events = eventRepository.getAll()
+        // By id: rows sharing a UID then leave in the order the import pairs them back with
+        // (ImportEventsUseCase, first free row by id). By start time, two of them could swap rows.
+        val events = eventRepository.withIcsIdentities(eventRepository.getAll().sortedBy { it.id })
         val ics = IcsCodec.encode(events.map { it.toIcsEvent() }, nowUtcMillis)
         return Result(ics = ics, eventCount = events.size)
     }
