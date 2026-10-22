@@ -65,6 +65,13 @@ jobs:
       - name: Release build (exercises R8)
         run: ./gradlew --no-daemon :app:assembleRelease
 
+      # Building the release was not checking it: R8 removed the constructor WorkManager 2.7.1 builds
+      # by reflection, and the widget stayed a blue box in every published release (issue #37) while
+      # this job was green. seeds.txt says what a keep rule held; the script requires the constructors
+      # WorkManager and Glance build by reflection, and tests itself on doctored seeds first.
+      - name: Constructors built by reflection survive R8
+        run: python3 tools/check-r8-reflection.py
+
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v7

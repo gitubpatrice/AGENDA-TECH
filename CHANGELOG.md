@@ -3,6 +3,21 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [1.3.3] — 2026-10-22
+
+The widget is back: it stayed a blue box on the home screen.
+
+### Fixed
+
+- **The home-screen widget showed only a blue box with "Agenda Tech"** (issue #37), in every release
+  build. The code shrinker removed a constructor that WorkManager 2.7.1 builds by reflection, so the
+  work that draws the widget failed before it started. A keep rule restores it, and the CI now checks,
+  on every release build, that what WorkManager and Glance build by reflection survives. The weekly
+  automatic backup, a periodic work, was not affected.
+- **A change made right after the widget was drawn reached it only up to 30 minutes later** — a new
+  event, and the lock turned on, whose titles the widget was meant to hide at once. The widget now
+  reads the agenda, the settings and the lock as they change.
+
 ## [1.3.2] — 2026-10-22
 
 Labels that answer: three display defects seen while testing 1.3.0, and the lines built like them.

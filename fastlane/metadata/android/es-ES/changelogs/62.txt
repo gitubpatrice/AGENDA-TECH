@@ -1,0 +1,9 @@
+v1.3.3 — Vuelve el widget
+
+• El widget de la pantalla de inicio se
+  quedaba en un recuadro azul: vuelve a
+  mostrar la fecha y los próximos eventos.
+• Un cambio hecho justo después de que
+  se muestre — nuevo evento, bloqueo
+  activado — le llega al instante, no
+  hasta 30 minutos después.

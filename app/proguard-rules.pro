@@ -19,6 +19,22 @@
 -keep class * extends androidx.room.RoomDatabase { *; }
 -dontwarn androidx.room.paging.**
 
+# --- WorkManager (gelé en 2.7.1) ----------------------------------------------
+# Tout travail PONCTUEL passe par un InputMerger que WorkManager instancie par réflexion
+# (Class.newInstance) avant de lancer le worker. Sa propre règle, `-keep class * extends
+# androidx.work.InputMerger`, garde la classe mais pas son constructeur : en mode complet de R8
+# (défaut depuis AGP 8), le constructeur sans argument était retiré (usage.txt :
+# `androidx.work.OverwritingInputMerger: public void <init>()`), et le travail échouait avant
+# même de démarrer — « Could not create Input Merger ». Le SessionWorker de Glance est un
+# travail ponctuel : le widget restait sur sa mise en page de chargement, un pavé bleu
+# « Agenda Tech », en release seulement (issue #37, mesuré sur S9 le 2026-10-22). La sauvegarde
+# automatique, travail PÉRIODIQUE, n'en passe pas par là. WorkManager 2.8 a corrigé sa règle ;
+# c'est elle, recopiée. tools/check-r8-reflection.py vérifie dans seeds.txt que ces
+# constructeurs survivent.
+-keep class * extends androidx.work.InputMerger {
+    public <init>();
+}
+
 # --- Kotlin coroutines --------------------------------------------------------
 -dontwarn kotlinx.coroutines.**
 

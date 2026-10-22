@@ -1,0 +1,9 @@
+v1.3.3 — Das Widget ist zurück
+
+• Das Widget auf dem Startbildschirm
+  blieb ein blaues Feld: Es zeigt wieder
+  das Datum und die nächsten Termine.
+• Eine Änderung direkt nach seiner
+  Anzeige — neuer Termin, Sperre
+  eingeschaltet — erreicht es sofort,
+  nicht erst bis zu 30 Minuten später.
