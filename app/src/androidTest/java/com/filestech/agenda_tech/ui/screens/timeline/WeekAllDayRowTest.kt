@@ -1,23 +1,32 @@
 package com.filestech.agenda_tech.ui.screens.timeline
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.filestech.agenda_tech.R
+import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,16 +47,33 @@ class WeekAllDayRowTest {
     private val collapse = resources.getString(R.string.week_all_day_collapse)
     private val twoMore = resources.getQuantityString(R.plurals.month_more_events, 2, 2)
 
-    private fun showWeek(eventsPerDay: List<Int>) {
+    private fun showWeek(eventsPerDay: List<Int>, heightCap: Dp = ROOMY) {
         compose.setContent {
             var expanded by remember { mutableStateOf(false) }
-            WeekAllDayRow(
-                days = week(eventsPerDay),
-                expanded = expanded,
-                onExpandedChange = { expanded = it },
-                onItemClick = { _, _ -> },
-            )
+            Box(Modifier.testTag(ROW)) {
+                WeekAllDayRow(
+                    days = week(eventsPerDay),
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it },
+                    onItemClick = { _, _ -> },
+                    heightCap = heightCap,
+                )
+            }
         }
+    }
+
+    @Test
+    fun unfolded_aCrowdedDay_scrollsWithinItsCap_andTheArrowStaysInReach() {
+        showWeek(listOf(20, 0, 0, 0, 0, 0, 0), heightCap = CAP)
+
+        compose.onNodeWithContentDescription(expand).performClick()
+
+        // The cap, the row's bottom padding and a pixel of rounding (204.19 dp measured), nothing more —
+        // uncapped, twenty strips took over 500 dp: the hours keep the rest of the screen.
+        val row = compose.onNodeWithTag(ROW).getBoundsInRoot()
+        assertThat((row.bottom - row.top).value).isAtMost((CAP + 4.dp + 1.dp).value)
+        compose.onNodeWithText(title(day = 0, index = 19)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription(collapse).assertIsDisplayed()
     }
 
     @Test
@@ -122,6 +148,9 @@ class WeekAllDayRowTest {
     private fun title(day: Int, index: Int) = "D$day E$index"
 
     private companion object {
+        const val ROW = "allDayRow"
+        val ROOMY = 1000.dp
+        val CAP = 200.dp
         val MONDAY: LocalDate = LocalDate.of(2026, 11, 9)
         const val DAY_MILLIS = 86_400_000L
         const val COLOR = 0xFF1E88E5.toInt()

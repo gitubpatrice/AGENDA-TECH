@@ -12,8 +12,8 @@
     <string name="day_next">Jour suivant</string>
     <string name="week_previous">Semaine précédente</string>
     <string name="week_next">Semaine suivante</string>
-    <string name="week_all_day_expand">Afficher toutes les journées entières</string>
-    <string name="week_all_day_collapse">Réduire les journées entières</string>
+    <string name="week_all_day_expand">Afficher tous les événements d’une journée entière</string>
+    <string name="week_all_day_collapse">Réduire les événements d’une journée entière</string>
 
     <!-- Calendrier par défaut (1er lancement) -->
     <string name="default_calendar_name">Perso</string>
