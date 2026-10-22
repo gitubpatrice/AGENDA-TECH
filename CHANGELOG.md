@@ -3,6 +3,36 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [1.3.1] — 2026-10-22
+
+Exports that come back: an agenda exported to `.ics` and imported back is no longer doubled.
+
+### Fixed
+
+- **An `.ics` exported from the agenda and imported back doubled every event created on the phone,
+  and each further round trip added one more copy.** Such an event left under a UID nothing on the
+  phone answered to. It now receives an identifier of its own the first time it leaves the app —
+  export or share — and keeps it: importing the file again updates the event in place.
+- **Every phone wrote the same UIDs** (`row-<n>@filestech`), so two events shared from two phones
+  replaced each other in the calendar that received them. The identifier is now random, and says
+  nothing about the phone or its user.
+- **An update in place keeps what the file does not carry** — the event's calendar, colour, address
+  and series — and any text the file carries as the app wrote it: a description longer than 4,000
+  characters is not cut, and a shared event that comes back keeps its place name.
+- Importing a file again also finds an event that sits in another calendar than the current default
+  one, instead of adding a copy there.
+
+### Changed
+
+- The first export after the update brings up the backup reminder: a backup taken before it does not
+  hold the identifiers the exported file now carries.
+
+### Known limits
+
+- Copies of events imported from the phone's own calendars (Google, Exchange, local) still come back
+  as copies: their identifier is the provider's, and nothing makes it unique across phones.
+- A file exported by 1.3.0 or earlier still adds, once, a copy of the events created on the phone.
+
 ## [1.3.0] — 2026-10-13
 
 Public holidays, sharing, undo and the maps app — and the week view finally shows all-day events.

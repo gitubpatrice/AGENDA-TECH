@@ -1,0 +1,13 @@
+v1.3.1 — Exportaciones que vuelven
+
+• Un .ics exportado y vuelto a importar ya
+  no duplica los eventos: cada uno se
+  actualiza en su sitio.
+• Cada evento exportado o compartido lleva
+  su propio identificador: dos eventos
+  compartidos desde dos teléfonos ya no se
+  sustituyen en el calendario que los
+  recibe.
+• Una actualización conserva el
+  calendario, el color, la dirección y la
+  descripción completa del evento.

@@ -1,0 +1,13 @@
+v1.3.1 — Les exports qui reviennent
+
+• Un .ics exporté puis réimporté ne double
+  plus les événements : chacun est mis à
+  jour sur place.
+• Chaque événement exporté ou partagé
+  porte son propre identifiant : deux
+  événements partagés depuis deux
+  téléphones ne se remplacent plus dans
+  l'agenda qui les reçoit.
+• Une mise à jour garde l'agenda, la
+  couleur, l'adresse et la description
+  entière de l'événement.

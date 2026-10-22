@@ -1,0 +1,13 @@
+v1.3.1 — Exporte, die zurückkommen
+
+• Eine exportierte und wieder importierte
+  .ics-Datei verdoppelt die Termine nicht
+  mehr: Jeder wird an Ort und Stelle
+  aktualisiert.
+• Jeder exportierte oder geteilte Termin
+  trägt eine eigene Kennung: Zwei von zwei
+  Telefonen geteilte Termine ersetzen sich
+  im empfangenden Kalender nicht mehr.
+• Eine Aktualisierung behält Kalender,
+  Farbe, Adresse und die vollständige
+  Beschreibung des Termins.

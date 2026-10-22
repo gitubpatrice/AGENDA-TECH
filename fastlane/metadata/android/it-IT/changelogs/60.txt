@@ -1,0 +1,13 @@
+v1.3.1 — Esportazioni che tornano
+
+• Un .ics esportato e poi reimportato non
+  raddoppia più gli eventi: ognuno viene
+  aggiornato al suo posto.
+• Ogni evento esportato o condiviso ha un
+  proprio identificativo: due eventi
+  condivisi da due telefoni non si
+  sostituiscono più nel calendario che li
+  riceve.
+• Un aggiornamento mantiene il calendario,
+  il colore, l'indirizzo e la descrizione
+  completa dell'evento.
