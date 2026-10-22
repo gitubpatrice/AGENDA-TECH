@@ -75,6 +75,29 @@ internal class EventEditorShareTest : EventEditorTestBase() {
     }
 
     @Test
+    fun `a shared file names the event by an identity a later save keeps`() = runTest(dispatcher) {
+        // 2026-10-22 — the event gets its UID when it first leaves the app, while the editor still holds
+        // the null it loaded: saving after sharing wrote that null over it, and the shared file named a
+        // UID the agenda no longer knew.
+        seedEvent(id = 10, title = "Dentiste")
+        val vm = viewModel(eventId = 10)
+        testScheduler.advanceUntilIdle()
+
+        vm.calendarFileToShare(vm.shareSource()!!)
+        val given = eventRepo.rows.getValue(10).sourceUid
+        vm.onTitleChange("Dentiste reporté")
+        vm.onSave()
+        testScheduler.advanceUntilIdle()
+
+        val content = slot<String>()
+        coVerify(exactly = 1) { sharedFiles.calendarFile(10, "Dentiste", capture(content)) }
+        assertThat(given).isNotNull()
+        assertThat(content.captured).contains("UID:${given!!.removePrefix("ics:")}")
+        assertThat(eventRepo.rows.getValue(10).title).isEqualTo("Dentiste reporté")
+        assertThat(eventRepo.rows.getValue(10).sourceUid).isEqualTo(given)
+    }
+
+    @Test
     fun `a share asked as a deletion begins gives up, so no copy outlives the event`() = runTest(dispatcher) {
         // External review, 2026-10-13: written just after the deletion had cleared the shares, the copy
         // stayed behind its event.

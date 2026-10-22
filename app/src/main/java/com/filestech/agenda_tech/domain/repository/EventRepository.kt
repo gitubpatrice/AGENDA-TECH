@@ -70,11 +70,28 @@ interface EventRepository {
      */
     suspend fun upsertOverrideAtomic(override: Event, masterId: Long, originalStartUtcMillis: Long): Long
 
-    /** Inserts or updates; returns the event's id (freshly generated on insert). */
+    /**
+     * Inserts or updates; returns the event's id (freshly generated on insert).
+     *
+     * An update given no [Event.sourceUid] keeps the one the row holds: the editor writes back the uid it
+     * loaded, and a share made since may have given the event one ([withIcsIdentities]).
+     */
     suspend fun upsert(event: Event): Long
 
     /** Atomically inserts/updates a batch of events (import). All or nothing — no half-populated import. */
     suspend fun upsertAll(events: List<Event>)
+
+    /**
+     * Gives each of [events] that has no [Event.sourceUid] one of its own
+     * ([com.filestech.agenda_tech.domain.ics.newIcsSourceUid]), stores it, and returns [events] as the
+     * agenda now holds them, in the same order.
+     *
+     * Called by whatever writes events into a file — the `.ics` export and "Share as .ics" — just before
+     * it does: the UID a file carries must be one the agenda remembers, or the file comes back as a copy.
+     * An identity is given once and never replaced. It counts as a change (`updated_at`): a backup taken
+     * before it does not know the UIDs the files outside now carry.
+     */
+    suspend fun withIcsIdentities(events: List<Event>): List<Event>
 
     /**
      * (source_uid → ids existants, par id croissant) des événements importés d'un calendrier.

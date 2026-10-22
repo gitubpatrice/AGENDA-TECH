@@ -34,11 +34,10 @@ class IcsCodecTest {
             endUtcMillis = parisMillis(2025, 6, 1, 10, 0),
             timeZoneId = "Europe/Paris",
         )
-        // No source uid → stable row-based uid.
-        assertThat(base.toIcsEvent().uid).isEqualTo("row-5")
         // Previously imported (.ics) event → keeps the original uid so re-export/re-import dedups.
         assertThat(base.copy(sourceUid = "ics:external@example.com").toIcsEvent().uid)
             .isEqualTo("external@example.com")
+        // An event created here has none until it first leaves the app: see IcsRoundTripTest.
     }
 
     @Test

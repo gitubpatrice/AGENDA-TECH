@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.filestech.agenda_tech.data.local.db.dao.EventDao
 import com.filestech.agenda_tech.core.di.IoDispatcher
 import com.filestech.agenda_tech.data.local.db.AppDatabase
+import com.filestech.agenda_tech.domain.ics.newIcsSourceUid
 import com.filestech.agenda_tech.domain.model.AgendaStats
 import com.filestech.agenda_tech.domain.model.Event
 import com.filestech.agenda_tech.domain.repository.EventRepository
@@ -86,32 +87,44 @@ class EventRepositoryImpl @Inject constructor(
         originalStartUtcMillis: Long,
     ): Long = withContext(io) {
         val now = System.currentTimeMillis()
-        val masterRow = dao.getById(masterId)
-        val master = masterRow?.toDomain()
-        val rule = master?.recurrence
-        // Null when there is nothing to rewrite: the master is gone, is not recurring, or already
-        // excludes this instant (a re-save of the same override — `excluding` is idempotent).
-        val excluded = rule?.excluding(originalStartUtcMillis)
-        val updatedMaster = if (excluded != null && excluded != rule) {
-            master.copy(recurrence = excluded).toEntity(createdAt = masterRow.createdAt, updatedAt = now)
-        } else {
-            null
+        // One transaction with the read, as in [upsert]: the master is written back whole, and an identity
+        // a share gave it in between would otherwise be written over.
+        db.withTransaction {
+            val masterRow = dao.getById(masterId)
+            val master = masterRow?.toDomain()
+            val rule = master?.recurrence
+            // Null when there is nothing to rewrite: the master is gone, is not recurring, or already
+            // excludes this instant (a re-save of the same override — `excluding` is idempotent).
+            val excluded = rule?.excluding(originalStartUtcMillis)
+            val updatedMaster = if (excluded != null && excluded != rule) {
+                master.copy(recurrence = excluded).toEntity(createdAt = masterRow.createdAt, updatedAt = now)
+            } else {
+                null
+            }
+            dao.upsertOverrideAndMaster(
+                override = override.toEntity(createdAt = now, updatedAt = now),
+                master = updatedMaster,
+            )
         }
-        dao.upsertOverrideAndMaster(
-            override = override.toEntity(createdAt = now, updatedAt = now),
-            master = updatedMaster,
-        )
     }
 
     override suspend fun upsert(event: Event): Long = withContext(io) {
         val now = System.currentTimeMillis()
-        // Preserve the original createdAt on edit; stamp a fresh one on insert.
-        val createdAt = if (event.id != 0L) {
-            dao.getById(event.id)?.createdAt ?: now
-        } else {
-            now
+        // One transaction: the row read here is the row written over, with no share landing in between.
+        val rowId = db.withTransaction {
+            val existing = if (event.id != 0L) dao.getById(event.id) else null
+            // Preserve the original createdAt on edit; stamp a fresh one on insert.
+            val createdAt = existing?.createdAt ?: now
+            // An update never takes an event's identity away (2026-10-22). The editor writes back the uid
+            // it loaded; "Share as .ics" may have given the event one since, and writing the stale null
+            // over it would leave the shared file naming a UID the agenda no longer knows.
+            val kept = if (event.sourceUid == null && existing?.sourceUid != null) {
+                event.copy(sourceUid = existing.sourceUid)
+            } else {
+                event
+            }
+            dao.upsert(kept.toEntity(createdAt = createdAt, updatedAt = now))
         }
-        val rowId = dao.upsert(event.toEntity(createdAt = createdAt, updatedAt = now))
         // Room's @Upsert returns the new rowid on INSERT but **-1 on UPDATE**. The contract above
         // promises "the event's id", so answer that — never hand a caller the raw DAO value.
         //
@@ -156,6 +169,21 @@ class EventRepositoryImpl @Inject constructor(
             merged.toEntity(createdAt = createdAtById[event.id] ?: now, updatedAt = now)
         }
         dao.upsertAll(entities)
+    }
+
+    override suspend fun withIcsIdentities(events: List<Event>): List<Event> = withContext(io) {
+        val minted = events.filter { it.sourceUid == null }.associate { it.id to newIcsSourceUid() }
+        if (minted.isEmpty()) return@withContext events
+        val now = System.currentTimeMillis()
+        // Conditional, then read back: a row given a UID meanwhile keeps it, and the file must carry THAT
+        // one. A row deleted meanwhile reads back null — the file can still carry the minted one.
+        val held = db.withTransaction {
+            minted.mapValues { (id, uid) ->
+                dao.assignSourceUid(id, uid, now)
+                dao.getById(id)?.sourceUid ?: uid
+            }
+        }
+        events.map { event -> if (event.sourceUid != null) event else event.copy(sourceUid = held.getValue(event.id)) }
     }
 
     override suspend fun sourceUidGroups(calendarId: Long): Map<String, List<Long>> = withContext(io) {

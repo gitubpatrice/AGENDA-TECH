@@ -53,6 +53,8 @@ class EventShareTest {
         recurrence = recurrence,
         recurrenceParentId = parentId,
         originalStartUtcMillis = parentId?.let { start },
+        // As the editor hands it over: given an identity before it is written (withIcsIdentities).
+        sourceUid = "ics:event-$id@example.com",
     )
 
     private fun text(event: Event, start: Long = event.startUtcMillis, end: Long = event.endUtcMillis) =
