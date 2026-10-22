@@ -1,0 +1,11 @@
+v1.3.1 — Exports that come back
+
+• An .ics exported from the agenda and
+  imported back no longer doubles the
+  events: each one is updated in place.
+• Each exported or shared event carries
+  its own identifier: two events shared
+  from two phones no longer replace each
+  other in the calendar receiving them.
+• An update keeps the event's calendar,
+  colour, address and full description.
