@@ -1,0 +1,13 @@
+v1.3.2 — Labels that answer
+
+• Week: a tap on "+2" under a day unfolds
+  its all-day events; the arrow on the
+  left folds them back.
+• Month in dots: a holiday with no event
+  shows right under its date.
+• A tap on a label now acts: "All day",
+  automatic backup, "Never / After / On".
+• On small screens, the default colour
+  now offers grey and lavender.
+• TalkBack names colours and switches,
+  and reads each setting once.

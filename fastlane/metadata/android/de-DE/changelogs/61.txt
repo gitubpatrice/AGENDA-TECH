@@ -1,0 +1,14 @@
+v1.3.2 — Beschriftungen, die reagieren
+
+• Woche: Ein Tippen auf „+2“ unter einem
+  Tag klappt seine ganztägigen Termine
+  auf; der Pfeil links klappt sie zu.
+• Monat mit Punkten: Ein Feiertag ohne
+  Termin steht direkt unter dem Datum.
+• Ein Tippen auf die Beschriftung wirkt:
+  „Ganztägig“, automatische Sicherung,
+  „Nie / Nach / Am“.
+• Auf kleinen Bildschirmen bietet die
+  Standardfarbe nun Grau und Lavendel.
+• TalkBack nennt Farben und Schalter und
+  liest jede Einstellung nur einmal vor.

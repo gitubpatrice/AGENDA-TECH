@@ -1,0 +1,15 @@
+v1.3.2 — Etiquetas que responden
+
+• Semana: un toque en «+2» bajo un día
+  despliega sus eventos de todo el día; la
+  flecha a la izquierda los pliega.
+• Mes en puntos: un festivo sin eventos
+  aparece justo debajo de su fecha.
+• Un toque en la etiqueta funciona: «Todo
+  el día», copia automática, «Nunca /
+  Tras / El».
+• En pantallas pequeñas, el color
+  predeterminado ofrece ahora gris y
+  lavanda.
+• TalkBack nombra colores e interruptores
+  y lee cada ajuste una sola vez.

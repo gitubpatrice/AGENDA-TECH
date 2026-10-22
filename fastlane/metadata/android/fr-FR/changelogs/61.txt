@@ -1,0 +1,15 @@
+v1.3.2 — Des libellés qui répondent
+
+• Semaine : toucher « +2 » sous un jour
+  déplie ses journées entières ; la flèche
+  à gauche les replie.
+• Mois en points : un férié sans
+  événement s'affiche sous sa date.
+• Toucher un libellé agit enfin : « Toute
+  la journée », sauvegarde automatique,
+  « Jamais / Après / Le ».
+• Sur petit écran, la couleur par défaut
+  propose enfin le gris et la lavande.
+• TalkBack nomme couleurs et
+  interrupteurs, et lit chaque réglage
+  une seule fois.

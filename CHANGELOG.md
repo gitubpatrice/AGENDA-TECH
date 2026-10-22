@@ -3,6 +3,36 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [1.3.2] — 2026-10-22
+
+Labels that answer: three display defects seen while testing 1.3.0, and the lines built like them.
+
+### Fixed
+
+- **Week view: the "+2" under a day did nothing.** A day with more than three all-day events said how
+  many more and offered no way to see them. A tap on it now unfolds the all-day row, as does the arrow
+  in the hours' column; the arrow folds it back. The row stays unfolded from one week to the next.
+- **Month in dots: a public holiday with no event floated halfway down the screen**, far from its
+  date. It now opens the day's list, with "No events on this day" right under it, and the list
+  scrolls when the screen is short. A day with neither keeps its message centred.
+- **A tap on the label did nothing** for "All day" in the editor, for the automatic backup and for
+  "Never / After / On" at the end of a series: only the switch or the button answered. The whole line
+  now acts.
+- **On a small screen, the default event colour could not be grey or lavender**: the row of colours
+  in the settings did not scroll, and its last two swatches fell off the screen. It scrolls now, like
+  the editor's.
+- **TalkBack**: it read each setting twice, the line without its state, then the switch — it now
+  reads one switch with its label and state. The colour swatches had no name; each now says its
+  colour and whether it is the chosen one. The calendars' switches had no name ("Switch, on"); each now
+  says which calendar's events it shows.
+
+### Changed
+
+- The lines with a switch and the colour swatches are each drawn by one shared component, and a test
+  keeps a new screen from drawing its own again.
+- The translation check counts store texts in characters, as F-Droid does, and caps the current
+  changelog at the 500 characters F-Droid keeps; `TRANSLATING.md` said these were uncapped.
+
 ## [1.3.1] — 2026-10-22
 
 Exports that come back: an agenda exported to `.ics` and imported back is no longer doubled.
