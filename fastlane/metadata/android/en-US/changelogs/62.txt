@@ -1,0 +1,9 @@
+v1.3.3 — The widget is back
+
+• The home-screen widget stayed a blue
+  box: it shows the date and the coming
+  events again.
+• A change made right after the widget
+  was drawn — a new event, the lock
+  turned on — now reaches it at once,
+  not up to 30 minutes later.

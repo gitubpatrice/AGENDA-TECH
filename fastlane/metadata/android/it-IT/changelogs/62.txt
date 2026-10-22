@@ -1,0 +1,9 @@
+v1.3.3 — Il widget è tornato
+
+• Il widget della schermata Home restava
+  un riquadro blu: mostra di nuovo la
+  data e i prossimi eventi.
+• Una modifica fatta subito dopo la sua
+  visualizzazione — nuovo evento, blocco
+  attivato — lo raggiunge subito, non
+  fino a 30 minuti dopo.

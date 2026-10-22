@@ -1,0 +1,9 @@
+v1.3.3 — Le widget revient
+
+• Le widget de l'écran d'accueil restait
+  un pavé bleu : il affiche de nouveau la
+  date et les prochains événements.
+• Un changement fait juste après son
+  affichage — nouvel événement, verrou
+  activé — l'atteint aussitôt, et non
+  jusqu'à 30 minutes plus tard.
