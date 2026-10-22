@@ -1,10 +1,6 @@
 package com.filestech.agenda_tech.ui.screens.editor
 
 import android.text.format.DateFormat
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,11 +9,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -47,11 +43,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -61,12 +57,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -85,8 +80,10 @@ import com.filestech.agenda_tech.domain.model.Weekday
 import com.filestech.agenda_tech.domain.share.EventShare
 import com.filestech.agenda_tech.ui.theme.BrandDanger
 import com.filestech.agenda_tech.ui.util.DatePickerModal
+import com.filestech.agenda_tech.ui.util.ColorSwatches
 import com.filestech.agenda_tech.ui.util.openMapLink
 import com.filestech.agenda_tech.ui.util.ReminderNotificationsBlockedNotice
+import com.filestech.agenda_tech.ui.util.SwitchLine
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import com.filestech.agenda_tech.ui.util.rememberReminderNotifications
 import com.filestech.agenda_tech.ui.util.displayName
@@ -454,9 +451,12 @@ private fun EventEditorContent(
 
             // A birthday is all-day by definition; the switch would only offer a wrong answer.
             if (!isBirthday) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                SwitchLine(
+                    checked = state.allDay,
+                    onCheckedChange = onAllDayChange,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text(stringResource(R.string.editor_all_day), modifier = Modifier.weight(1f))
-                    Switch(checked = state.allDay, onCheckedChange = onAllDayChange)
                 }
             }
 
@@ -766,41 +766,19 @@ private fun TimePickerModal(
 
 @Composable
 private fun ColorPickerRow(selected: CalendarColor?, onSelect: (CalendarColor?) -> Unit) {
-    val ringColor = MaterialTheme.colorScheme.onSurface
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = stringResource(R.string.editor_color),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            // "Automatic" = inherit the calendar colour (null override): an outlined empty swatch.
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .clip(CircleShape)
-                    .border(if (selected == null) 3.dp else 1.dp, ringColor, CircleShape)
-                    .clickable { onSelect(null) },
-            )
-            CalendarColor.entries.forEach { color ->
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(Color(color.argb))
-                        .then(
-                            if (color == selected) Modifier.border(3.dp, ringColor, CircleShape) else Modifier,
-                        )
-                        .clickable { onSelect(color) },
-                )
-            }
-        }
+        // First, the calendar's colour (null override): no colour of the event's own.
+        ColorSwatches(
+            selected = selected,
+            onSelect = onSelect,
+            modifier = Modifier.padding(top = 8.dp),
+            onSelectCalendarColor = { onSelect(null) },
+        )
     }
 }
 
@@ -856,30 +834,59 @@ private fun AdvancedRecurrenceSection(
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RadioButton(selected = end == RecurrenceEnd.NEVER, onClick = { onEndChange(RecurrenceEnd.NEVER) })
-            Text(stringResource(R.string.recurrence_end_never))
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RadioButton(selected = end == RecurrenceEnd.AFTER_COUNT, onClick = { onEndChange(RecurrenceEnd.AFTER_COUNT) })
-            Text(stringResource(R.string.recurrence_end_after))
-            OutlinedTextField(
-                value = count.toString(),
-                onValueChange = { it.trim().toIntOrNull()?.let(onCountChange) },
-                singleLine = true,
-                enabled = end == RecurrenceEnd.AFTER_COUNT,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.width(88.dp),
+        // One group of three for TalkBack; the count and the date stay outside each choice's line, as
+        // fields of their own.
+        Column(modifier = Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            RecurrenceEndChoice(
+                selected = end == RecurrenceEnd.NEVER,
+                label = stringResource(R.string.recurrence_end_never),
+                onSelect = { onEndChange(RecurrenceEnd.NEVER) },
             )
-            Text(pluralStringResource(R.plurals.recurrence_occurrences, count))
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RadioButton(selected = end == RecurrenceEnd.ON_DATE, onClick = { onEndChange(RecurrenceEnd.ON_DATE) })
-            Text(stringResource(R.string.recurrence_end_on))
-            OutlinedButton(onClick = onPickUntilDate, enabled = end == RecurrenceEnd.ON_DATE) {
-                Text(formatDate(untilDate, locale))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                RecurrenceEndChoice(
+                    selected = end == RecurrenceEnd.AFTER_COUNT,
+                    label = stringResource(R.string.recurrence_end_after),
+                    onSelect = { onEndChange(RecurrenceEnd.AFTER_COUNT) },
+                )
+                OutlinedTextField(
+                    value = count.toString(),
+                    onValueChange = { it.trim().toIntOrNull()?.let(onCountChange) },
+                    singleLine = true,
+                    enabled = end == RecurrenceEnd.AFTER_COUNT,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.width(88.dp),
+                )
+                Text(pluralStringResource(R.plurals.recurrence_occurrences, count))
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                RecurrenceEndChoice(
+                    selected = end == RecurrenceEnd.ON_DATE,
+                    label = stringResource(R.string.recurrence_end_on),
+                    onSelect = { onEndChange(RecurrenceEnd.ON_DATE) },
+                )
+                OutlinedButton(onClick = onPickUntilDate, enabled = end == RecurrenceEnd.ON_DATE) {
+                    Text(formatDate(untilDate, locale))
+                }
             }
         }
+    }
+}
+
+/**
+ * One way a series ends: its button and its label as a single target. The label alone did nothing, as
+ * the all-day switch's (found with it, 2026-10-22).
+ */
+@Composable
+internal fun RecurrenceEndChoice(selected: Boolean, label: String, onSelect: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onSelect)
+            .padding(end = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // No handler of its own, so no 48 dp of its own either: given back, the line keeps its height.
+        RadioButton(selected = selected, onClick = null, modifier = Modifier.minimumInteractiveComponentSize())
+        Text(label)
     }
 }
 

@@ -1,9 +1,7 @@
 package com.filestech.agenda_tech.ui.screens.calendars
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -42,6 +39,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -50,6 +49,7 @@ import com.filestech.agenda_tech.domain.model.Calendar
 import com.filestech.agenda_tech.domain.model.CalendarColor
 import com.filestech.agenda_tech.ui.theme.BrandDanger
 import com.filestech.agenda_tech.ui.util.AddFab
+import com.filestech.agenda_tech.ui.util.ColorSwatches
 import com.filestech.agenda_tech.ui.util.displayName
 
 @Composable
@@ -163,7 +163,7 @@ fun CalendarsScreen(
 }
 
 @Composable
-private fun CalendarRow(
+internal fun CalendarRow(
     calendar: Calendar,
     onToggleVisibility: (Boolean) -> Unit,
     onClick: () -> Unit,
@@ -183,7 +183,15 @@ private fun CalendarRow(
                 .background(Color(calendar.color.argb)),
         )
         Text(calendar.displayName(), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Switch(checked = calendar.isVisible, onCheckedChange = onToggleVisibility)
+        // Not a SwitchLine: the line edits the calendar, the switch shows or hides its events — two actions,
+        // two targets. Named, as TalkBack said only "Switch, on", with neither the calendar nor what it did
+        // (2026-10-22).
+        val showEvents = stringResource(R.string.calendars_show_events, calendar.displayName())
+        Switch(
+            checked = calendar.isVisible,
+            onCheckedChange = onToggleVisibility,
+            modifier = Modifier.semantics { contentDescription = showEvents },
+        )
     }
 }
 
@@ -199,7 +207,6 @@ private fun CalendarEditDialog(
     val initialName = initial?.displayName().orEmpty()
     var name by remember { mutableStateOf(initialName) }
     var color by remember { mutableStateOf(initial?.color ?: CalendarColor.DEFAULT) }
-    val ringColor = MaterialTheme.colorScheme.onSurface
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -219,26 +226,11 @@ private fun CalendarEditDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    CalendarColor.entries.forEach { swatch ->
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clip(CircleShape)
-                                .background(Color(swatch.argb))
-                                .then(
-                                    if (swatch == color) Modifier.border(3.dp, ringColor, CircleShape) else Modifier,
-                                )
-                                .clickable { color = swatch },
-                        )
-                    }
-                }
+                ColorSwatches(
+                    selected = color,
+                    onSelect = { color = it },
+                    modifier = Modifier.padding(top = 12.dp),
+                )
                 if (canDelete) {
                     TextButton(
                         onClick = onDelete,

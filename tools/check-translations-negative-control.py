@@ -144,11 +144,12 @@ def build():
     for locale in ("en-US", "de-DE"):
         fastlane = path("fastlane", "metadata", "android", locale)
         write(os.path.join(fastlane, "title.txt"), "Agenda Tech\n")
-        write(os.path.join(fastlane, "short_description.txt"), "A short description.\n")
+        # At their caps EXACTLY, in accented letters: 80 and 500 characters, but 160 and 1000
+        # bytes. fdroidserver counts characters, so the positive witness must stay green - a check
+        # back to counting bytes would turn it red.
+        write(os.path.join(fastlane, "short_description.txt"), "é" * 80 + "\n")
         write(os.path.join(fastlane, "full_description.txt"), "A long description.\n")
-        # DELIBERATELY long: F-Droid sets no cap on this field, and the positive witness must
-        # prove it by staying green with a changelog over a thousand bytes.
-        write(os.path.join(fastlane, "changelogs", "58.txt"), "Fix. " * 250 + "\n")
+        write(os.path.join(fastlane, "changelogs", "58.txt"), "é" * 500 + "\n")
 
 
 def de(content):
@@ -254,11 +255,23 @@ def link_to_a_missing_document():
     return "links to PRIVACY.de.md, which does not exist"
 
 
-def store_listing_too_long_in_bytes():
-    """Over the cap in BYTES but not in CHARACTERS: 41 accented letters = 82 bytes > 80."""
+def store_listing_too_long():
+    """One CHARACTER over the cap: F-Droid would cut it."""
     write(path("fastlane", "metadata", "android", "de-DE", "short_description.txt"),
-          "é" * 41 + "\n")
-    return "fastlane/short_description.txt"
+          "é" * 81 + "\n")
+    return "fastlane/short_description.txt: 81 characters for a cap of 80"
+
+
+def changelog_too_long():
+    """One character over 500: F-Droid cuts the "What's new" (the defect SMS Tech shipped, 1.28.13)."""
+    write(path("fastlane", "metadata", "android", "de-DE", "changelogs", "58.txt"),
+          "é" * 501 + "\n")
+    return "fastlane/changelogs/58.txt: 501 characters for a cap of 500"
+
+
+def store_file_not_utf8():
+    write_bytes(path("fastlane", "metadata", "android", "de-DE", "title.txt"), b"Agenda \xff Tech\n")
+    return "fastlane/title.txt is not valid UTF-8"
 
 
 def store_file_missing():
@@ -301,7 +314,9 @@ CASES = [
     ("gesture d: manifest does not reference it", manifest_does_not_point_at_locales_config),
     ("converse: language announced, not translated", language_announced_without_translation),
     ("link to a repository document that is missing", link_to_a_missing_document),
-    ("store listing: too long in BYTES", store_listing_too_long_in_bytes),
+    ("store listing: one CHARACTER too long", store_listing_too_long),
+    ("store listing: current changelog too long", changelog_too_long),
+    ("store listing: not valid UTF-8", store_file_not_utf8),
     ("store listing: a file MISSING", store_file_missing),
     ("store listing: current changelog missing", current_changelog_missing),
     ("line endings: one carriage return too many", doubled_carriage_return),

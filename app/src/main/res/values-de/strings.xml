@@ -14,6 +14,8 @@
     <string name="day_next">Nächster Tag</string>
     <string name="week_previous">Vorherige Woche</string>
     <string name="week_next">Nächste Woche</string>
+    <string name="week_all_day_expand">Alle ganztägigen Termine anzeigen</string>
+    <string name="week_all_day_collapse">Weniger ganztägige Termine anzeigen</string>
 
     <!-- First-run default calendar -->
     <string name="default_calendar_name">Persönlich</string>
@@ -72,6 +74,18 @@
     <string name="editor_ends">Ende</string>
     <string name="editor_recurrence">Wiederholen</string>
     <string name="editor_color">Farbe</string>
+    <string name="color_name_calendar">Farbe des Kalenders</string>
+    <string name="color_name_blueberry">Blau</string>
+    <string name="color_name_peacock">Hellblau</string>
+    <string name="color_name_basil">Dunkelgrün</string>
+    <string name="color_name_sage">Grün</string>
+    <string name="color_name_banana">Gelb</string>
+    <string name="color_name_tangerine">Orange</string>
+    <string name="color_name_tomato">Rot</string>
+    <string name="color_name_flamingo">Rosa</string>
+    <string name="color_name_grape">Lila</string>
+    <string name="color_name_lavender">Lavendel</string>
+    <string name="color_name_graphite">Grau</string>
     <string name="scope_edit_title">Serientermin bearbeiten</string>
     <string name="scope_delete_title">Serientermin löschen</string>
     <string name="scope_this_occurrence">Nur dieser Termin</string>
@@ -249,6 +263,7 @@
 
     <!-- Calendars -->
     <string name="calendars_title">Kalender</string>
+    <string name="calendars_show_events">Termine von %1$s anzeigen</string>
     <string name="calendar_add">Kalender hinzufügen</string>
     <string name="calendar_name">Name</string>
     <string name="calendar_new_title">Neuer Kalender</string>
