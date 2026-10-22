@@ -19,8 +19,9 @@ What it checks, and why each one is needed
                  The ORDER may change - that is what 1$ / 2$ are for - the set may not.
 3. PLURALS     - every quantity the LANGUAGE requires (CLDR), not an English floor: English only
                  has `one`/`other`, and French, Italian and Spanish also need `many`.
-4. STORE LISTING - fastlane caps, counted in BYTES (an accented letter weighs two), every file
-                 present, and the changelog of the current versionCode present.
+4. STORE LISTING - fastlane caps, counted in CHARACTERS as fdroidserver cuts them, every file
+                 present, and the changelog of the current versionCode: present, and within the
+                 500 characters past which F-Droid cuts its "What's new" without a word.
 5. THE GESTURES THAT SHIP A LANGUAGE - all of them, or the language does not work:
                  a. values-XX/strings.xml       the translation
                  b. localeFilters               otherwise AGP STRIPS the resources from the APK,
@@ -70,6 +71,9 @@ FASTLANE_CAPS = {
     "short_description.txt": 80,
     "full_description.txt": 4000,
 }
+
+# fdroidserver, `common.py`: char_limits['whatsNew'] = 500.
+CHANGELOG_CAP = 500
 
 errors = []
 
@@ -187,12 +191,43 @@ def current_version_code():
     return None
 
 
-def check_fastlane():
-    """Store-listing caps in BYTES, files present, current changelog present.
+def characters(path):
+    """The length fdroidserver measures: CHARACTERS, once decoded from UTF-8.
 
-    Bytes, not characters: on SMS Tech the Spanish listing weighed 4029 bytes for 3928 characters,
-    and a manual check counting characters called it compliant. Changelog LENGTH is not checked:
-    the 500-character cap is a Google Play rule, F-Droid neither validates nor truncates it.
+    Trailing white space does not count: past the cap, `text[:limit]` would only lose a line break.
+    None when the file is not valid UTF-8 - fdroidserver would put replacement characters in it
+    (`errors='replace'`), and the published listing would be unreadable.
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            return len(f.read().rstrip())
+    except UnicodeDecodeError:
+        return None
+
+
+def check_length(locale, name, path, cap, consequence):
+    length = characters(path)
+    if length is None:
+        fail(locale, "fastlane/%s is not valid UTF-8" % name)
+    elif length > cap:
+        fail(locale, "fastlane/%s: %d characters for a cap of %d (over by %d) - %s"
+                     % (name, length, cap, length - cap, consequence))
+
+
+def check_fastlane():
+    """Store-listing caps and the current changelog's, in CHARACTERS; files present.
+
+    What fdroidserver does with these files (read in its source, 2.4.2, by SMS Tech on 2026-10-04):
+    `common.py` sets char_limits - title 50, summary 80, description 4000, whatsNew 500 - and
+    `update.py` CUTS each text to `text[:limit]`. No error, no warning: the published text stops in
+    the middle of a word. Python characters, never bytes; `lint.py` measures the same way, by len().
+
+    This check said otherwise until 1.3.2, as SMS Tech's did until 2026-10-04 - it counted BYTES, and
+    called the changelogs uncapped ("a Google Play rule, F-Droid displays the whole text"). The
+    fdroidserver source settles it; it is the authority here, not a review nor a history.
+
+    Only the changelog of the CURRENT versionCode is measured: F-Droid reads it in the source at the
+    tag it builds, and the older ones are frozen in their tags.
     """
     root = os.path.join(ROOT, "fastlane", "metadata", "android")
     if not os.path.isdir(root):
@@ -209,15 +244,17 @@ def check_fastlane():
             if not os.path.isfile(path):
                 fail(locale, "fastlane/%s MISSING" % name)
                 continue
-            size = len(open(path, "rb").read().strip())
-            if size > cap:
-                fail(locale, "fastlane/%s: %d bytes for a cap of %d (over by %d)"
-                             % (name, size, cap, size - cap))
+            check_length(locale, name, path, cap, "F-Droid cuts this text")
+        if version is None:
+            continue
+        changelog_name = "changelogs/%d.txt" % version
+        changelog = os.path.join(directory, "changelogs", "%d.txt" % version)
+        if os.path.isfile(changelog):
+            check_length(locale, changelog_name, changelog, CHANGELOG_CAP, "F-Droid cuts this changelog")
         # A language with a store description but without the current changelog shows a
         # "What's new" in another language: started, not complete.
-        if version is not None and os.path.isfile(os.path.join(directory, "full_description.txt")):
-            if not os.path.isfile(os.path.join(directory, "changelogs", "%d.txt" % version)):
-                fail(locale, "fastlane/changelogs/%d.txt MISSING (current versionCode)" % version)
+        elif os.path.isfile(os.path.join(directory, "full_description.txt")):
+            fail(locale, "fastlane/%s MISSING (current versionCode)" % changelog_name)
 
 
 def check_language(directory, ref_strings, ref_plurals, gradle, config):

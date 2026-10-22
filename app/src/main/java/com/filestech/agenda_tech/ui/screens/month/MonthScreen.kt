@@ -27,7 +27,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -658,10 +660,19 @@ internal fun SelectedDayOccurrences(
         // Centred, not weighted: a weighted child makes a Column take all the height it may, and the day's
         // sheet — sized to its content — grew to the whole screen for an empty day (external review,
         // 2026-10-13). Under the grid, the caller's own weight still gives it the free space.
-        Column(modifier = modifier, verticalArrangement = Arrangement.Center) {
+        // A holiday keeps the list's own order instead — at the top, under the date, with "No events" right
+        // below: centred, it floated halfway down the free space, far from its date (2026-10-13). And it
+        // scrolls, as the list does: under a six-week grid, the S9 leaves about 70 dp for both.
+        val holidayFirst = holidays.isNotEmpty()
+        Column(
+            modifier = if (holidayFirst) modifier.verticalScroll(rememberScrollState()) else modifier,
+            verticalArrangement = if (holidayFirst) Arrangement.Top else Arrangement.Center,
+        ) {
             holidays.forEach { HolidayLine(it, Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) }
             Box(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = if (holidayFirst) 12.dp else 0.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(

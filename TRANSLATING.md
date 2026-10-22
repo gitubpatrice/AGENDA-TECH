@@ -102,19 +102,19 @@ settings.
 ## Store metadata
 
 `fastlane/metadata/android/<locale>/` holds the F-Droid listing (`de-DE`, `it-IT`, `es-ES`, …).
-The caps below are counted in **bytes**, not characters — an accented letter costs two. The CI
-check measures them on every build.
+The caps below are counted in **characters**, as F-Droid counts them: past a cap, it cuts the text
+in the middle of a word, without an error or a warning. The CI check measures them on every build.
 
 | File | Cap |
 |---|---|
 | `title.txt` | 50 |
 | `short_description.txt` | **80** |
 | `full_description.txt` | 4000 |
+| `changelogs/<versionCode>.txt` | **500** |
 
 A language that has a `full_description.txt` must also have the changelog of the current
 `versionCode` (`changelogs/<versionCode>.txt`), or its listing shows a "What's new" in another
-language. Changelogs have no cap: the 500 characters sometimes quoted are a Google Play rule, and
-F-Droid displays the whole text.
+language. Only the current changelog is measured: the older ones are frozen in their release tags.
 
 Please end `full_description.txt` with the short paragraph the German, Italian and Spanish
 listings carry: who wrote the translation, that no native speaker reviewed it, and where to report

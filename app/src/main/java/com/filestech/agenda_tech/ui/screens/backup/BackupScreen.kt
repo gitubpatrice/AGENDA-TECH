@@ -59,13 +59,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Switch
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.core.crypto.BackupEnvelope
 import com.filestech.agenda_tech.domain.usecase.ExportBackupUseCase
 import com.filestech.agenda_tech.domain.backup.AutoBackupOutcome
 import com.filestech.agenda_tech.ui.theme.BrandDanger
 import com.filestech.agenda_tech.ui.util.LocalDeviceZone
+import com.filestech.agenda_tech.ui.util.SwitchLine
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import java.time.Instant
 import java.time.format.DateTimeFormatter
@@ -254,7 +254,12 @@ private fun AutoBackupSection(
     onRunNow: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        SwitchLine(
+            checked = state.autoBackupEnabled,
+            onCheckedChange = onToggle,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = state.busy == null,
+        ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.backup_auto_title),
@@ -266,11 +271,6 @@ private fun AutoBackupSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Switch(
-                checked = state.autoBackupEnabled,
-                onCheckedChange = onToggle,
-                enabled = state.busy == null,
-            )
         }
 
         if (state.autoBackupEnabled) {
