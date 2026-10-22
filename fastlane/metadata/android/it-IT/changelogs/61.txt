@@ -1,0 +1,15 @@
+v1.3.2 — Etichette che rispondono
+
+• Settimana: un tocco su «+2» sotto un
+  giorno mostra tutti i suoi eventi di
+  tutto il giorno; la freccia a sinistra
+  li richiude.
+• Mese a punti: un festivo senza eventi
+  appare subito sotto la data.
+• Un tocco sull'etichetta funziona: «Tutto
+  il giorno», backup automatico, «Mai /
+  Dopo / Il».
+• Su schermi piccoli, il colore
+  predefinito offre ora grigio e lavanda.
+• TalkBack nomina colori e interruttori e
+  legge ogni impostazione una sola volta.
