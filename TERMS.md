@@ -1,6 +1,6 @@
 # Terms of use — Agenda Tech
 
-_Last updated: 13 October 2026_ · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
+_Last updated: 26 October 2026_ · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
 
 > This is a translation. **In case of discrepancy, the [French version](TERMS.fr.md) prevails**:
 > the publisher is based in France and these terms are governed by French law.
@@ -74,10 +74,12 @@ version is up to you.
 
 ## Liability
 
-To the extent permitted by law, the publisher cannot be held liable for any direct or indirect damage
-resulting from the use of the app. In particular, **any loss of data following a forgotten password or
-PIN, a restore, an uninstall, a factory reset, or a missed reminder is the sole responsibility of the
-user**. Nothing in these terms limits a liability that the law does not allow to be limited.
+The app is provided free of charge, by a private individual. To the extent permitted by law, the
+publisher is not liable for indirect damage, including the consequences of a reminder Android did
+not show (see "Limitations"), nor for data loss caused by using functions designed to be
+irreversible (restoring a backup, clearing the app's data, uninstalling, resetting the phone) or by
+a forgotten password or PIN (Apache 2.0 license, section 8). This limit applies neither to gross
+negligence or wilful misconduct, nor to damage the law forbids excluding.
 
 ## Governing law
 

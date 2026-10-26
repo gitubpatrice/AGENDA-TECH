@@ -3,6 +3,19 @@
 Toutes les versions notables d'Agenda Tech. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ;
 versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [Unreleased]
+
+### Changed
+
+- **Terms of use, liability, in the five languages.** The clause said the publisher was liable for no
+  damage at all, direct or indirect, and that any data loss was the user's alone: a clause that broad
+  risks being set aside whole. It now says the app is free and published by a private individual, and
+  limits liability to indirect damage (a reminder Android did not show among them) and to the data lost
+  through functions meant to be irreversible or a forgotten password or PIN — never gross negligence,
+  wilful misconduct, or what the law forbids excluding (Civil Code 1231-3, 1171).
+- **Privacy policy, the e-mail you write to the developer.** It is used only to answer you, kept for the
+  time of the exchange, then erased; access and erasure on request, and the CNIL (GDPR article 13).
+
 ## [1.3.3] — 2026-10-22
 
 The widget is back: it stayed a blue box on the home screen.

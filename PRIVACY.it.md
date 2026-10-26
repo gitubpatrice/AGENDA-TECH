@@ -1,6 +1,6 @@
 # Informativa sulla privacy — Agenda Tech
 
-_Traduzione della versione del 13 ottobre 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇪🇸 [Español](PRIVACY.es.md)
+_Traduzione della versione del 26 ottobre 2026._ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇬🇧 [English](PRIVACY.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇪🇸 [Español](PRIVACY.es.md)
 
 > Questa traduzione è stata prodotta dallo sviluppatore con l'aiuto di strumenti automatici e non è
 > ancora stata rivista da un madrelingua. **In caso di discordanza prevale la
@@ -159,7 +159,9 @@ cronologia è pubblica in questo repository.
 
 ## Editore e contatti
 
-Agenda Tech è pubblicata da **Patrice Haltaya** (Francia), titolare del trattamento ai sensi del GDPR — anche se, come spiegato sopra, nessun dato gli arriva mai. Contatto: **contact@files-tech.com**.
+Agenda Tech è pubblicata da **Patrice Haltaya** (Francia), titolare del trattamento ai sensi del GDPR — anche se, come spiegato sopra, nessun dato dell'app gli arriva mai. Contatto: **contact@files-tech.com**.
+
+Gli arriva solo un'e-mail che Lei sceglie di scrivergli. Serve solo a risponderLe; è conservata per il tempo dello scambio, poi cancellata. Può chiederne l'accesso o la cancellazione allo stesso indirizzo, e rivolgersi alla CNIL, l'autorità francese per la protezione dei dati (www.cnil.fr), se ritiene che i Suoi diritti non siano rispettati.
 
 Domande o segnalazioni: apra una [issue](https://github.com/gitubpatrice/AGENDA-TECH/issues) sul
 repository, oppure ci contatti tramite [files-tech.com](https://files-tech.com). Per la sicurezza,

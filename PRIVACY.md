@@ -1,6 +1,6 @@
 # Privacy Policy — Agenda Tech
 
-_Last updated: 13 October 2026_ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
+_Last updated: 26 October 2026_ · 🇫🇷 [Français](PRIVACY.fr.md) · 🇩🇪 [Deutsch](PRIVACY.de.md) · 🇮🇹 [Italiano](PRIVACY.it.md) · 🇪🇸 [Español](PRIVACY.es.md)
 
 > This is a translation. **In case of discrepancy, the [French version](PRIVACY.fr.md) prevails**:
 > the publisher is based in France and the French text is the one he writes and answers for.
@@ -148,7 +148,9 @@ history is public in this repository.
 
 ## Publisher and contact
 
-Agenda Tech is published by **Patrice Haltaya** (France), who is the controller within the meaning of the GDPR — even though, as explained above, no data ever reaches him. Contact: **contact@files-tech.com**.
+Agenda Tech is published by **Patrice Haltaya** (France), who is the controller within the meaning of the GDPR — even though, as explained above, no data from the app ever reaches him. Contact: **contact@files-tech.com**.
+
+Only an e-mail you choose to write to him reaches him. It is used only to answer you; it is kept for the time of the exchange, then erased. You can ask for access to it or its erasure at the same address, and complain to the CNIL, the French data protection authority (www.cnil.fr), if you think your rights are not respected.
 
 Question or report: open an [issue](https://github.com/gitubpatrice/AGENDA-TECH/issues) on the
 repository, or reach us via [files-tech.com](https://files-tech.com). For security, see

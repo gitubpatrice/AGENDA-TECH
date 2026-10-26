@@ -1,6 +1,6 @@
 # Conditions d'utilisation — Agenda Tech
 
-_Dernière mise à jour : 13 octobre 2026_ · 🇬🇧 [English](TERMS.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
+_Dernière mise à jour : 26 octobre 2026_ · 🇬🇧 [English](TERMS.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
 
 > **Version de référence.** En cas de divergence entre ces conditions et l'une de leurs traductions,
 > c'est cette version française qui fait foi.
@@ -79,12 +79,13 @@ d'une mise à jour : installer une nouvelle version vous revient.
 
 ## Responsabilité
 
-Dans la limite autorisée par la loi, l'éditeur ne pourra être tenu responsable d'aucun dommage direct
-ou indirect résultant de l'utilisation de l'application. En particulier, **toute perte de données
-consécutive à un oubli de mot de passe ou de code PIN, à une restauration, à une désinstallation, à
-une réinitialisation d'usine ou à un rappel manqué est de la seule responsabilité de
-l'utilisateur**. Rien dans ces conditions ne limite une responsabilité que la loi interdit de
-limiter.
+L'application est fournie gratuitement, par un particulier. Dans la mesure permise par la loi,
+l'éditeur n'est pas responsable des dommages indirects, dont les conséquences d'un rappel qu'Android
+n'a pas affiché (voir « Limitations »), ni des pertes de données dues à l'usage de fonctions conçues
+pour être irréversibles (restauration d'une sauvegarde, effacement des données de l'application,
+désinstallation, réinitialisation du téléphone) ou à un mot de passe ou un code PIN oublié (licence
+Apache 2.0, section 8). Cette limite ne s'applique ni en cas de faute lourde ou dolosive, ni aux
+dommages que la loi interdit d'exclure.
 
 ## Loi applicable
 
