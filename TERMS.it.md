@@ -1,6 +1,6 @@
 # Condizioni d'uso — Agenda Tech
 
-_Traduzione della versione del 13 ottobre 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇪🇸 [Español](TERMS.es.md)
+_Traduzione della versione del 26 ottobre 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇪🇸 [Español](TERMS.es.md)
 
 > Questa traduzione è stata prodotta dallo sviluppatore con l'aiuto di strumenti automatici e non è
 > ancora stata rivista da un madrelingua. **In caso di discordanza prevale la
@@ -79,11 +79,13 @@ installare una nuova versione spetta a lei.
 
 ## Responsabilità
 
-Nei limiti consentiti dalla legge, l'editore non può essere ritenuto responsabile di alcun danno
-diretto o indiretto derivante dall'uso dell'app. In particolare, **qualsiasi perdita di dati dovuta
-a una password o a un PIN dimenticati, a un ripristino, a una disinstallazione, a un ripristino alle
-impostazioni di fabbrica o a un promemoria mancato è di esclusiva responsabilità dell'utente**. Nulla
-in queste condizioni limita una responsabilità che la legge non consente di limitare.
+L'app è fornita gratuitamente, da un privato. Nella misura consentita dalla legge, l'editore non è
+responsabile dei danni indiretti, comprese le conseguenze di un promemoria che Android non ha
+mostrato (vedere «Limitazioni»), né delle perdite di dati dovute all'uso di funzioni concepite per
+essere irreversibili (ripristino di un backup, cancellazione dei dati dell'app, disinstallazione,
+ripristino del telefono) o a una password o un PIN dimenticati (licenza Apache 2.0, sezione 8).
+Questo limite non si applica né in caso di colpa grave o dolo, né ai danni che la legge vieta di
+escludere.
 
 ## Legge applicabile
 

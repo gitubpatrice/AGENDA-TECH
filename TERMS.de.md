@@ -1,6 +1,6 @@
 # Nutzungsbedingungen — Agenda Tech
 
-_Übersetzung der Fassung vom 13. Oktober 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
+_Übersetzung der Fassung vom 26. Oktober 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
 
 > Diese Übersetzung wurde vom Entwickler maschinengestützt erstellt und noch nicht von einer
 > Muttersprachlerin oder einem Muttersprachler geprüft. **Bei Abweichungen gilt die
@@ -82,12 +82,13 @@ zu installieren liegt bei Ihnen.
 
 ## Haftung
 
-Soweit gesetzlich zulässig, haftet der Herausgeber nicht für direkte oder indirekte Schäden, die aus
-der Nutzung der App entstehen. Insbesondere liegt **jeder Datenverlust infolge eines vergessenen
-Passworts oder einer vergessenen PIN, einer Wiederherstellung, einer Deinstallation, eines
-Zurücksetzens auf Werkseinstellungen oder einer verpassten Erinnerung allein in der Verantwortung
-des Nutzers**. Nichts in diesen Bedingungen beschränkt eine Haftung, deren Beschränkung das Gesetz
-nicht erlaubt.
+Die App wird kostenlos von einer Privatperson bereitgestellt. Soweit gesetzlich zulässig, haftet der
+Herausgeber nicht für indirekte Schäden, einschließlich der Folgen einer Erinnerung, die Android
+nicht angezeigt hat (siehe „Einschränkungen“), und nicht für Datenverluste, die auf die Nutzung
+bewusst unwiderruflicher Funktionen (Wiederherstellen einer Sicherung, Löschen der App-Daten,
+Deinstallation, Zurücksetzen des Telefons) oder auf ein vergessenes Passwort oder eine vergessene
+PIN zurückgehen (Apache-Lizenz 2.0, Abschnitt 8). Diese Beschränkung gilt weder bei grober
+Fahrlässigkeit oder Vorsatz noch für Schäden, deren Ausschluss das Gesetz verbietet.
 
 ## Anwendbares Recht
 
