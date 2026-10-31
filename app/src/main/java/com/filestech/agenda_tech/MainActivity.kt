@@ -38,6 +38,7 @@ import com.filestech.agenda_tech.security.AppLockManager
 import com.filestech.agenda_tech.security.BiometricGate
 import com.filestech.agenda_tech.security.LockState
 import com.filestech.agenda_tech.security.StrongBiometrics
+import com.filestech.agenda_tech.security.keepSelectedTextInApp
 import com.filestech.agenda_tech.system.alarm.ReminderScheduler
 import com.filestech.agenda_tech.security.PickerRelockPolicy
 import com.filestech.agenda_tech.ui.AppRoot
@@ -183,6 +184,9 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        // Before the first field exists: the selection toolbar's "Translate" would hand the selected
+        // text of an event to another app. See `keepSelectedTextInApp`.
+        keepSelectedTextInApp()
         enableEdgeToEdge()
 
         // The splash stays up while the lock state is UNKNOWN, so this whole chain runs before any UI
