@@ -6,7 +6,8 @@ Agenda Tech (`com.filestech.agenda_tech`) is licensed under the Apache License 2
 licence from the POM that the library publishes — not from memory. Read again on 2026-10-05 for
 `v1.2.0`: only SQLCipher changed. Checked on 2026-10-13 for `v1.3.0`: no library changed (the build
 files are those of `v1.2.0`). Checked on 2026-10-22 for `v1.3.1`: no library changed. Checked on 2026-10-22 for `v1.3.2`: no library
-changed. Checked on 2026-10-22 for `v1.3.3`: no library changed.
+changed. Checked on 2026-10-22 for `v1.3.3`: no library changed. Checked on 2026-10-31 for `v1.3.4`: no
+library changed.
 
 **No Google Play Services, no Firebase, no analytics SDK, no crash reporter, no network library.**
 

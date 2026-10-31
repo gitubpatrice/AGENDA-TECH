@@ -1,0 +1,10 @@
+v1.3.4 — Selected text stays in the app
+
+• The selection toolbar no longer offers
+  Translate or another app's text
+  actions, on any Android version: they
+  received the selected text of an event.
+  Cut, Copy, Paste and Select all remain.
+• Terms and privacy policy clarified:
+  liability, and what happens to an
+  e-mail sent to the publisher.

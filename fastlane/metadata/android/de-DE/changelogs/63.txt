@@ -1,0 +1,11 @@
+v1.3.4 — Markierter Text bleibt in der App
+
+• Die Auswahlleiste bietet kein
+  „Übersetzen“ und keine Textaktionen
+  anderer Apps mehr, unter jedem Android:
+  Sie erhielten den markierten Text eines
+  Termins. Es bleiben Ausschneiden,
+  Kopieren, Einfügen, Alles auswählen.
+• Nutzungsbedingungen und Datenschutz
+  präzisiert: Haftung, und was mit einer
+  E-Mail an den Herausgeber geschieht.

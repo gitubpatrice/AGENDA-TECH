@@ -1,0 +1,11 @@
+v1.3.4 — El texto seleccionado se queda en la app
+
+• La barra de selección ya no ofrece
+  «Traducir» ni las acciones de otra app,
+  en ninguna versión de Android: recibían
+  el texto seleccionado de un evento.
+  Quedan Cortar, Copiar, Pegar,
+  Seleccionar todo.
+• Términos y privacidad precisados:
+  responsabilidad, y qué pasa con un
+  correo enviado al editor.

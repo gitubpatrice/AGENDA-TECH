@@ -1,0 +1,12 @@
+v1.3.4 — Le texte sélectionné reste dans l'appli
+
+• La barre de sélection ne propose plus
+  « Traduire » ni les actions d'une autre
+  application, sur toutes les versions
+  d'Android : elles recevaient le texte
+  sélectionné d'un événement. Restent
+  Couper, Copier, Coller, Tout
+  sélectionner.
+• Conditions et confidentialité
+  précisées : responsabilité, et sort
+  d'un e-mail envoyé à l'éditeur.
