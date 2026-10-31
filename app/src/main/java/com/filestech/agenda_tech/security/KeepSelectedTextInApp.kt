@@ -1,7 +1,6 @@
 package com.filestech.agenda_tech.security
 
 import android.app.Activity
-import android.os.Build
 import android.view.textclassifier.TextClassificationManager
 import android.view.textclassifier.TextClassifier
 import androidx.compose.foundation.ComposeFoundationFlags
@@ -20,19 +19,19 @@ import androidx.compose.foundation.ExperimentalFoundationApi
  *    [TextClassifier.NO_OP], set here, covers every field of every window of the activity; the
  *    application's own manager keeps the system classifier. Notes Tech measured it and closed it in 3.1.1.
  * 2. **Other apps' text actions** (`ACTION_PROCESS_TEXT`). Compose adds to the toolbar every VISIBLE app
- *    that declares one, and any app may, under any name. From Android 11 on, package visibility hides them,
- *    but the apps visible to every app (TalkBack reading aloud), and this app declares no `<queries>` for
- *    them. Before Android 11 nothing hides them: [ComposeFoundationFlags.isSmartSelectionEnabled] set to
- *    `false` takes those actions and smart selection out of every Compose toolbar of the process.
+ *    that declares one, and any app may, under any name. Package visibility does not keep them out: before
+ *    Android 11 it does not exist, and from 11 on it is granted per WHOLE app — any app the manifest's
+ *    `<queries>` reach becomes visible with all its text actions. [ComposeFoundationFlags.isSmartSelectionEnabled]
+ *    set to `false` takes those actions, and smart selection, out of every Compose toolbar of the process, on
+ *    every version.
  *
  * What is lost: smart selection (a long press selecting a whole address), the classifier's actions (call,
- * open a map, translate) and, before Android 11 only, reading aloud from the toolbar, still reachable
- * through its own accessibility shortcut. Cut, Copy, Paste and Select all remain.
+ * open a map, translate) and reading aloud from the toolbar, still reachable through its own accessibility
+ * shortcut. Cut, Copy, Paste and Select all remain: the toolbar keeps editing only, as Notes Tech's note
+ * body does.
  */
 @OptIn(ExperimentalFoundationApi::class)
 fun Activity.keepSelectedTextInApp() {
     getSystemService(TextClassificationManager::class.java)?.setTextClassifier(TextClassifier.NO_OP)
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-        ComposeFoundationFlags.isSmartSelectionEnabled = false
-    }
+    ComposeFoundationFlags.isSmartSelectionEnabled = false
 }
