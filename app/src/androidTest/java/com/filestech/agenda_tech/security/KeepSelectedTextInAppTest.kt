@@ -1,11 +1,14 @@
 package com.filestech.agenda_tech.security
 
 import android.content.Context
+import android.os.Build
 import android.view.ContextThemeWrapper
 import android.view.textclassifier.TextClassification
 import android.view.textclassifier.TextClassificationContext
 import android.view.textclassifier.TextClassificationManager
 import android.view.textclassifier.TextClassifier
+import androidx.compose.foundation.ComposeFoundationFlags
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,29 +22,29 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The selection toolbar's "Translate" would hand an event's text to another app: the text classifier
- * is off for the whole of [MainActivity]. See [turnOffTextClassifier].
+ * The selection toolbar must not hand an event's text to another app: see [keepSelectedTextInApp].
  *
- * On the real activity, where the fields live: the manager Compose reads, a session made from it as
- * Compose makes one, and the context a dialog or a sheet wraps. The control, the application's own
- * manager keeping the system classifier, shows the first assertion can fail and that the setting stays
- * local to the activity.
+ * On the real activity, where the fields live: the classifier manager Compose reads, a session made from
+ * it as Compose makes one, the context a dialog or a sheet wraps, and the Compose flag that lists other
+ * apps' text actions before Android 11. The control, the application's own manager keeping the system
+ * classifier, shows the first assertion can fail and that the setting stays local to the activity.
  *
  * ⚠️ The activity is launched ONCE, in one test. Each `@HiltAndroidTest` builds its own component,
  * hence its own settings DataStore on `agenda_settings`; a second launch in the same process opens a
  * second live DataStore on that file, which DataStore refuses by crashing the process.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @SdkSuppress(minSdkVersion = 28)
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
-class TextClassifierOffTest {
+class KeepSelectedTextInAppTest {
 
     // Order 0: Hilt builds its component before anything launches `MainActivity`.
     @get:Rule(order = 0)
     val hilt = HiltAndroidRule(this)
 
     @Test
-    fun theActivityTurnsTheTextClassifierOffForEveryWindow() {
+    fun theActivityKeepsSelectedTextInTheAppForEveryWindow() {
         hilt.inject()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             var ofTheActivity: TextClassificationManager? = null
@@ -66,6 +69,10 @@ class TextClassifierOffTest {
             val classification = session.classifyText(TextClassification.Request.Builder(WORD, 0, WORD.length).build())
             session.destroy()
             assertThat(classification.actions).isEmpty()
+            // Before Android 11 every app is visible: Compose must not list their text actions. From 11
+            // on, package visibility hides them and the flag is left as Compose ships it.
+            assertThat(ComposeFoundationFlags.isSmartSelectionEnabled)
+                .isEqualTo(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
         }
     }
 
