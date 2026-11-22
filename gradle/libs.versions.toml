@@ -3,7 +3,7 @@
 # Migré le 2026-09-14 : compose 1.12, core 1.19, lifecycle 2.11, navigation 2.10 et
 # hilt-navigation-compose 1.4 exigent AGP 9.1+ et compileSdk 37 (mesuré sur la CI des PR Dependabot).
 # 9.5.1 : la version de SMS Tech et de Notes Tech, reproduite à l'octet par F-Droid (SMS 1.30.1).
-agp = "9.5.1"
+agp = "9.5.2"
 # Kotlin plafonné sous 2.4.20 : CodeQL 2.27 refuse de compiler à partir de là (« Kotlin version 2.4.20
 # is too recent. CodeQL currently supports versions below 2.4.20 », mesuré sur la PR #14). 2.4.10 passe
 # (PR #21, CodeQL vert). `>= 2.4.20` ignoré dans .github/dependabot.yml jusqu'à ce que CodeQL le supporte.
