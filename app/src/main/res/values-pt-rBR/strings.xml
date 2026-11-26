@@ -349,7 +349,7 @@
     <!-- Sobre · Privacidade -->
     <string name="about_privacy_title">Privacidade</string>
     <string name="about_privacy_card_title">100% privado — sem vigilância</string>
-    <string name="about_privacy_body">O aplicativo não declara nenhuma permissão de acesso à Internet — tecnicamente, é incapaz de enviar qualquer informação para qualquer destino. Sua agenda só sai deste dispositivo se você decidir compartilhá-la ou exportá-la.</string>
+    <string name="about_privacy_body">O aplicativo declara não ter permissão para acessar a Internet — portanto, é tecnicamente incapaz de enviar qualquer informação para qualquer lugar. Sua agenda só sai deste celular se você decidir compartilhá-la ou exportá-la manualmente.</string>
     <string name="about_badge_no_network">Sem rede</string>
     <string name="about_badge_no_ads">Sem anúncios</string>
     <string name="about_badge_no_tracker">Sem rastreadores</string>

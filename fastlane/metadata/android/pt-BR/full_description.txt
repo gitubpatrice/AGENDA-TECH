@@ -1,0 +1,37 @@
+O Agenda Tech é um calendário para Android que mantém todos os seus dados no próprio dispositivo. Sem nuvem, contas, anúncios ou rastreadores. O aplicativo não solicita permissão de acesso à internet e, portanto, é tecnicamente incapaz de enviar qualquer informação — algo que você pode verificar nas configurações do Android.
+
+Seu propósito é manter seu calendário exclusivamente no celular. Afinal, ele revela muito sobre você: seus médicos, advogados, entrevistas de emprego, encontros e compromissos.
+
+<b>Recursos</b>
+
+<ul>
+<li>Quatro visualizações — Mês (navegação por deslize; pontos, títulos na grade ou uma linha por dia; alterne os modos com o gesto de pinça), Semana, Dia e Agenda</li>
+<li>Eventos — dia inteiro, descrição, cor individual, endereço postal e coordenadas GPS que abrem no aplicativo de mapas (sem permissão de localização); excluiu por engano? Use "Desfazer" para restaurar</li>
+<li>Compartilhamento — envie eventos como texto ou arquivo .ics pelo aplicativo de sua preferência</li>
+<li>Feriados — de nove países europeus e dos Estados Unidos, calculados no próprio dispositivo e desativados por padrão</li>
+<li>Eventos recorrentes (RFC 5545) — diários, semanais em dias específicos, mensais (em uma data, na segunda terça-feira, na última sexta-feira ou no último dia do mês) e anuais; término após N ocorrências ou em uma data; edite ou exclua ocorrências individualmente</li>
+<li>Lembretes — alarmes exatos, reprogramados após reinicializações, adiamento personalizado, som à sua escolha e botão de soneca na notificação, com intervalos de 5 minutos a 1 hora</li>
+<li>Backup criptografado — exporte todo o calendário para um arquivo .atbak protegido por senha (PBKDF2-HMAC-SHA256 com 600.000 iterações + AES-256-GCM). Armazene-o onde quiser, inclusive na nuvem: sem sua senha, os dados permanecem ilegíveis</li>
+<li>Pesquisa — por título, descrição, local, endereço ou cidade; sem distinção entre maiúsculas, minúsculas ou acentos</li>
+<li>Importação do calendário do dispositivo — copia, em modo somente leitura e sem acesso à internet, os dados já sincronizados pelos aplicativos de calendário do celular</li>
+<li>Importação e exportação de arquivos .ics (RFC 5545) pelo seletor de arquivos do sistema</li>
+<li>Bloqueio opcional por PIN ou biometria</li>
+<li>Widgets para a tela inicial, tema escuro e suporte a inglês, francês, alemão, italiano, espanhol e português brasileiro</li>
+</ul>
+
+<b>Privacidade</b>
+
+<ul>
+<li>Sem permissão INTERNET. Não é uma questão de prometer que não usará a internet: o aplicativo simplesmente não consegue acessá-la</li>
+<li>Dados criptografados em repouso com SQLCipher (AES-256); chave mestra protegida pelo Android KeyStore</li>
+<li>Capturas de tela bloqueadas (FLAG_SECURE) e dados excluídos dos backups na nuvem do Android</li>
+<li>Licença Apache 2.0 — todas as afirmações desta página podem ser verificadas diretamente no código-fonte, linha por linha</li>
+</ul>
+
+<b>Limitações, sem rodeios</b>
+
+<ul>
+<li>Não há sincronização. A importação copia os dados existentes no celular; eventos criados aqui não são enviados de volta ao calendário original. Essa é uma consequência deliberada de não usar a internet</li>
+<li>Sem CalDAV, calendários compartilhados ou convites — esses recursos exigem conexão com a internet. É possível enviar um evento, mas não compartilhar um calendário</li>
+<li>O backup criptografado é a única forma de transferir dados entre dispositivos, e o processo é manual</li>
+</ul>

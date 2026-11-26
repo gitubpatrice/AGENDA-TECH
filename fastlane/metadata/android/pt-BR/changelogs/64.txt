@@ -1,0 +1,1 @@
+Adicionada a tradução completa dos metadados da loja para português brasileiro, incluindo título, descrição curta, descrição completa e changelog.
