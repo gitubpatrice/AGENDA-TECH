@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Lint's exceptions, each with its reason. What is not named here is still checked, at its usual
+    severity.
+-->
+<lint>
+    <!--
+        Versions are Dependabot's to watch (.github/dependabot.yml, every Monday), and every version held
+        back says why next to it in gradle/libs.versions.toml: AGP on the one F-Droid has rebuilt byte for
+        byte, Kotlin below what CodeQL compiles, Compose and DataStore on what was measured to work. Lint
+        saying it again made eight warnings that never went away and hid a ninth that was real
+        (LocalContextResourcesRead, 2026-11-28). They also changed with each upstream release, so the same
+        commit did not give the same report from one day to the next.
+    -->
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="NewerVersionAvailable" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+
+    <!--
+        targetSdk 35 on purpose. Moving to 36 opts the app into Android 16's behaviours (predictive back,
+        edge-to-edge with no way out, orientation and size ignored on large screens): a change of its own,
+        to be tested on an Android 16 device, not a line to bump. Only the targetSdk line is exempt.
+    -->
+    <issue id="OldTargetApi">
+        <ignore path="build.gradle.kts" />
+    </issue>
+</lint>
