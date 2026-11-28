@@ -21,6 +21,7 @@ object Routes {
     const val DEVICE_IMPORT = "device_import"
     const val BACKUP = "backup"
     const val SEARCH = "search"
+    const val BRIDGES = "bridges"
 
     /** Full pattern (optional args) registered by the NavHost. */
     const val EDITOR_PATTERN =

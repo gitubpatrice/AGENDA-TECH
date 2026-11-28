@@ -35,10 +35,11 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
   de votre choix — l'app n'envoie rien elle-même.
 - **Annuler une suppression** : « Annuler » dans le bandeau rétablit l'événement, ses rappels, ou la
   date retirée d'une série.
-- **Jours fériés** nationaux de dix pays (Allemagne, Autriche, Belgique, Espagne, États-Unis, France,
-  Italie, Luxembourg, Royaume-Uni, Suisse), calculés sur le téléphone, désactivés par défaut —
+- **Jours fériés** nationaux de onze pays (Allemagne, Autriche, Belgique, Brésil, Espagne, États-Unis,
+  France, Italie, Luxembourg, Royaume-Uni, Suisse), calculés sur le téléphone, désactivés par défaut —
   vérifiés jour par jour de 1990 (1991 pour l'Allemagne, 2008 pour l'Espagne) à 2060 contre une
-  référence indépendante.
+  référence indépendante. Avec eux, les **ponts** : le ou les deux jours ouvrés à poser pour relier un
+  férié au week-end, cette année et la suivante.
 - **Récurrences** (RFC 5545) : quotidienne / hebdo (jours choisis) / mensuelle — à date fixe, par
   position (le deuxième mardi, le dernier vendredi) ou le dernier jour — / annuelle, avec
   intervalle, fin après N occurrences ou à une date, et **modification/suppression d'une seule

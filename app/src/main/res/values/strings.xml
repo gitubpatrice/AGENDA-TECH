@@ -250,6 +250,8 @@
     <string name="settings_holidays">Public holidays</string>
     <string name="settings_holidays_none">None</string>
     <string name="settings_holidays_sub">National holidays, worked out on the phone.</string>
+    <string name="settings_bridges">Bridge days</string>
+    <string name="settings_bridges_sub">The working days to take off to make a long weekend of a holiday.</string>
     <string name="holiday_observed">%1$s (substitute day)</string>
     <string name="holiday_new_year">New Year\'s Day</string>
     <string name="holiday_epiphany">Epiphany</string>
@@ -293,6 +295,21 @@
     <string name="holiday_columbus_day">Columbus Day</string>
     <string name="holiday_veterans_day">Veterans Day</string>
     <string name="holiday_thanksgiving">Thanksgiving</string>
+    <string name="holiday_tiradentes">Tiradentes Day</string>
+    <string name="holiday_our_lady_of_aparecida">Our Lady of Aparecida</string>
+    <string name="holiday_all_souls">All Souls\' Day</string>
+    <string name="holiday_republic_proclamation">Proclamation of the Republic</string>
+    <string name="holiday_black_consciousness_day">Black Awareness Day</string>
+    <!-- Bridge days (domain/holiday/Bridges.kt): the working days between a holiday and a weekend. -->
+    <string name="bridges_title">Bridge days</string>
+    <string name="bridges_take">Take off: %1$s</string>
+    <plurals name="bridges_rest">
+        <item quantity="one">%1$d day off in a row: %2$s – %3$s</item>
+        <item quantity="other">%1$d days off in a row: %2$s – %3$s</item>
+    </plurals>
+    <string name="bridges_none">No bridge days ahead in %1$d.</string>
+    <string name="bridges_note">Worked out from the national holidays of the country chosen, with Saturday and Sunday off. Neither regional holidays nor your own working days are counted: check before you ask for leave.</string>
+    <string name="bridges_no_country">Choose a country under Public holidays, in the settings, to see its bridge days.</string>
     <string name="settings_language">App language</string>
     <string name="settings_language_sub">Opens the Android language screen for this app. Agenda Tech follows your phone\'s language unless you pick one there.</string>
     <string name="settings_section_events">Events</string>
@@ -354,7 +371,7 @@
     <string name="about_feat_views_label">Month, Week, Day and Agenda views</string>
     <string name="about_feat_views_desc">Swipe between months, show them as dots, titles or one row per day, jump to today, multiple calendars.</string>
     <string name="about_feat_holidays_label">Public holidays</string>
-    <string name="about_feat_holidays_desc">Those of ten countries, worked out on the phone: Austria, Belgium, France, Germany, Italy, Luxembourg, Spain, Switzerland, the United Kingdom and the United States.</string>
+    <string name="about_feat_holidays_desc">Those of eleven countries, worked out on the phone: Austria, Belgium, Brazil, France, Germany, Italy, Luxembourg, Spain, Switzerland, the United Kingdom and the United States. And the bridge days: the working days to take off to make a long weekend of them.</string>
     <string name="about_feat_share_label">Share and maps</string>
     <string name="about_feat_share_desc">Share an event as text or as an .ics file, open its address in your maps app — you pick the app, Agenda Tech sends nothing itself. Deleted by mistake? Undo brings it back.</string>
     <string name="about_feat_recurrence_label">Recurring events</string>

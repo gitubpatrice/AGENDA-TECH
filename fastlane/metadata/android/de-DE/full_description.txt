@@ -8,7 +8,7 @@ Sie existiert, damit Ihr Kalender nirgendwo anders leben muss als auf Ihrem Tele
 <li>Vier Ansichten — Monat (zwischen Monaten wischen; Punkte, Titel im Raster oder eine Zeile pro Tag, mit zwei Fingern umschaltbar), Woche, Tag und Agendaliste</li>
 <li>Termine — ganztägig, Beschreibung, eigene Farbe, Postanschrift und GPS-Koordinaten, die sich in Ihrer Karten-App öffnen (ohne Standortberechtigung); versehentlich gelöscht? „Rückgängig“ holt ihn zurück</li>
 <li>Teilen — einen Termin als Text oder als .ics-Datei an die App Ihrer Wahl senden</li>
-<li>Feiertage — die von neun europäischen Ländern und den USA, auf dem Telefon berechnet, standardmäßig ausgeschaltet</li>
+<li>Feiertage — die von neun europäischen Ländern, den USA und Brasilien, auf dem Telefon berechnet, standardmäßig ausgeschaltet, dazu die Brückentage für ein langes Wochenende</li>
 <li>Wiederkehrende Termine (RFC 5545) — täglich, wöchentlich an gewählten Tagen, monatlich (an einem Datum, am zweiten Dienstag, am letzten Freitag oder am letzten Tag des Monats), jährlich; Ende nach N Terminen oder an einem Datum; einzelnen Termin bearbeiten oder löschen</li>
 <li>Erinnerungen — exakte Wecker, nach einem Neustart wieder eingeplant, freie Vorlaufzeit, eigener Ton und eine Schlummertaste in der Benachrichtigung, 5 Minuten bis 1 Stunde nach Wahl</li>
 <li>Verschlüsselte Sicherung — den ganzen Kalender in eine passwortgeschützte .atbak-Datei exportieren (PBKDF2 mit 600.000 Iterationen + AES-256-GCM). Bewahren Sie sie überall auf, auch in der Cloud: Ohne Ihr Passwort bleibt sie unlesbar</li>

@@ -2,7 +2,7 @@ package com.filestech.agenda_tech.domain.birthday
 
 import android.content.res.Resources
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import com.filestech.agenda_tech.R
 
 /**
@@ -33,6 +33,9 @@ import com.filestech.agenda_tech.R
 fun birthdayDisplayTitle(resources: Resources, title: String, age: Int?): String =
     if (age == null) title else "$title · " + resources.getQuantityString(R.plurals.birthday_age, age, age)
 
+// LocalResources, not LocalContext.current.resources: it recomposes when the configuration changes,
+// so the age follows a change of language instead of keeping the old one's plural (lint
+// LocalContextResourcesRead).
 @Composable
 fun displayTitle(title: String, age: Int?): String =
-    birthdayDisplayTitle(LocalContext.current.resources, title, age)
+    birthdayDisplayTitle(LocalResources.current, title, age)

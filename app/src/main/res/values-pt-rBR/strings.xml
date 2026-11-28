@@ -258,6 +258,8 @@
     <string name="settings_holidays">Feriados</string>
     <string name="settings_holidays_none">Nenhum</string>
     <string name="settings_holidays_sub">Feriados nacionais, calculados no próprio dispositivo.</string>
+    <string name="settings_bridges">Emendas de feriado</string>
+    <string name="settings_bridges_sub">Os dias úteis a tirar de folga para emendar um feriado num fim de semana prolongado.</string>
     <string name="holiday_observed">%1$s (feriado transferido)</string>
     <string name="holiday_new_year">Ano-Novo</string>
     <string name="holiday_epiphany">Dia de Reis</string>
@@ -301,6 +303,21 @@
     <string name="holiday_columbus_day">Dia de Colombo</string>
     <string name="holiday_veterans_day">Dia dos Veteranos</string>
     <string name="holiday_thanksgiving">Dia de Ação de Graças</string>
+    <string name="holiday_tiradentes">Tiradentes</string>
+    <string name="holiday_our_lady_of_aparecida">Nossa Senhora Aparecida</string>
+    <string name="holiday_all_souls">Finados</string>
+    <string name="holiday_republic_proclamation">Proclamação da República</string>
+    <string name="holiday_black_consciousness_day">Dia Nacional de Zumbi e da Consciência Negra</string>
+    <string name="bridges_title">Emendas de feriado</string>
+    <string name="bridges_take">Tirar de folga: %1$s</string>
+    <plurals name="bridges_rest">
+        <item quantity="one">%1$d dia de folga seguido: %2$s – %3$s</item>
+        <item quantity="many">%1$d dias de folga seguidos: %2$s – %3$s</item>
+        <item quantity="other">%1$d dias de folga seguidos: %2$s – %3$s</item>
+    </plurals>
+    <string name="bridges_none">Nenhuma emenda de feriado pela frente em %1$d.</string>
+    <string name="bridges_note">Calculadas a partir dos feriados nacionais do país escolhido, com sábado e domingo de folga. Não levam em conta feriados estaduais e municipais nem seus próprios dias de trabalho: verifique antes de pedir folga.</string>
+    <string name="bridges_no_country">Escolha um país em “Feriados”, nas configurações, para ver as emendas de feriado.</string>
     <string name="settings_language">Idioma do aplicativo</string>
     <string name="settings_language_sub">Abre a tela de idiomas do Android para este aplicativo. O Agenda Tech segue o idioma do dispositivo, a menos que outro seja selecionado nessa tela.</string>
     <string name="settings_section_events">Eventos</string>
@@ -360,7 +377,7 @@
     <string name="about_feat_views_label">Visualizações de mês, semana, dia e agenda</string>
     <string name="about_feat_views_desc">Deslize entre os meses, visualize eventos como pontos, títulos ou uma linha por dia, acesse a data atual e gerencie vários calendários.</string>
     <string name="about_feat_holidays_label">Feriados</string>
-    <string name="about_feat_holidays_desc">Feriados de dez países, calculados no próprio dispositivo: Áustria, Bélgica, França, Alemanha, Itália, Luxemburgo, Espanha, Suíça, Reino Unido e Estados Unidos.</string>
+    <string name="about_feat_holidays_desc">Feriados de onze países, calculados no próprio dispositivo: Áustria, Bélgica, Brasil, França, Alemanha, Itália, Luxemburgo, Espanha, Suíça, Reino Unido e Estados Unidos. E as emendas de feriado: os dias úteis a tirar de folga para fazer um fim de semana prolongado.</string>
     <string name="about_feat_share_label">Compartilhamento e mapas</string>
     <string name="about_feat_share_desc">Compartilhe um evento como texto ou arquivo .ics e abra seu endereço no aplicativo de mapas de sua preferência — o Agenda Tech não envia nenhuma informação por conta própria. Excluiu algo por engano? Use Desfazer para restaurar.</string>
     <string name="about_feat_recurrence_label">Eventos recorrentes</string>

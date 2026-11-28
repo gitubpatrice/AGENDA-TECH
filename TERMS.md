@@ -1,6 +1,6 @@
 # Terms of use — Agenda Tech
 
-_Last updated: 26 October 2026_ · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
+_Last updated: 28 November 2026_ · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
 
 > This is a translation. **In case of discrepancy, the [French version](TERMS.fr.md) prevails**:
 > the publisher is based in France and these terms are governed by French law.
@@ -35,8 +35,11 @@ responsible for the events you enter and for any decision you base on them.
 - **The public holidays shown are indicative.** They are worked out from the national rules known
   when the installed version was published: they include neither regional or local holidays
   (Alsace-Moselle, German Länder, Swiss cantons, Spanish autonomous communities, the nations of the
-  United Kingdom…), nor a holiday decided after that publication, nor bridge days. For anything
-  that matters — a working day, a deadline — check with official sources.
+  United Kingdom, Brazilian states and municipalities…), nor optional days off (Carnival in Brazil),
+  nor a holiday decided after that publication. The bridge days the app lists are worked out from
+  those same holidays, with Saturday and Sunday off: it knows neither your working days nor your
+  employer's rules. For anything that matters — a working day, a deadline, a leave request — check
+  with official sources or your employer.
 
 ## Data loss
 
