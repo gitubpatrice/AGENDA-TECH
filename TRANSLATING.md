@@ -23,7 +23,7 @@ editing an XML file.
 | `app/src/main/res/values-<lang>/strings.xml` | your language |
 | `fastlane/metadata/android/<locale>/` | the F-Droid store listing |
 
-There are **445 keys**: 429 `<string>` and 16 `<plurals>` (the check prints the current count). The
+There are **458 keys**: 441 `<string>` and 17 `<plurals>` (the check prints the current count). The
 app has no hardcoded text:
 everything you see on screen, in a notification or on the home-screen widget comes from these
 files.

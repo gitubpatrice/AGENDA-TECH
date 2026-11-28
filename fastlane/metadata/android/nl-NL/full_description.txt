@@ -8,7 +8,7 @@ Ze bestaat zodat je agenda nergens anders hoeft te staan dan op je telefoon. Een
 <li>Vier weergaven — Maand (veeg tussen maanden; stippen, titels in het raster of één regel per dag, wisselen door te knijpen), Week, Dag en Agendalijst</li>
 <li>Afspraken — hele dag, beschrijving, eigen kleur per afspraak, postadres en GPS-coördinaten die in je kaartenapp openen (zonder locatietoestemming); per ongeluk verwijderd? ‘Ongedaan maken’ zet de afspraak terug</li>
 <li>Delen — stuur een afspraak als tekst of als .ics-bestand naar de app van je keuze</li>
-<li>Feestdagen — die van negen Europese landen en de Verenigde Staten, berekend op de telefoon, standaard uitgeschakeld</li>
+<li>Feestdagen — die van negen Europese landen, de Verenigde Staten en Brazilië, berekend op de telefoon, standaard uitgeschakeld, met de brugdagen voor een lang weekend</li>
 <li>Terugkerende afspraken (RFC 5545) — dagelijks, wekelijks op gekozen dagen, maandelijks (op een datum, op de tweede dinsdag, de laatste vrijdag of de laatste dag), jaarlijks; eindigend na N keer of op een datum; één afspraak uit de reeks bewerken of verwijderen</li>
 <li>Herinneringen — exacte alarmen, opnieuw ingesteld na een herstart, vrij te kiezen tijd vooraf, je eigen geluid, en een uitstelknop in de melding, van 5 minuten tot 1 uur naar keuze</li>
 <li>Versleutelde back-up — exporteer je hele agenda naar een met een wachtwoord beveiligd .atbak-bestand (PBKDF2-HMAC-SHA256 met 600.000 iteraties + AES-256-GCM). Bewaar het waar je wilt, ook in de cloud: zonder je wachtwoord blijft het onleesbaar</li>

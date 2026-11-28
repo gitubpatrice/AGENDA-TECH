@@ -249,6 +249,8 @@
     <string name="settings_holidays">Feestdagen</string>
     <string name="settings_holidays_none">Geen</string>
     <string name="settings_holidays_sub">Nationale feestdagen, berekend op de telefoon.</string>
+    <string name="settings_bridges">Brugdagen</string>
+    <string name="settings_bridges_sub">De werkdagen die je vrij neemt om van een feestdag een lang weekend te maken.</string>
     <string name="holiday_observed">%1$s (vervangende dag)</string>
     <string name="holiday_new_year">Nieuwjaar</string>
     <string name="holiday_epiphany">Driekoningen</string>
@@ -292,6 +294,20 @@
     <string name="holiday_columbus_day">Columbus Day</string>
     <string name="holiday_veterans_day">Veterans Day</string>
     <string name="holiday_thanksgiving">Thanksgiving</string>
+    <string name="holiday_tiradentes">Tiradentes-dag</string>
+    <string name="holiday_our_lady_of_aparecida">Onze-Lieve-Vrouw van Aparecida</string>
+    <string name="holiday_all_souls">Allerzielen</string>
+    <string name="holiday_republic_proclamation">Uitroeping van de Republiek</string>
+    <string name="holiday_black_consciousness_day">Dag van het Zwarte Bewustzijn</string>
+    <string name="bridges_title">Brugdagen</string>
+    <string name="bridges_take">Vrij nemen: %1$s</string>
+    <plurals name="bridges_rest">
+        <item quantity="one">%1$d vrije dag op rij: %2$s – %3$s</item>
+        <item quantity="other">%1$d vrije dagen op rij: %2$s – %3$s</item>
+    </plurals>
+    <string name="bridges_none">Geen brugdagen meer in %1$d.</string>
+    <string name="bridges_note">Berekend op basis van de nationale feestdagen van het gekozen land, met zaterdag en zondag vrij. Regionale feestdagen en je eigen werkdagen worden niet meegeteld: controleer dit voordat je verlof aanvraagt.</string>
+    <string name="bridges_no_country">Kies een land bij “Feestdagen”, in de instellingen, om de brugdagen te zien.</string>
     <string name="settings_language">Taal van de app</string>
     <string name="settings_language_sub">Opent het Android-taalscherm voor deze app. Agenda Tech volgt de taal van je telefoon, tenzij je daar een andere kiest.</string>
     <string name="settings_section_events">Afspraken</string>
@@ -353,7 +369,7 @@
     <string name="about_feat_views_label">Maand-, week-, dag- en agendaweergave</string>
     <string name="about_feat_views_desc">Veeg van maand naar maand, toon ze als stippen, titels of één regel per dag, spring terug naar vandaag, meerdere kalenders.</string>
     <string name="about_feat_holidays_label">Feestdagen</string>
-    <string name="about_feat_holidays_desc">Die van tien landen, berekend op de telefoon: België, Duitsland, Frankrijk, Italië, Luxemburg, Oostenrijk, Spanje, de Verenigde Staten, het Verenigd Koninkrijk en Zwitserland.</string>
+    <string name="about_feat_holidays_desc">Die van elf landen, berekend op de telefoon: België, Brazilië, Duitsland, Frankrijk, Italië, Luxemburg, Oostenrijk, Spanje, de Verenigde Staten, het Verenigd Koninkrijk en Zwitserland. En de brugdagen: de werkdagen die je vrij neemt om er een lang weekend van te maken.</string>
     <string name="about_feat_share_label">Delen en kaarten</string>
     <string name="about_feat_share_desc">Deel een afspraak als tekst of als .ics-bestand, open het adres in je kaartenapp — jij kiest de app, Agenda Tech verstuurt zelf niets. Per ongeluk verwijderd? Ongedaan maken zet de afspraak terug.</string>
     <string name="about_feat_recurrence_label">Terugkerende afspraken</string>
