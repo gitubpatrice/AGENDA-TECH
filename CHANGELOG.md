@@ -5,6 +5,10 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-11-28
+
+Bridge days, Brazil's public holidays, and Dutch.
+
 ### Added
 
 - **Brazilian public holidays**, suggested by TraduxBR (#70): New Year's Day, Good Friday, Tiradentes,
@@ -14,8 +18,8 @@ versions selon [SemVer](https://semver.org/lang/fr/).
   are optional days off (pontos facultativos), not holidays, and a state's or a city's own are not
   shown. None is moved off a weekend.
 - **Bridge days** (Settings → Bridge days, once a country's holidays are shown): the one or two working
-  days caught between a holiday and a weekend, which taken off give four or five days in a row — the
-  Friday after an Ascension Thursday. This year's still ahead, or next year's; for each, the days to
+  days caught between a holiday and a weekend, which taken off make a long weekend of it — the Friday
+  after an Ascension Thursday gives four days in a row. This year's still ahead, or next year's; for each, the days to
   take and the rest they give. Worked out on the phone from the national holidays alone, with Saturday
   and Sunday off: neither regional holidays nor anyone's own working days are known, as the screen and
   the terms of use say.
@@ -23,11 +27,25 @@ versions selon [SemVer](https://semver.org/lang/fr/).
   maintainer with machine assistance and not yet reviewed by a native speaker — corrections welcome
   ([TRANSLATING.md](TRANSLATING.md)). On Android 13 and later it can also be chosen for Agenda Tech
   alone (Settings → Apps → Agenda Tech → Language).
+- **Store listing in Brazilian Portuguese** (`fastlane/metadata/android/pt-BR`): the app has spoken it
+  since 1.4.0, its store page had not. Translated by the maintainer, not yet reviewed by a native
+  speaker, as the page says.
+
+### Fixed
+
+- **A birthday's age after a change of language**: the activity handles a change of language itself,
+  without being recreated, and the age was read through `LocalContext.current.resources`, which does
+  not follow it: after switching from English to Portuguese, "1 year" could stay in place of "1 ano"
+  until the app was restarted. It is read through `LocalResources` now.
 
 ### Changed
 
 - **Terms of use**: the paragraph on holidays no longer says bridge days are left out; it says how the
   ones now listed are worked out, and names Brazil's states and Carnival among what is not shown.
+- **Lint reports no warning.** Version notices are left to Dependabot, which watches every version
+  each week and whose held versions say why in `gradle/libs.versions.toml`; `app/lint.xml` gives the
+  reason. `targetSdk` stays at 35: 36 changes how the app behaves on Android 16 and needs its own
+  testing.
 
 ## [1.4.0] — 2026-11-22
 

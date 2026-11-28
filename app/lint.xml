@@ -20,6 +20,7 @@
         targetSdk 35 on purpose. Moving to 36 opts the app into Android 16's behaviours (predictive back,
         edge-to-edge with no way out, orientation and size ignored on large screens): a change of its own,
         to be tested on an Android 16 device, not a line to bump. Only the targetSdk line is exempt.
+        Remove this exemption in the change that moves targetSdk to 36.
     -->
     <issue id="OldTargetApi">
         <ignore path="build.gradle.kts" />

@@ -1,0 +1,13 @@
+v1.5.0 — Emendas de feriado, Brasil, holandês
+
+• Emendas de feriado: os dias úteis entre
+  um feriado e o fim de semana, para um
+  fim de semana prolongado
+  (Configurações → Emendas de feriado).
+• Os feriados nacionais do Brasil,
+  sugeridos por TraduxBR.
+• Holandês, o sétimo idioma do
+  aplicativo.
+• A idade de um aniversário acompanha a
+  troca de idioma sem reiniciar o
+  aplicativo.

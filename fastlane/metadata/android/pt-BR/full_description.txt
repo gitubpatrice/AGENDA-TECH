@@ -1,0 +1,39 @@
+Agenda Tech é uma agenda para Android que guarda tudo no seu dispositivo. Sem nuvem, sem conta, sem anúncios, sem rastreadores. Ela não declara nenhuma permissão de internet: é tecnicamente incapaz de enviar qualquer coisa para qualquer lugar — e você mesmo pode conferir isso nas configurações de aplicativos do Android.
+
+Ela existe para que a sua agenda não precise viver em nenhum outro lugar além do seu celular. Uma agenda diz muito sobre alguém: seus médicos, seus advogados, suas entrevistas de emprego, quem encontra e quando.
+
+<b>Recursos</b>
+
+<ul>
+<li>Quatro visualizações — Mês (deslize entre os meses; pontos, títulos na grade ou uma linha por dia, com gesto de pinça), Semana, Dia e Agenda em lista</li>
+<li>Eventos — dia inteiro, descrição, cor por evento, endereço e coordenadas GPS que abrem no seu aplicativo de mapas (sem nenhuma permissão de localização); apagou por engano? “Desfazer” traz de volta</li>
+<li>Compartilhar — envie um evento como texto ou como arquivo .ics para o aplicativo que quiser</li>
+<li>Feriados — os de nove países europeus, dos Estados Unidos e do Brasil, calculados no próprio dispositivo, desativados por padrão, com as emendas de feriado para um fim de semana prolongado</li>
+<li>Eventos recorrentes (RFC 5545) — diários, semanais nos dias escolhidos, mensais (numa data, na segunda terça-feira, na última sexta-feira ou no último dia), anuais; fim após N ocorrências ou numa data; editar ou apagar uma única ocorrência</li>
+<li>Lembretes — alarmes exatos, reprogramados após reiniciar, antecedência livre, o seu próprio som e um botão “Adiar” na notificação, de 5 minutos a 1 hora, à sua escolha</li>
+<li>Backup criptografado — exporte toda a sua agenda para um arquivo .atbak protegido por senha (PBKDF2-HMAC-SHA256 com 600.000 iterações + AES-256-GCM). Guarde onde quiser, nuvem incluída: sem a sua senha ele continua ilegível</li>
+<li>Busca — por título, descrição, local, endereço ou cidade; acentos e maiúsculas não importam</li>
+<li>Importação do calendário do dispositivo — copia o que os aplicativos de calendário do celular já sincronizaram nele, somente leitura, sem nenhuma rede</li>
+<li>Importação / exportação .ics (RFC 5545) pelo seletor de arquivos do sistema</li>
+<li>Bloqueio opcional por PIN e biometria</li>
+<li>Widgets da tela inicial, tema escuro, em português do Brasil, inglês, francês, alemão, italiano, espanhol e holandês</li>
+</ul>
+
+<b>Privacidade</b>
+
+<ul>
+<li>Nenhuma permissão INTERNET. Não é “prometemos não fazer” — o aplicativo não consegue</li>
+<li>Criptografada em repouso: SQLCipher (AES-256), chave mestra selada pelo Android KeyStore</li>
+<li>Capturas de tela bloqueadas (FLAG_SECURE), excluída dos backups em nuvem do Android</li>
+<li>Apache 2.0 — cada promessa desta página pode ser verificada linha por linha</li>
+</ul>
+
+<b>Os limites, com honestidade</b>
+
+<ul>
+<li>Não é uma sincronização. A importação copia o que está no celular; um evento criado aqui não volta para o calendário de origem. É o preço de não ter rede, e é uma escolha</li>
+<li>Sem CalDAV, sem agendas compartilhadas, sem convites — tudo isso exige uma rede. Você pode enviar um evento, não compartilhar uma agenda</li>
+<li>O backup criptografado é a ponte entre os seus dispositivos, e ela é manual</li>
+</ul>
+
+<i>O aplicativo foi traduzido por TraduxBR. Esta descrição foi traduzida pelo desenvolvedor com ajuda de ferramentas automáticas e ainda não foi revisada por um falante nativo. Algo soa estranho? Avise: https://github.com/gitubpatrice/AGENDA-TECH/issues</i>

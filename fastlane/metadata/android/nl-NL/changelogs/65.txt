@@ -1,0 +1,12 @@
+v1.5.0 — Brugdagen, Brazilië, Nederlands
+
+• Brugdagen: de werkdagen tussen een
+  feestdag en het weekend, voor een lang
+  weekend (Instellingen → Brugdagen).
+• De feestdagen van Brazilië,
+  voorgesteld door TraduxBR.
+• Nederlands, de zevende taal van de
+  app.
+• De leeftijd bij een verjaardag volgt
+  een taalwissel zonder de app opnieuw
+  te starten.

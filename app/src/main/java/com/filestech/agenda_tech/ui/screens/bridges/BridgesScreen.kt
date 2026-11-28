@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -102,6 +104,10 @@ private fun BridgesList(
     val dayFormat = remember(locale) {
         DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "EEEdMMM"), locale)
     }
+    // What TalkBack reads: the days in full, "jeudi 6 mai" — a voice can read "jeu." as a word.
+    val spokenDayFormat = remember(locale) {
+        DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "EEEEdMMMM"), locale)
+    }
     // "A and B" in the app's language, for two days to take or two holidays.
     val listFormat = remember(locale) { ListFormatter.getInstance(locale) }
 
@@ -136,7 +142,7 @@ private fun BridgesList(
         }
         itemsIndexed(state.bridges, key = { _, bridge -> bridge.daysToTake.first().toEpochDay() }) { index, bridge ->
             if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = lightLineColor())
-            BridgeRow(bridge = bridge, dayFormat = dayFormat, listFormat = listFormat)
+            BridgeRow(bridge = bridge, dayFormat = dayFormat, spokenDayFormat = spokenDayFormat, listFormat = listFormat)
         }
         item(key = "note") {
             HorizontalDivider(color = lightLineColor())
@@ -150,16 +156,36 @@ private fun BridgesList(
     }
 }
 
-/** One bridge: the holidays it is made of, the days to take off, then the rest it gives. */
+/**
+ * One bridge: the holidays it is made of, the days to take off, then the rest it gives. TalkBack reads it
+ * as one item, its days in full, rather than as three lines to swipe through one by one.
+ */
 @Composable
-private fun BridgeRow(bridge: Bridge, dayFormat: DateTimeFormatter, listFormat: ListFormatter) {
+private fun BridgeRow(
+    bridge: Bridge,
+    dayFormat: DateTimeFormatter,
+    spokenDayFormat: DateTimeFormatter,
+    listFormat: ListFormatter,
+) {
     val resources = LocalResources.current
     // A substitute day and the holiday it stands in for can both fall in one stretch: one name each.
-    val names = bridge.holidays.map { holidayName(resources, it) }.distinct()
+    val names = listFormat.format(bridge.holidays.map { holidayName(resources, it) }.distinct())
     val daysToTake = listFormat.format(bridge.daysToTake.map { dayFormat.unbroken(it) })
+    val spoken = listOf(
+        names,
+        stringResource(R.string.bridges_take, listFormat.format(bridge.daysToTake.map(spokenDayFormat::format))),
+        pluralStringResource(
+            R.plurals.bridges_rest,
+            bridge.restDays,
+            bridge.restDays,
+            spokenDayFormat.format(bridge.restStart),
+            spokenDayFormat.format(bridge.restEnd),
+        ),
+    ).joinToString(". ")
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clearAndSetSemantics { contentDescription = spoken }
             .padding(horizontal = 16.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -172,7 +198,7 @@ private fun BridgeRow(bridge: Bridge, dayFormat: DateTimeFormatter, listFormat: 
                 .size(18.dp),
         )
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(text = listFormat.format(names), style = MaterialTheme.typography.titleSmall)
+            Text(text = names, style = MaterialTheme.typography.titleSmall)
             Text(
                 text = stringResource(R.string.bridges_take, daysToTake),
                 style = MaterialTheme.typography.bodyMedium,

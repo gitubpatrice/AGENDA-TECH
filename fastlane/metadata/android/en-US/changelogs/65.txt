@@ -1,0 +1,11 @@
+v1.5.0 — Bridge days, Brazil, Dutch
+
+• Bridge days: the working days to take
+  off between a holiday and a weekend,
+  to make a long weekend of it
+  (Settings → Bridge days).
+• Brazil's public holidays, suggested
+  by TraduxBR.
+• Dutch, the app's seventh language.
+• A birthday's age follows a change of
+  language without restarting the app.
