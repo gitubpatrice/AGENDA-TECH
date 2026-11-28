@@ -16,7 +16,7 @@ Sie existiert, damit Ihr Kalender nirgendwo anders leben muss als auf Ihrem Tele
 <li>Import aus dem Gerätekalender — kopiert, was die Kalender-Apps des Telefons bereits darauf synchronisiert haben, nur lesend, ohne jedes Netzwerk</li>
 <li>.ics-Import / -Export (RFC 5545) über die Dateiauswahl des Systems</li>
 <li>Optionale Sperre per PIN und Biometrie</li>
-<li>Widgets für den Startbildschirm, dunkles Design, auf Deutsch, Englisch, Französisch, Italienisch, Spanisch und brasilianischem Portugiesisch</li>
+<li>Widgets für den Startbildschirm, dunkles Design, auf Deutsch, Englisch, Französisch, Italienisch, Spanisch, brasilianischem Portugiesisch und Niederländisch</li>
 </ul>
 
 <b>Datenschutz</b>

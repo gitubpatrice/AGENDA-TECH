@@ -394,8 +394,8 @@
     <string name="about_feat_encryption_desc">Todo o banco de dados é criptografado com AES-256; a chave nunca sai do hardware seguro do dispositivo.</string>
     <string name="about_feat_theme_label">Temas claro e escuro</string>
     <string name="about_feat_theme_desc">Segue o tema do sistema ou permite selecionar um tema específico. Números das semanas, primeiro dia da semana e cor padrão.</string>
-    <string name="about_feat_languages_label">Seis idiomas</string>
-    <string name="about_feat_languages_desc">Inglês, francês, alemão, italiano, espanhol e português do Brasil — selecionáveis individualmente para o aplicativo a partir do Android 13.</string>
+    <string name="about_feat_languages_label">Sete idiomas</string>
+    <string name="about_feat_languages_desc">Inglês, francês, alemão, italiano, espanhol, português do Brasil e holandês — selecionáveis individualmente para o aplicativo a partir do Android 13.</string>
 
     <!-- Sobre · Segurança -->
     <string name="about_security_title">Segurança</string>

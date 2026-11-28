@@ -392,8 +392,8 @@
     <string name="about_feat_encryption_desc">Toute la base est chiffrée en AES-256 ; la clé ne quitte jamais le matériel sécurisé de l\'appareil.</string>
     <string name="about_feat_theme_label">Thèmes clair et sombre</string>
     <string name="about_feat_theme_desc">Suit le système, ou forcez-en un. Numéros de semaine, début de semaine, couleur par défaut.</string>
-    <string name="about_feat_languages_label">Six langues</string>
-    <string name="about_feat_languages_desc">Anglais, français, allemand, italien, espagnol et portugais du Brésil — au choix pour l\'app dès Android 13.</string>
+    <string name="about_feat_languages_label">Sept langues</string>
+    <string name="about_feat_languages_desc">Anglais, français, allemand, italien, espagnol, portugais du Brésil et néerlandais — au choix pour l\'app dès Android 13.</string>
 
     <!-- À propos · Sécurité -->
     <string name="about_security_title">Sécurité</string>

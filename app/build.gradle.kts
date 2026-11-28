@@ -65,7 +65,7 @@ android {
     // build time, without any error, and the app stays in English. tools/check-translations.py
     // fails the build when this list, res/xml/locales_config.xml and the values-XX/ folders disagree.
     androidResources {
-        localeFilters += listOf("en", "fr", "de", "it", "es", "pt-rBR")
+        localeFilters += listOf("en", "fr", "de", "it", "es", "pt-rBR", "nl")
     }
 
     // `MigrationTestHelper` lit les schémas exportés depuis les ASSETS du test instrumenté, pas

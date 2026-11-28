@@ -16,7 +16,7 @@ Il existe pour que votre agenda n'ait à vivre nulle part ailleurs que sur votre
 <li>Import du calendrier de l'appareil — copie ce que les applications d'agenda du téléphone y ont déjà synchronisé, en lecture seule, sans réseau</li>
 <li>Import / export .ics (RFC 5545) via le sélecteur de fichiers système</li>
 <li>Verrou optionnel par code PIN et biométrie</li>
-<li>Widgets écran d'accueil, thème sombre, en français, anglais, allemand, italien, espagnol et portugais du Brésil</li>
+<li>Widgets écran d'accueil, thème sombre, en français, anglais, allemand, italien, espagnol, portugais du Brésil et néerlandais</li>
 </ul>
 
 <b>Confidentialité</b>

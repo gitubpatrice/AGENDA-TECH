@@ -19,6 +19,10 @@ versions selon [SemVer](https://semver.org/lang/fr/).
   take and the rest they give. Worked out on the phone from the national holidays alone, with Saturday
   and Sunday off: neither regional holidays nor anyone's own working days are known, as the screen and
   the terms of use say.
+- **Dutch**: every screen, notification and widget, and the store listing. Produced by the
+  maintainer with machine assistance and not yet reviewed by a native speaker — corrections welcome
+  ([TRANSLATING.md](TRANSLATING.md)). On Android 13 and later it can also be chosen for Agenda Tech
+  alone (Settings → Apps → Agenda Tech → Language).
 
 ### Changed
 
