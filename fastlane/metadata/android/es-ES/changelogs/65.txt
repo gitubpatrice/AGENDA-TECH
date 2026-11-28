@@ -1,0 +1,12 @@
+v1.5.0 — Puentes, Brasil, neerlandés
+
+• Los puentes: los días laborables entre
+  un festivo y el fin de semana, para
+  cuatro o cinco días libres seguidos
+  (Ajustes → Puentes).
+• Los festivos de Brasil, sugeridos por
+  TraduxBR.
+• El neerlandés, séptimo idioma de la
+  app.
+• La edad de un cumpleaños sigue un
+  cambio de idioma sin reiniciar la app.

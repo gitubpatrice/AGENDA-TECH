@@ -1,0 +1,13 @@
+v1.5.0 — Brückentage, Brasilien, Niederländisch
+
+• Brückentage: die Arbeitstage zwischen
+  einem Feiertag und dem Wochenende, für
+  vier oder fünf freie Tage am Stück
+  (Einstellungen → Brückentage).
+• Die Feiertage Brasiliens, vorgeschlagen
+  von TraduxBR.
+• Niederländisch, die siebte Sprache der
+  App.
+• Das Alter bei einem Geburtstag folgt
+  einem Sprachwechsel ohne Neustart der
+  App.

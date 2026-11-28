@@ -1,0 +1,12 @@
+v1.5.0 — Ponti, Brasile, olandese
+
+• I ponti: i giorni lavorativi tra una
+  festività e il fine settimana, per
+  quattro o cinque giorni di riposo di
+  fila (Impostazioni → Ponti).
+• Le festività del Brasile, suggerite
+  da TraduxBR.
+• L'olandese, settima lingua dell'app.
+• L'età di un compleanno segue un
+  cambio di lingua senza riavviare
+  l'app.

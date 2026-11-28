@@ -1,0 +1,13 @@
+v1.5.0 — Ponts, Brésil, néerlandais
+
+• Les ponts : les jours à poser entre un
+  férié et un week-end, pour quatre ou
+  cinq jours de repos d'affilée
+  (Réglages → Ponts).
+• Les jours fériés du Brésil, suggérés
+  par TraduxBR.
+• Le néerlandais, septième langue de
+  l'appli.
+• L'âge d'un anniversaire suit un
+  changement de langue sans relancer
+  l'appli.

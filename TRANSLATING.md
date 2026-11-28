@@ -127,9 +127,9 @@ A language that has a `full_description.txt` must also have the changelog of the
 `versionCode` (`changelogs/<versionCode>.txt`), or its listing shows a "What's new" in another
 language. Only the current changelog is measured: the older ones are frozen in their release tags.
 
-Please end `full_description.txt` with the short paragraph the German, Italian, Spanish and Dutch
-listings carry: who wrote the translation, that no native speaker reviewed it, and where to report
-what reads wrong.
+Please end `full_description.txt` with the short paragraph the German, Italian, Spanish, Dutch and
+Brazilian Portuguese listings carry: who wrote the translation, that no native speaker reviewed it,
+and where to report what reads wrong.
 
 ## Continuous integration
 
