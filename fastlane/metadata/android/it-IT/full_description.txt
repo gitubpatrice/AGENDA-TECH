@@ -16,7 +16,7 @@ Esiste perché il suo calendario non debba vivere altrove che sul suo telefono. 
 <li>Importazione dal calendario del dispositivo — copia ciò che le app di calendario del telefono vi hanno già sincronizzato, in sola lettura, senza alcuna rete</li>
 <li>Importazione / esportazione .ics (RFC 5545) tramite il selettore di file del sistema</li>
 <li>Blocco facoltativo con PIN e biometria</li>
-<li>Widget per la schermata Home, tema scuro, in italiano, inglese, francese, tedesco, spagnolo e portoghese brasiliano</li>
+<li>Widget per la schermata Home, tema scuro, in italiano, inglese, francese, tedesco, spagnolo, portoghese brasiliano e olandese</li>
 </ul>
 
 <b>Privacy</b>

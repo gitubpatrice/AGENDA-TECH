@@ -16,7 +16,7 @@ Existe para que su calendario no tenga que vivir en ningún otro sitio que su te
 <li>Importación desde el calendario del dispositivo — copia lo que las apps de calendario del teléfono ya han sincronizado en él, solo lectura, sin ninguna red</li>
 <li>Importación / exportación .ics (RFC 5545) mediante el selector de archivos del sistema</li>
 <li>Bloqueo opcional con PIN y biometría</li>
-<li>Widgets de pantalla de inicio, tema oscuro, en español, inglés, francés, alemán, italiano y portugués de Brasil</li>
+<li>Widgets de pantalla de inicio, tema oscuro, en español, inglés, francés, alemán, italiano, portugués de Brasil y neerlandés</li>
 </ul>
 
 <b>Privacidad</b>

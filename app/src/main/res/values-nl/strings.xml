@@ -1,0 +1,576 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dutch. Source of truth: values/strings.xml (English). Informal address (je), the usual register
+     of Dutch consumer apps. Produced by the maintainer with machine assistance, not yet reviewed by a
+     native speaker: see TRANSLATING.md. -->
+<resources>
+    <string name="app_name">Agenda Tech</string>
+
+    <!-- View switcher -->
+    <string name="view_month">Maand</string>
+    <string name="view_week">Week</string>
+    <string name="view_day">Dag</string>
+    <string name="view_agenda">Agenda</string>
+    <string name="agenda_empty">Geen komende afspraken</string>
+    <string name="day_previous">Vorige dag</string>
+    <string name="day_next">Volgende dag</string>
+    <string name="week_previous">Vorige week</string>
+    <string name="week_next">Volgende week</string>
+    <string name="week_all_day_expand">Alle afspraken voor de hele dag tonen</string>
+    <string name="week_all_day_collapse">Minder afspraken voor de hele dag tonen</string>
+
+    <!-- First-run default calendar -->
+    <string name="default_calendar_name">Persoonlijk</string>
+
+    <!-- Import / export (.ics) -->
+    <string name="menu_more">Meer</string>
+    <string name="menu_import_ics">.ics importeren…</string>
+    <string name="menu_export_ics">.ics exporteren…</string>
+    <!-- Dutch plurals (CLDR): `one` is exactly 1 and `other` everything else, as in English and German.
+         No `many`, and lint's ImpliedQuantity does not apply to the unit plurals below: `one` holds a
+         single number here, unlike French or Portuguese, where it also covers 0. -->
+    <plurals name="ics_export_ok">
+        <item quantity="one">%1$d afspraak geëxporteerd</item>
+        <item quantity="other">%1$d afspraken geëxporteerd</item>
+    </plurals>
+    <plurals name="ics_import_ok">
+        <item quantity="one">%1$d afspraak geïmporteerd</item>
+        <item quantity="other">%1$d afspraken geïmporteerd</item>
+    </plurals>
+    <plurals name="import_first_date_only">
+        <item quantity="one">%1$d terugkerende afspraak volgt een regel die Agenda Tech niet kan toepassen: alleen de eerste datum is geïmporteerd, of de afspraak is ongewijzigd gebleven als die al in je agenda stond.</item>
+        <item quantity="other">%1$d terugkerende afspraken volgen een regel die Agenda Tech niet kan toepassen: alleen hun eerste datum is geïmporteerd, of ze zijn ongewijzigd gebleven als ze al in je agenda stonden.</item>
+    </plurals>
+    <string name="ics_error">Het kalenderbestand kon niet worden gelezen</string>
+    <string name="ics_import_too_many">Dit bestand bevat meer afspraken dan de app accepteert (maximaal %1$d). Splits het en importeer de delen afzonderlijk.</string>
+
+    <!-- Month view -->
+    <string name="month_today">Vandaag</string>
+    <string name="month_previous">Vorige maand</string>
+    <string name="month_next">Volgende maand</string>
+    <string name="month_add_event">Afspraak toevoegen</string>
+    <string name="month_no_events">Geen afspraken op deze dag</string>
+    <string name="month_all_day">Hele dag</string>
+    <string name="month_display_button">Maandweergave: %1$s</string>
+    <string name="month_display_dots">Stippen</string>
+    <string name="month_display_titles">Titels</string>
+    <string name="month_display_rows">Eén regel per dag</string>
+    <string name="month_display_pinch_hint">Tip: knijp met twee vingers in de maand om van weergave te wisselen</string>
+    <string name="month_pick_date">Naar een datum gaan</string>
+    <plurals name="month_day_events">
+        <item quantity="one">%1$d afspraak</item>
+        <item quantity="other">%1$d afspraken</item>
+    </plurals>
+    <plurals name="month_more_events">
+        <item quantity="one">Nog %1$d afspraak</item>
+        <item quantity="other">Nog %1$d afspraken</item>
+    </plurals>
+
+    <!-- Event editor -->
+    <string name="editor_new_title">Nieuwe afspraak</string>
+    <string name="editor_edit_title">Afspraak bewerken</string>
+    <string name="editor_save">Opslaan</string>
+    <string name="editor_delete">Verwijderen</string>
+    <string name="editor_duplicate">Dupliceren</string>
+    <string name="editor_share_text">Delen als tekst…</string>
+    <string name="editor_share_ics">.ics delen…</string>
+    <!-- Title given to the unsaved copy; %1$s is the original title. -->
+    <string name="editor_duplicate_title">%1$s (kopie)</string>
+    <string name="editor_back">Terug</string>
+    <string name="editor_title_label">Titel</string>
+    <string name="editor_all_day">Hele dag</string>
+    <string name="editor_calendar">Kalender</string>
+    <string name="editor_starts">Begint</string>
+    <string name="editor_ends">Eindigt</string>
+    <string name="editor_recurrence">Herhalen</string>
+    <string name="editor_color">Kleur</string>
+    <string name="color_name_calendar">Kalenderkleur</string>
+    <string name="color_name_blueberry">Blauw</string>
+    <string name="color_name_peacock">Lichtblauw</string>
+    <string name="color_name_basil">Donkergroen</string>
+    <string name="color_name_sage">Groen</string>
+    <string name="color_name_banana">Geel</string>
+    <string name="color_name_tangerine">Oranje</string>
+    <string name="color_name_tomato">Rood</string>
+    <string name="color_name_flamingo">Roze</string>
+    <string name="color_name_grape">Paars</string>
+    <string name="color_name_lavender">Lavendel</string>
+    <string name="color_name_graphite">Grijs</string>
+    <string name="scope_edit_title">Terugkerende afspraak bewerken</string>
+    <string name="scope_delete_title">Terugkerende afspraak verwijderen</string>
+    <string name="scope_this_occurrence">Alleen deze afspraak</string>
+    <string name="scope_whole_series">Alle afspraken in de reeks</string>
+    <string name="editor_description">Beschrijving</string>
+    <string name="editor_location">Locatie</string>
+    <string name="editor_address">Adres</string>
+    <string name="editor_postal_code">Postcode</string>
+    <string name="editor_city">Plaats</string>
+    <string name="editor_gps">GPS-coördinaten</string>
+    <string name="editor_gps_hint">44.0512, 5.0489</string>
+    <string name="editor_gps_help">Breedtegraad, lengtegraad — tik op de markering om je kaartenapp te openen</string>
+    <string name="editor_gps_open">Openen op de kaart</string>
+    <string name="map_no_app">Geen kaartenapp op deze telefoon</string>
+    <string name="editor_error_blank_title">Titel is verplicht</string>
+    <string name="editor_error_end_before_start">Het einde moet na het begin liggen</string>
+    <string name="editor_error_delete_failed">De afspraak kon niet worden verwijderd. Er is niets weggehaald — probeer het opnieuw.</string>
+    <string name="event_deleted">Afspraak verwijderd</string>
+    <string name="action_undo">Ongedaan maken</string>
+    <string name="event_restore_failed">De afspraak kon niet worden teruggezet.</string>
+    <string name="editor_error_save_failed">De afspraak kon niet worden opgeslagen</string>
+    <string name="editor_ok">OK</string>
+    <string name="editor_cancel">Annuleren</string>
+
+    <!-- Recurrence options -->
+    <string name="recurrence_none">Wordt niet herhaald</string>
+    <string name="recurrence_daily">Dagelijks</string>
+    <string name="recurrence_weekly">Wekelijks</string>
+    <string name="recurrence_monthly">Maandelijks</string>
+    <string name="recurrence_yearly">Jaarlijks</string>
+
+    <!-- Advanced recurrence: "Elke [2] weken", the number in the field between the two words. -->
+    <string name="recurrence_every_days">Elke</string>
+    <string name="recurrence_every_weeks">Elke</string>
+    <string name="recurrence_every_months">Elke</string>
+    <string name="recurrence_every_years">Elke</string>
+    <plurals name="recurrence_unit_days">
+        <item quantity="one">dag</item>
+        <item quantity="other">dagen</item>
+    </plurals>
+    <plurals name="recurrence_unit_weeks">
+        <item quantity="one">week</item>
+        <item quantity="other">weken</item>
+    </plurals>
+    <plurals name="recurrence_unit_months">
+        <item quantity="one">maand</item>
+        <item quantity="other">maanden</item>
+    </plurals>
+    <!-- "Elke 2 jaar": after a number, Dutch keeps "jaar" in the plural. -->
+    <plurals name="recurrence_unit_years">
+        <item quantity="one">jaar</item>
+        <item quantity="other">jaar</item>
+    </plurals>
+    <string name="recurrence_ends_label">Eindigt</string>
+    <string name="recurrence_end_never">Nooit</string>
+    <string name="recurrence_end_after">Na</string>
+    <!-- "Na [10] keer": the count of occurrences, as Dutch calendar apps word it. -->
+    <plurals name="recurrence_occurrences">
+        <item quantity="one">keer</item>
+        <item quantity="other">keer</item>
+    </plurals>
+    <string name="recurrence_end_on">Op</string>
+    <!-- Monthly series: one whole phrase per position and weekday (see the English file). -->
+    <string name="recurrence_monthly_on_day">Op dag %1$d van de maand</string>
+    <string name="recurrence_monthly_last_day">Op de laatste dag van de maand</string>
+    <string name="recurrence_monthly_first_monday">Op de eerste maandag</string>
+    <string name="recurrence_monthly_first_tuesday">Op de eerste dinsdag</string>
+    <string name="recurrence_monthly_first_wednesday">Op de eerste woensdag</string>
+    <string name="recurrence_monthly_first_thursday">Op de eerste donderdag</string>
+    <string name="recurrence_monthly_first_friday">Op de eerste vrijdag</string>
+    <string name="recurrence_monthly_first_saturday">Op de eerste zaterdag</string>
+    <string name="recurrence_monthly_first_sunday">Op de eerste zondag</string>
+    <string name="recurrence_monthly_second_monday">Op de tweede maandag</string>
+    <string name="recurrence_monthly_second_tuesday">Op de tweede dinsdag</string>
+    <string name="recurrence_monthly_second_wednesday">Op de tweede woensdag</string>
+    <string name="recurrence_monthly_second_thursday">Op de tweede donderdag</string>
+    <string name="recurrence_monthly_second_friday">Op de tweede vrijdag</string>
+    <string name="recurrence_monthly_second_saturday">Op de tweede zaterdag</string>
+    <string name="recurrence_monthly_second_sunday">Op de tweede zondag</string>
+    <string name="recurrence_monthly_third_monday">Op de derde maandag</string>
+    <string name="recurrence_monthly_third_tuesday">Op de derde dinsdag</string>
+    <string name="recurrence_monthly_third_wednesday">Op de derde woensdag</string>
+    <string name="recurrence_monthly_third_thursday">Op de derde donderdag</string>
+    <string name="recurrence_monthly_third_friday">Op de derde vrijdag</string>
+    <string name="recurrence_monthly_third_saturday">Op de derde zaterdag</string>
+    <string name="recurrence_monthly_third_sunday">Op de derde zondag</string>
+    <string name="recurrence_monthly_fourth_monday">Op de vierde maandag</string>
+    <string name="recurrence_monthly_fourth_tuesday">Op de vierde dinsdag</string>
+    <string name="recurrence_monthly_fourth_wednesday">Op de vierde woensdag</string>
+    <string name="recurrence_monthly_fourth_thursday">Op de vierde donderdag</string>
+    <string name="recurrence_monthly_fourth_friday">Op de vierde vrijdag</string>
+    <string name="recurrence_monthly_fourth_saturday">Op de vierde zaterdag</string>
+    <string name="recurrence_monthly_fourth_sunday">Op de vierde zondag</string>
+    <string name="recurrence_monthly_fifth_monday">Op de vijfde maandag</string>
+    <string name="recurrence_monthly_fifth_tuesday">Op de vijfde dinsdag</string>
+    <string name="recurrence_monthly_fifth_wednesday">Op de vijfde woensdag</string>
+    <string name="recurrence_monthly_fifth_thursday">Op de vijfde donderdag</string>
+    <string name="recurrence_monthly_fifth_friday">Op de vijfde vrijdag</string>
+    <string name="recurrence_monthly_fifth_saturday">Op de vijfde zaterdag</string>
+    <string name="recurrence_monthly_fifth_sunday">Op de vijfde zondag</string>
+    <string name="recurrence_monthly_last_monday">Op de laatste maandag</string>
+    <string name="recurrence_monthly_last_tuesday">Op de laatste dinsdag</string>
+    <string name="recurrence_monthly_last_wednesday">Op de laatste woensdag</string>
+    <string name="recurrence_monthly_last_thursday">Op de laatste donderdag</string>
+    <string name="recurrence_monthly_last_friday">Op de laatste vrijdag</string>
+    <string name="recurrence_monthly_last_saturday">Op de laatste zaterdag</string>
+    <string name="recurrence_monthly_last_sunday">Op de laatste zondag</string>
+
+    <!-- Reminders -->
+    <string name="editor_reminders">Herinneringen</string>
+    <string name="editor_add_reminder">Herinnering toevoegen</string>
+    <string name="editor_remove_reminder">Herinnering verwijderen</string>
+    <string name="reminder_at_time">Op het tijdstip van de afspraak</string>
+    <string name="reminder_minutes">%1$d min van tevoren</string>
+    <string name="reminder_hours">%1$d uur van tevoren</string>
+    <plurals name="reminder_days">
+        <item quantity="one">%1$d dag van tevoren</item>
+        <item quantity="other">%1$d dagen van tevoren</item>
+    </plurals>
+    <string name="reminder_custom">Aangepast…</string>
+    <string name="reminder_custom_amount">Tijd vóór de afspraak</string>
+    <string name="reminder_custom_duplicate">Deze herinnering bestaat al</string>
+    <string name="reminder_custom_too_far">Maximaal 28 dagen vóór de afspraak</string>
+    <string name="reminder_unit_minutes">Minuten</string>
+    <string name="reminder_unit_hours">Uren</string>
+    <string name="reminder_unit_days">Dagen</string>
+    <string name="reminder_channel_name">Afspraakherinneringen</string>
+    <string name="reminder_channel_desc">Meldingen van agendaherinneringen</string>
+    <string name="reminder_notifications_blocked_title">Herinneringen worden niet getoond</string>
+    <string name="reminder_notifications_blocked_body">Deze herinnering is opgeslagen en wordt na een herstart opnieuw ingesteld, maar Agenda Tech mag geen meldingen tonen: je ziet dus niets wanneer het zover is.</string>
+    <string name="reminder_notifications_blocked_action">Meldingen toestaan</string>
+
+    <!-- Home-screen widget -->
+    <string name="widget_description">De datum van vandaag en komende afspraken</string>
+    <string name="widget_icon_description">Compact datumicoon: weekdag, dag en maand</string>
+    <string name="widget_no_events">Geen komende afspraken</string>
+
+    <!-- Settings -->
+    <string name="menu_settings">Instellingen</string>
+    <string name="settings_title">Instellingen</string>
+    <string name="settings_section_appearance">Uiterlijk</string>
+    <string name="settings_theme">Thema</string>
+    <string name="theme_system">Automatisch</string>
+    <string name="theme_light">Licht</string>
+    <string name="theme_dark">Donker</string>
+    <string name="settings_week_start">Eerste dag van de week</string>
+    <string name="week_start_system">Automatisch</string>
+    <string name="week_start_monday">Maandag</string>
+    <string name="week_start_saturday">Zaterdag</string>
+    <string name="week_start_sunday">Zondag</string>
+    <string name="settings_show_week_numbers">Weeknummers tonen</string>
+    <string name="settings_holidays">Feestdagen</string>
+    <string name="settings_holidays_none">Geen</string>
+    <string name="settings_holidays_sub">Nationale feestdagen, berekend op de telefoon.</string>
+    <string name="settings_bridges">Brugdagen</string>
+    <string name="settings_bridges_sub">De werkdagen die je vrij neemt om van een feestdag een lang weekend te maken.</string>
+    <string name="holiday_observed">%1$s (vervangende dag)</string>
+    <string name="holiday_new_year">Nieuwjaar</string>
+    <string name="holiday_epiphany">Driekoningen</string>
+    <string name="holiday_good_friday">Goede Vrijdag</string>
+    <string name="holiday_easter_sunday">Pasen</string>
+    <string name="holiday_easter_monday">Paasmaandag</string>
+    <string name="holiday_labour_day">Dag van de Arbeid</string>
+    <string name="holiday_ascension">Hemelvaartsdag</string>
+    <string name="holiday_whit_sunday">Pinksteren</string>
+    <string name="holiday_whit_monday">Pinkstermaandag</string>
+    <string name="holiday_corpus_christi">Sacramentsdag</string>
+    <string name="holiday_assumption">Maria-Tenhemelopneming</string>
+    <string name="holiday_all_saints">Allerheiligen</string>
+    <string name="holiday_immaculate_conception">Onbevlekte Ontvangenis</string>
+    <string name="holiday_christmas">Kerstmis</string>
+    <string name="holiday_st_stephen">Sint-Stefanus</string>
+    <string name="holiday_second_christmas_day">Tweede Kerstdag</string>
+    <string name="holiday_boxing_day">Boxing Day</string>
+    <string name="holiday_national_day">Nationale feestdag</string>
+    <string name="holiday_victory_1945">Dag van de Overwinning</string>
+    <string name="holiday_armistice_1918">Wapenstilstand</string>
+    <string name="holiday_europe_day">Dag van Europa</string>
+    <string name="holiday_german_unity_day">Dag van de Duitse Eenheid</string>
+    <string name="holiday_reformation_day">Hervormingsdag</string>
+    <string name="holiday_repentance_day">Boete- en Biddag</string>
+    <string name="holiday_liberation_day">Bevrijdingsdag</string>
+    <string name="holiday_republic_day">Dag van de Republiek</string>
+    <string name="holiday_st_francis">Sint-Franciscus van Assisi</string>
+    <string name="holiday_national_unity_day">Dag van de Nationale Eenheid</string>
+    <string name="holiday_italian_unification">150 jaar Italiaanse eenwording</string>
+    <string name="holiday_constitution_day">Dag van de Grondwet</string>
+    <string name="holiday_early_may_bank_holiday">Feestdag begin mei</string>
+    <string name="holiday_spring_bank_holiday">Voorjaarsfeestdag</string>
+    <string name="holiday_special_bank_holiday">Bijzondere feestdag</string>
+    <string name="holiday_martin_luther_king_day">Martin Luther Kingdag</string>
+    <string name="holiday_washingtons_birthday">Verjaardag van Washington</string>
+    <string name="holiday_memorial_day">Memorial Day</string>
+    <string name="holiday_juneteenth">Juneteenth</string>
+    <string name="holiday_independence_day">Onafhankelijkheidsdag</string>
+    <string name="holiday_labor_day_us">Labor Day</string>
+    <string name="holiday_columbus_day">Columbus Day</string>
+    <string name="holiday_veterans_day">Veterans Day</string>
+    <string name="holiday_thanksgiving">Thanksgiving</string>
+    <string name="holiday_tiradentes">Tiradentes-dag</string>
+    <string name="holiday_our_lady_of_aparecida">Onze-Lieve-Vrouw van Aparecida</string>
+    <string name="holiday_all_souls">Allerzielen</string>
+    <string name="holiday_republic_proclamation">Uitroeping van de Republiek</string>
+    <string name="holiday_black_consciousness_day">Dag van het Zwarte Bewustzijn</string>
+    <string name="bridges_title">Brugdagen</string>
+    <string name="bridges_take">Vrij nemen: %1$s</string>
+    <plurals name="bridges_rest">
+        <item quantity="one">%1$d vrije dag op rij: %2$s – %3$s</item>
+        <item quantity="other">%1$d vrije dagen op rij: %2$s – %3$s</item>
+    </plurals>
+    <string name="bridges_none">Geen brugdagen meer in %1$d.</string>
+    <string name="bridges_note">Berekend op basis van de nationale feestdagen van het gekozen land, met zaterdag en zondag vrij. Regionale feestdagen en je eigen werkdagen worden niet meegeteld: controleer dit voordat je verlof aanvraagt.</string>
+    <string name="bridges_no_country">Kies een land bij “Feestdagen”, in de instellingen, om de brugdagen te zien.</string>
+    <string name="settings_language">Taal van de app</string>
+    <string name="settings_language_sub">Opent het Android-taalscherm voor deze app. Agenda Tech volgt de taal van je telefoon, tenzij je daar een andere kiest.</string>
+    <string name="settings_section_events">Afspraken</string>
+    <string name="settings_default_color">Standaardkleur van afspraken</string>
+    <string name="settings_default_duration">Standaardduur</string>
+    <string name="settings_default_reminder">Standaardherinnering</string>
+    <string name="reminder_off">Geen</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="duration_hours">%1$d uur</string>
+    <string name="settings_section_notifications">Meldingen van herinneringen</string>
+    <string name="settings_notif_sound">Geluid</string>
+    <string name="settings_notif_ringtone">Herinneringsgeluid</string>
+    <string name="settings_notif_ringtone_default">Systeemstandaard</string>
+    <string name="settings_notif_sound_reset">Terug naar het systeemgeluid</string>
+    <string name="settings_notif_vibrate">Trillen</string>
+    <string name="settings_notif_lockscreen">Tonen op vergrendelscherm</string>
+    <!-- Title of the snooze delay setting; the chosen delay ("10 min") shows next to it, and on the
+         notification's button (reminder_snooze). -->
+    <string name="settings_snooze">Uitstellen met</string>
+    <string name="settings_notif_system">Systeeminstellingen voor meldingen openen</string>
+    <string name="settings_section_privacy">Privacy</string>
+    <string name="settings_flag_secure">Screenshots blokkeren</string>
+    <string name="settings_flag_secure_sub">De app verbergen in Recente apps en bij schermopnamen</string>
+    <string name="settings_widget_hide_titles">Titels verbergen in de widget</string>
+    <string name="settings_widget_hide_titles_sub">Alleen tijden tonen op het startscherm</string>
+    <string name="settings_about">Over</string>
+    <string name="settings_calendars">Kalenders beheren</string>
+
+    <!-- Calendars -->
+    <string name="calendars_title">Kalenders</string>
+    <string name="calendars_show_events">De afspraken van %1$s tonen</string>
+    <string name="calendar_add">Kalender toevoegen</string>
+    <string name="calendar_name">Naam</string>
+    <string name="calendar_new_title">Nieuwe kalender</string>
+    <string name="calendar_edit_title">Kalender bewerken</string>
+    <string name="action_save">Opslaan</string>
+    <string name="action_cancel">Annuleren</string>
+    <string name="action_delete">Verwijderen</string>
+
+    <!-- About -->
+    <string name="about_tagline">Lokale, versleutelde agenda — geen netwerk.</string>
+    <string name="about_version">Versie %1$s (build %2$d)</string>
+    <string name="about_website">files-tech.com</string>
+    <string name="about_source">Broncode (GitHub)</string>
+    <string name="about_license">Licentie</string>
+    <string name="about_check_update">Updates bekijken</string>
+
+    <!-- About · Privacy -->
+    <string name="about_privacy_title">Privacy</string>
+    <string name="about_privacy_card_title">100% privé — geen surveillance</string>
+    <string name="about_privacy_body">De app vraagt helemaal geen internettoestemming — ze is technisch niet in staat om iets waar dan ook naartoe te sturen. Je agenda verlaat deze telefoon alleen als je die zelf deelt of exporteert.</string>
+    <string name="about_badge_no_network">Geen netwerk</string>
+    <string name="about_badge_no_ads">Geen advertenties</string>
+    <string name="about_badge_no_tracker">Geen trackers</string>
+    <string name="about_badge_no_account">Geen account</string>
+
+    <!-- About · Features -->
+    <string name="about_features_title">Functies</string>
+    <string name="about_feat_views_label">Maand-, week-, dag- en agendaweergave</string>
+    <string name="about_feat_views_desc">Veeg van maand naar maand, toon ze als stippen, titels of één regel per dag, spring terug naar vandaag, meerdere kalenders.</string>
+    <string name="about_feat_holidays_label">Feestdagen</string>
+    <string name="about_feat_holidays_desc">Die van elf landen, berekend op de telefoon: België, Brazilië, Duitsland, Frankrijk, Italië, Luxemburg, Oostenrijk, Spanje, de Verenigde Staten, het Verenigd Koninkrijk en Zwitserland. En de brugdagen: de werkdagen die je vrij neemt om er een lang weekend van te maken.</string>
+    <string name="about_feat_share_label">Delen en kaarten</string>
+    <string name="about_feat_share_desc">Deel een afspraak als tekst of als .ics-bestand, open het adres in je kaartenapp — jij kiest de app, Agenda Tech verstuurt zelf niets. Per ongeluk verwijderd? Ongedaan maken zet de afspraak terug.</string>
+    <string name="about_feat_recurrence_label">Terugkerende afspraken</string>
+    <string name="about_feat_recurrence_desc">Van dagelijks tot jaarlijks, eigen intervallen, einddatum; maandelijks op datum of op positie (de tweede dinsdag, de laatste vrijdag, de laatste dag) — bewerk één afspraak uit de reeks of de hele reeks.</string>
+    <string name="about_feat_reminders_label">Herinneringen</string>
+    <string name="about_feat_reminders_desc">Exacte alarmen, eigen tijdstip, je eigen beltoon. Opnieuw ingesteld na een herstart.</string>
+    <string name="about_feat_import_label">Importeren / exporteren</string>
+    <string name="about_feat_import_desc">Kopieer de afspraken die al op deze telefoon staan (Google, Exchange…) of wissel .ics-bestanden uit — alles offline.</string>
+    <string name="about_feat_widgets_label">Widgets voor het startscherm</string>
+    <string name="about_feat_widgets_desc">Komende afspraken, en een compact datumicoon.</string>
+    <string name="about_feat_lock_label">Vergrendeling met pincode / biometrie</string>
+    <string name="about_feat_lock_desc">Optionele vergrendeling van de hele app, met bescherming tegen brute-force-aanvallen.</string>
+    <string name="about_feat_encryption_label">Versleutelde opslag</string>
+    <string name="about_feat_encryption_desc">De hele database is versleuteld met AES-256; de sleutel verlaat nooit de beveiligde hardware van het apparaat.</string>
+    <string name="about_feat_theme_label">Lichte en donkere thema\'s</string>
+    <string name="about_feat_theme_desc">Volgt het systeem, of stel er zelf een in. Weeknummers, eerste dag van de week, standaardkleur.</string>
+    <string name="about_feat_languages_label">Zeven talen</string>
+    <string name="about_feat_languages_desc">Engels, Frans, Duits, Italiaans, Spaans, Braziliaans Portugees en Nederlands — per app te kiezen vanaf Android 13.</string>
+
+    <!-- About · Security -->
+    <string name="about_security_title">Beveiliging</string>
+    <string name="about_security_card_title">Versleuteld opgeslagen</string>
+    <string name="about_security_body">De database (SQLCipher, AES-256) is versleuteld met een willekeurige sleutel, die zelf weer is versleuteld door de Android Keystore — hardwarematig en niet exporteerbaar op apparaten met een beveiligd element. Zonder je telefoon is het bestand onleesbaar. Screenshots en de voorvertoning in Recente apps zijn standaard geblokkeerd, en back-ups naar de cloud zijn uitgeschakeld, zodat je agenda nooit van het apparaat wordt gekopieerd.</string>
+
+    <!-- About · Permissions -->
+    <string name="about_permissions_title">Toestemmingen en waarom</string>
+    <string name="about_perm_read_calendar">Alleen lezen. Wordt uitsluitend gebruikt om, als je daarom vraagt, de afspraken te kopiëren die al op deze telefoon staan. Nooit iets in geschreven, nooit iets verstuurd.</string>
+    <string name="about_perm_notifications">Je herinneringen tonen.</string>
+    <string name="about_perm_exact_alarm">Een herinnering op de minuut precies laten afgaan — een agendaherinnering die te laat komt, heeft geen zin.</string>
+    <string name="about_perm_boot">Je herinneringen na een herstart opnieuw instellen (alarmen overleven een herstart niet).</string>
+    <string name="about_perm_vibrate">Trillen bij een herinnering, als je dat aanzet.</string>
+    <string name="about_perm_no_internet_name">INTERNET — niet gevraagd</string>
+    <string name="about_perm_no_internet">De app heeft geen enkele netwerktoestemming. Links op deze pagina openen in je browser, buiten de app.</string>
+
+    <!-- About · Author and links -->
+    <string name="about_author_title">Auteur</string>
+    <string name="about_author_role">Ontwikkelaar</string>
+    <string name="about_links_title">Links</string>
+    <string name="about_report_issue">Een probleem melden</string>
+    <string name="about_license_name">Apache License 2.0</string>
+    <string name="about_privacy_policy">Privacybeleid</string>
+    <string name="about_thanks_body">Dank aan iedereen die een probleem meldt, een nieuwe versie test, een idee voorstelt of de app vertaalt: dankzij jullie hulp wordt Agenda Tech steeds beter.</string>
+    <string name="about_credits_body">Met zorg gemaakt door %1$s. Vrije en opensourcesoftware — de code is openbaar en controleerbaar.</string>
+    <string name="about_legal_body">© %1$s %2$s — Apache License 2.0</string>
+
+    <string name="settings_device_import">Importeren uit de apparaatkalender</string>
+    <string name="settings_device_import_sub">Afspraken kopiëren die al op deze telefoon staan (Google enz.) — zonder internet</string>
+    <string name="device_import_title">Import uit de apparaatkalender</string>
+    <string name="device_import_rationale">Agenda Tech kan afspraken kopiëren die al op deze telefoon zijn gesynchroniseerd (Google, Exchange, lokale kalenders). De app leest ze alleen lokaal — geen internettoegang, geen verbinding met je account.</string>
+    <string name="device_import_grant">Toegang tot kalender toestaan</string>
+    <string name="device_import_oneway_title">Een kopie, geen synchronisatie</string>
+    <string name="device_import_oneway_body">Je afspraken worden hierheen gekopieerd. Er wordt nooit iets teruggeschreven: een afspraak die je in Agenda Tech maakt, blijft in Agenda Tech en verschijnt niet in Google. Kom terug en importeer opnieuw wanneer je wilt — dat werkt alles bij zonder dubbele afspraken te maken.</string>
+    <string name="device_import_pick">Kies de kalenders die je wilt importeren:</string>
+    <string name="device_import_fallback_name">Geïmporteerde kalender</string>
+    <string name="device_import_empty">Geen kalender gevonden op dit apparaat.</string>
+    <string name="device_import_failed">De kalenders van het apparaat konden niet worden gelezen. Er is niets gewijzigd — probeer het opnieuw.</string>
+    <string name="device_import_action">Importeren (%1$d)</string>
+    <string name="device_import_running">Bezig met importeren…</string>
+    <!-- One plural, on the number of events (%1$d); the other numbers follow a label (see English). -->
+    <plurals name="device_import_done">
+        <item quantity="one">%1$d afspraak geïmporteerd. Gelezen kalenders: %2$d.</item>
+        <item quantity="other">%1$d afspraken geïmporteerd. Gelezen kalenders: %2$d.</item>
+    </plurals>
+    <plurals name="device_import_partial">
+        <item quantity="one">%1$d afspraak geïmporteerd. Gelezen kalenders: %2$d. Kalenders die niet konden worden gelezen: %3$d.</item>
+        <item quantity="other">%1$d afspraken geïmporteerd. Gelezen kalenders: %2$d. Kalenders die niet konden worden gelezen: %3$d.</item>
+    </plurals>
+    <plurals name="device_import_truncated">
+        <item quantity="one">%1$d afspraak geïmporteerd. Gelezen kalenders: %2$d. De selectie bevatte meer dan de %3$d afspraken die deze app in één import accepteert — importeer de overige kalenders afzonderlijk.</item>
+        <item quantity="other">%1$d afspraken geïmporteerd. Gelezen kalenders: %2$d. De selectie bevatte meer dan de %3$d afspraken die deze app in één import accepteert — importeer de overige kalenders afzonderlijk.</item>
+    </plurals>
+    <string name="device_import_clear">Eerder geïmporteerde kalenders verwijderen</string>
+    <string name="device_import_cleared">Geïmporteerde kalenders verwijderd.</string>
+    <string name="device_import_clear_confirm_title">Geïmporteerde kalenders verwijderen?</string>
+    <string name="device_import_clear_confirm_body">Hiermee worden alle eerder geïmporteerde kalenders en hun afspraken verwijderd. Je eigen kalenders blijven bewaard.</string>
+    <string name="event_delete_confirm_title">Afspraak verwijderen?</string>
+    <string name="event_delete_confirm_body">Deze afspraak en de bijbehorende herinneringen worden verwijderd.</string>
+    <string name="calendar_delete_confirm_title">Kalender verwijderen?</string>
+    <string name="calendar_delete_confirm_body">“%1$s” en alle bijbehorende afspraken worden definitief verwijderd.</string>
+    <string name="calendar_error_save_failed">De kalender kon niet worden opgeslagen. Er is niets weggeschreven — probeer het opnieuw.</string>
+    <string name="calendar_error_delete_failed">De kalender kon niet worden verwijderd. Er is niets weggehaald — probeer het opnieuw.</string>
+    <string name="db_reset_notice">Je gegevens konden niet worden ontgrendeld (de beveiligingssleutel van het apparaat is gewijzigd) en zijn gereset.</string>
+    <string name="startup_failure_title">Agenda Tech kan je gegevens niet openen</string>
+    <string name="startup_failure_body">Je agenda is er nog en is niet gewijzigd. Er zijn twee oorzaken bekend. Als de beveiligde sleutelopslag van de telefoon niet reageerde, start de telefoon dan opnieuw op en open Agenda Tech daarna opnieuw. Als een oudere versie van de app over een nieuwere is geïnstalleerd, installeer dan de nieuwere versie opnieuw. De app wist bewust niets uit zichzelf.</string>
+    <string name="settings_reset_notice">Je instellingen konden niet worden gelezen en zijn gereset. Als je een appvergrendeling had, is die uitgeschakeld — stel die opnieuw in bij Instellingen.</string>
+    <string name="reminders_incomplete_notice">Sommige terugkerende herinneringen konden na de herstart niet opnieuw worden ingepland. Open de betreffende afspraken en sla ze opnieuw op om ze weer in te stellen.</string>
+    <string name="settings_section_security">Beveiliging</string>
+    <string name="settings_lock_enabled">De app vergrendelen</string>
+    <string name="settings_lock_enabled_sub">Pincode of biometrie vragen bij het openen</string>
+    <string name="settings_lock_change_pin">Pincode wijzigen</string>
+    <string name="settings_lock_pin_save_failed">De pincode kon niet worden opgeslagen: de sleutelopslag van het apparaat weigerde. Je vorige vergrendelingsinstelling is ongewijzigd.</string>
+    <string name="settings_lock_biometric">Biometrie gebruiken</string>
+    <string name="settings_lock_set_pin">Een pincode instellen</string>
+    <string name="settings_lock_confirm_pin">Pincode bevestigen</string>
+    <string name="settings_lock_confirm_current">Voer je huidige pincode in</string>
+    <string name="action_continue">Doorgaan</string>
+    <string name="lock_throttled">Te veel pogingen. Probeer het over %1$d s opnieuw.</string>
+    <string name="lock_prompt">Voer je pincode in om te ontgrendelen</string>
+    <string name="lock_pin">Pincode</string>
+    <string name="lock_unlock">Ontgrendelen</string>
+    <string name="lock_wrong_pin">Onjuiste pincode</string>
+    <string name="lock_use_biometric">Biometrie gebruiken</string>
+    <string name="lock_biometric_title">Agenda Tech ontgrendelen</string>
+    <string name="lock_use_pin">Pincode gebruiken</string>
+    <string name="lock_biometric_failed">Biometrische ontgrendeling kon niet worden geverifieerd. Gebruik je pincode.</string>
+    <string name="lock_biometric_enrollment_changed">De biometrie op dit apparaat is gewijzigd, daarom is biometrische ontgrendeling uitgeschakeld. Gebruik je pincode en zet die ontgrendeling daarna weer aan in Instellingen.</string>
+
+    <!-- Encrypted backup (.atbak) -->
+    <string name="settings_backup">Versleutelde back-up</string>
+    <string name="settings_backup_sub">De hele agenda exporteren of terugzetten als een met een wachtwoord beveiligd bestand</string>
+    <string name="backup_title">Versleutelde back-up</string>
+    <string name="backup_intro_title">Een volledige, versleutelde kopie</string>
+    <string name="backup_intro_body">Het bestand bevat alles: kalenders, afspraken, herhalingen, locaties en herinneringen. Het is versleuteld met je wachtwoord (AES-256) — niemand kan het zonder dat wachtwoord openen, ook wij niet. Bewaar het waar je wilt: usb-stick, computer, cloud.</string>
+    <string name="backup_warn_title">Het wachtwoord kan niet worden hersteld</string>
+    <string name="backup_warn_body">Bij een back-up die je met de hand exporteert, wordt het nergens opgeslagen: als je het vergeet, is het bestand voorgoed onleesbaar. Bewaar het in een wachtwoordbeheerder. Automatische back-ups zijn de uitzondering — die moeten hun wachtwoord op deze telefoon bewaren, beschermd door de beveiligde hardware, om zonder jou te kunnen werken.</string>
+    <string name="backup_export">Een back-up exporteren</string>
+    <string name="backup_export_sub">Een versleuteld .atbak-bestand maken</string>
+    <string name="backup_restore">Een back-up terugzetten</string>
+    <string name="backup_restore_sub">De huidige agenda vervangen door de inhoud van een .atbak-bestand</string>
+    <string name="backup_password">Wachtwoord</string>
+    <string name="backup_password_confirm">Wachtwoord bevestigen</string>
+    <string name="backup_password_hint">Minimaal 12 tekens</string>
+    <string name="backup_password_mismatch">De twee wachtwoorden komen niet overeen.</string>
+    <string name="backup_password_too_short">Wachtwoord te kort: minimaal 12 tekens.</string>
+    <string name="backup_password_show">Wachtwoord tonen</string>
+    <string name="backup_password_hide">Wachtwoord verbergen</string>
+    <string name="backup_export_dialog_title">Kies een wachtwoord</string>
+    <string name="backup_restore_dialog_title">Wachtwoord van de back-up</string>
+    <string name="backup_restore_confirm_body">Je huidige kalenders, afspraken en herinneringen worden verwijderd en vervangen door de inhoud van het bestand. Dit kan niet ongedaan worden gemaakt.</string>
+    <string name="backup_restore_confirm_action">Vervangen</string>
+    <string name="backup_working">Bezig met versleutelen…</string>
+    <string name="backup_working_sub">Een paar seconden: dit is de berekening die je wachtwoord beschermt.</string>
+    <plurals name="backup_exported">
+        <item quantity="one">Back-up gemaakt: %1$d afspraak.</item>
+        <item quantity="other">Back-up gemaakt: %1$d afspraken.</item>
+    </plurals>
+    <!-- Three numbers: each follows its label, since a plural is chosen on one number only. -->
+    <string name="backup_restored">Teruggezet — kalenders: %1$d, afspraken: %2$d, herinneringen: %3$d.</string>
+    <string name="backup_bad_password">Onjuist wachtwoord, of beschadigd bestand.</string>
+    <string name="backup_not_a_backup">Dit bestand is geen back-up van Agenda Tech.</string>
+    <string name="backup_too_new">Deze back-up is gemaakt door een nieuwere versie van Agenda Tech. Werk de app bij om hem terug te zetten — verwijder het bestand niet.</string>
+    <string name="backup_damaged">Dit is een back-up van Agenda Tech, maar hij is onvolledig of beschadigd. Probeer een andere kopie — bewaar dit bestand.</string>
+    <string name="backup_failed">De back-up is mislukt. Er zijn geen gegevens gewijzigd.</string>
+    <string name="backup_working_restore">Bezig met ontsleutelen…</string>
+
+    <!-- Search -->
+    <string name="search_open">Een afspraak zoeken</string>
+    <string name="search_field_hint">Titel, beschrijving, locatie, plaats…</string>
+    <string name="search_clear">Zoekopdracht wissen</string>
+    <string name="search_prompt">Zoek een afspraak op titel, beschrijving, locatie of plaats. Accenten en hoofdletters maken niet uit.</string>
+    <string name="search_no_results">Geen resultaat voor “%1$s”.</string>
+    <string name="search_no_results_hint">Controleer de spelling, of probeer een korter woord.</string>
+    <string name="search_section_upcoming">Komend</string>
+    <string name="search_section_past">Afgelopen</string>
+    <string name="search_hidden_calendar">verborgen kalender</string>
+
+    <!-- The policy and the terms exist in English, French, German, Italian and Spanish; a Dutch user is
+         sent to the English ones (as in Brazilian Portuguese), which say the French version prevails. -->
+    <string name="about_privacy_policy_url">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/PRIVACY.md</string>
+    <string name="about_terms">Gebruiksvoorwaarden</string>
+    <string name="about_terms_url">https://github.com/gitubpatrice/AGENDA-TECH/blob/main/TERMS.md</string>
+    <!-- %1$d = snooze minutes -->
+    <string name="reminder_snooze">%1$d min uitstellen</string>
+    <!-- Restore offer, on an empty agenda (first run / new phone) -->
+    <string name="restore_prompt_title">Heb je een back-up?</string>
+    <string name="restore_prompt_body">Je agenda is leeg. Kom je van een andere telefoon? Je kunt al je kalenders, afspraken en herinneringen terugzetten vanuit een .atbak-bestand.</string>
+    <string name="restore_prompt_action">Een back-up terugzetten</string>
+    <string name="restore_prompt_dismiss">Nee, bedankt</string>
+    <!-- Backup reminder, on a filled agenda never backed up -->
+    <string name="backup_prompt_title">Geen back-up</string>
+    <string name="backup_prompt_body">Je afspraken staan alleen op deze telefoon. Raakt hij kwijt, wordt hij gestolen of gaat hij kapot, dan ben je ze ook kwijt. Een versleutelde back-up kost een paar seconden.</string>
+    <string name="backup_prompt_stale_body">Je agenda is gewijzigd sinds je laatste back-up. Die wijzigingen staan alleen op deze telefoon.</string>
+    <string name="backup_prompt_action">Back-up maken</string>
+    <string name="backup_prompt_later">Later</string>
+    <!-- Birthdays -->
+    <string name="editor_kind_event">Afspraak</string>
+    <string name="editor_kind_birthday">Verjaardag</string>
+    <string name="editor_birthday_date">Geboortedatum</string>
+    <string name="editor_birthday_hint">Herhaalt elk jaar, de hele dag. Laat het jaar staan zoals het is als je het niet weet — de leeftijd wordt dan gewoon niet getoond.</string>
+    <!-- Age marked by a birthday occurrence, e.g. "42 jaar"; "jaar" is the same after any number. -->
+    <plurals name="birthday_age">
+        <item quantity="one">%1$d jaar</item>
+        <item quantity="other">%1$d jaar</item>
+    </plurals>
+    <!-- Automatic backup -->
+    <string name="backup_auto_title">Automatische back-up</string>
+    <string name="backup_auto_sub">Schrijft eens per week een versleuteld .atbak-bestand naar een map naar keuze. De vier meest recente worden bewaard; oudere worden verwijderd.</string>
+    <string name="backup_auto_password_title">Wachtwoord voor automatische back-ups</string>
+    <string name="backup_auto_password_note">Schrijf het ergens veilig op. Het wordt op deze telefoon bewaard, beschermd door de beveiligde hardware, maar een back-up die je niet kunt openen, is geen back-up.</string>
+    <!-- %1$s is the folder name returned by the system picker. -->
+    <string name="backup_auto_folder">Map: %1$s</string>
+    <string name="backup_auto_folder_none">Nog geen map gekozen</string>
+    <string name="backup_auto_folder_lost">De gekozen map is niet meer bereikbaar. Zet de schakelaar uit en weer aan om er een te kiezen.</string>
+    <string name="backup_auto_change_folder">Andere map kiezen</string>
+    <string name="backup_auto_run_now">Nu back-up maken</string>
+    <string name="backup_auto_never">Nog nooit uitgevoerd</string>
+    <!-- %1$s is a formatted date and time. -->
+    <string name="backup_auto_last_ok">Laatste back-up: %1$s</string>
+    <string name="backup_auto_err_no_folder">Er is niets geschreven: er is geen map ingesteld.</string>
+    <string name="backup_auto_err_no_password">Er is niets geschreven: het wachtwoord kon niet worden gelezen. Zet de schakelaar uit en weer aan om het in te stellen.</string>
+    <string name="backup_auto_err_folder">Er is niets geschreven: de map is onbereikbaar. Misschien is hij verplaatst of is de toestemming ingetrokken.</string>
+    <string name="backup_auto_err_export">De agenda kon niet worden geëxporteerd. Er is niets geschreven.</string>
+    <string name="backup_auto_err_write">Het bestand kon niet naar de map worden geschreven.</string>
+</resources>

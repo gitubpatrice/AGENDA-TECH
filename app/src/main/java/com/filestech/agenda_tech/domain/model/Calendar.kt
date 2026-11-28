@@ -42,6 +42,6 @@ data class Calendar(
          * resource, never from a literal (checked in the history back to 5a228b7, 2026-07-14).
          * `SeededCalendarNamesTest` fails when a language is added or renamed without this set.
          */
-        val SEEDED_NAMES: Set<String> = setOf("Personal", "Perso", "Persönlich", "Personale", "Pessoal")
+        val SEEDED_NAMES: Set<String> = setOf("Personal", "Perso", "Persönlich", "Personale", "Pessoal", "Persoonlijk")
     }
 }

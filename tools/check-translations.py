@@ -70,6 +70,7 @@ CLDR_QUANTITIES = {
     "it": {"one", "many", "other"},
     "es": {"one", "many", "other"},
     "pt-rBR": {"one", "many", "other"},
+    "nl": {"one", "other"},
 }
 
 FASTLANE_CAPS = {

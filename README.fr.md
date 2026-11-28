@@ -68,7 +68,7 @@ L'APK est **universel** (fonctionne sur tous les appareils, pas de variante à c
 - **Recherche** dans tout l'agenda (titre, description, lieu, adresse, ville) — insensible aux
   accents et à la casse : « reunion » trouve « Réunion ».
 - **Verrou optionnel** par code PIN et/ou biométrie.
-- **Thème sombre** (style GitHub), **widgets** écran d'accueil, en français, anglais, allemand, italien, espagnol et portugais du Brésil (corrections bienvenues : [TRANSLATING.md](TRANSLATING.md)).
+- **Thème sombre** (style GitHub), **widgets** écran d'accueil, en français, anglais, allemand, italien, espagnol, portugais du Brésil et néerlandais (corrections bienvenues : [TRANSLATING.md](TRANSLATING.md)).
 
 ## Confidentialité
 

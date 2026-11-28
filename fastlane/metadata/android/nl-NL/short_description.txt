@@ -1,0 +1,1 @@
+Privé offline-agenda: versleuteld, geen netwerk, versleutelde back-ups.

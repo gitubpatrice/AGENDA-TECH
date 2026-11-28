@@ -16,7 +16,7 @@ It exists so that your calendar never has to live anywhere but on your phone. A 
 <li>Import from your device calendar — copies what the phone's own calendar apps have already synced onto it, read-only, without any network</li>
 <li>.ics import / export (RFC 5545) through the system file picker</li>
 <li>Optional PIN and biometric lock</li>
-<li>Home-screen widgets, dark theme, in English, French, German, Italian, Spanish and Brazilian Portuguese</li>
+<li>Home-screen widgets, dark theme, in English, French, German, Italian, Spanish, Brazilian Portuguese and Dutch</li>
 </ul>
 
 <b>Privacy</b>

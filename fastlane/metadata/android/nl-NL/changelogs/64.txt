@@ -1,0 +1,14 @@
+v1.4.0 — Maandelijks op positie
+
+• Maandelijks op de 2e dinsdag, de laatste
+  vrijdag of de laatste dag van de maand.
+• Geïmporteerde reeksen staan op hun echte
+  datums; een regel die de app niet kan
+  volgen, houdt de eerste datum, en de
+  import meldt dat.
+• De standaardduur geldt nu ook als je
+  het begin kiest.
+• Uitsteltijd naar keuze.
+• Icoon in themakleuren (Android 13+).
+• Braziliaans Portugees, met dank aan
+  TraduxBR.

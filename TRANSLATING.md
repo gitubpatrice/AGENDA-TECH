@@ -1,15 +1,16 @@
 # Translating Agenda Tech
 
-Agenda Tech ships in **English** (the source), **French**, **German**, **Italian**, **Spanish** and
-**Brazilian Portuguese**.
+Agenda Tech ships in **English** (the source), **French**, **German**, **Italian**, **Spanish**,
+**Brazilian Portuguese** and **Dutch**.
 This page is for anyone adding or correcting a language — no Android knowledge required beyond
 editing an XML file.
 
-> **Honesty first.** The German, Italian and Spanish translations were produced by the maintainer
-> with machine assistance and **have not been reviewed by a native speaker**. They are offered
-> because a rough translation in your language beats no translation at all — not because they are
-> professional work. If something reads wrong, **please open an issue or a pull request**. You do
-> not need to justify a correction: a native ear is the authority here, not the person who wrote it.
+> **Honesty first.** The German, Italian, Spanish and Dutch translations were produced by the
+> maintainer with machine assistance and **have not been reviewed by a native speaker**. They are
+> offered because a rough translation in your language beats no translation at all — not because
+> they are professional work. If something reads wrong, **please open an issue or a pull request**.
+> You do not need to justify a correction: a native ear is the authority here, not the person who
+> wrote it.
 >
 > The Brazilian Portuguese translation was contributed by **TraduxBR** (pull request #55).
 
@@ -22,7 +23,7 @@ editing an XML file.
 | `app/src/main/res/values-<lang>/strings.xml` | your language |
 | `fastlane/metadata/android/<locale>/` | the F-Droid store listing |
 
-There are **445 keys**: 429 `<string>` and 16 `<plurals>` (the check prints the current count). The
+There are **458 keys**: 441 `<string>` and 17 `<plurals>` (the check prints the current count). The
 app has no hardcoded text:
 everything you see on screen, in a notification or on the home-screen widget comes from these
 files.
@@ -65,9 +66,9 @@ build error. Same for a leading or trailing space and for `"`, `\` and `@`. This
 `strings.xml` only: the store listing files are plain text, where `\'` would show the backslash.
 
 **Plurals are not a free choice.** Each language has a fixed set of CLDR quantity categories.
-English and German use `one` / `other`; French, Italian, Spanish and Brazilian Portuguese also use
-`many` (exact millions: *1 000 000 d'événements*). The CI check names any category that is missing
-or useless, and fails on a language whose categories it does not know yet.
+English, German and Dutch use `one` / `other`; French, Italian, Spanish and Brazilian Portuguese
+also use `many` (exact millions: *1 000 000 d'événements*). The CI check names any category that is
+missing or useless, and fails on a language whose categories it does not know yet.
 
 **Do not translate these**, they are names or protocol words: `Agenda Tech`, `PIN`, `GPS`, `.ics`,
 `.atbak`, `SQLCipher`, `AES-256`, `Android Keystore`, `Apache License 2.0`, `INTERNET` (the name of
@@ -78,20 +79,23 @@ the permission).
 Pick **one** word per concept in your language and use it everywhere: a synonym used halfway
 through makes users think there are two features.
 
-| English | French | German | Italian | Spanish | Brazilian Portuguese |
-|---|---|---|---|---|---|
-| event | événement | Termin | evento | evento | evento |
-| calendar (one of several) | calendrier | Kalender | calendario | calendario | calendário |
-| agenda (all of your data) | agenda | Agenda | agenda | agenda | agenda |
-| reminder | rappel | Erinnerung | promemoria | recordatorio | lembrete |
-| recurring (event) | récurrent | Serientermin / wiederkehrend | ricorrente | periódico | recorrente |
-| occurrence | occurrence | Termin | occorrenza | repetición | ocorrência |
-| backup | sauvegarde | Sicherung | backup | copia de seguridad | backup |
-| app lock | verrouillage | App-Sperre | blocco dell'app | bloqueo de la app | bloqueio do aplicativo |
-| biometrics | biométrie | Biometrie | biometria | biometría | biometria |
+| English | French | German | Italian | Spanish | Brazilian Portuguese | Dutch |
+|---|---|---|---|---|---|---|
+| event | événement | Termin | evento | evento | evento | afspraak |
+| calendar (one of several) | calendrier | Kalender | calendario | calendario | calendário | kalender |
+| agenda (all of your data) | agenda | Agenda | agenda | agenda | agenda | agenda |
+| reminder | rappel | Erinnerung | promemoria | recordatorio | lembrete | herinnering |
+| recurring (event) | récurrent | Serientermin / wiederkehrend | ricorrente | periódico | recorrente | terugkerend |
+| occurrence | occurrence | Termin | occorrenza | repetición | ocorrência | afspraak uit de reeks (counted: *keer*) |
+| backup | sauvegarde | Sicherung | backup | copia de seguridad | backup | back-up |
+| app lock | verrouillage | App-Sperre | blocco dell'app | bloqueo de la app | bloqueio do aplicativo | appvergrendeling |
+| biometrics | biométrie | Biometrie | biometria | biometría | biometria | biometrie |
 
 **Register: formal.** French uses *vous*, German *Sie*, Italian *Lei*, Spanish *usted*, as in the
 other Files Tech apps. Brazilian Portuguese uses *você*, the usual register of Brazilian software.
+Dutch uses the informal *je*, the usual register of Dutch consumer apps; the formal *u* would be for
+legal text, and the app holds none of its own in Dutch — it links to the English privacy policy and
+terms of use, which say the French version prevails.
 
 **Strings that do not forgive an approximation.** Translate these slowly, and prefer a plain,
 unambiguous wording over an elegant one: the **backup** and **restore** screens (a restore deletes
@@ -123,7 +127,7 @@ A language that has a `full_description.txt` must also have the changelog of the
 `versionCode` (`changelogs/<versionCode>.txt`), or its listing shows a "What's new" in another
 language. Only the current changelog is measured: the older ones are frozen in their release tags.
 
-Please end `full_description.txt` with the short paragraph the German, Italian and Spanish
+Please end `full_description.txt` with the short paragraph the German, Italian, Spanish and Dutch
 listings carry: who wrote the translation, that no native speaker reviewed it, and where to report
 what reads wrong.
 

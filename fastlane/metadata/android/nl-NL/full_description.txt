@@ -1,0 +1,39 @@
+Agenda Tech is een agenda voor Android die alles op je apparaat houdt. Geen cloud, geen account, geen advertenties, geen trackers. De app vraagt helemaal geen internettoestemming, dus ze is technisch niet in staat om iets waar dan ook naartoe te sturen — en dat kun je zelf controleren in de app-instellingen van Android.
+
+Ze bestaat zodat je agenda nergens anders hoeft te staan dan op je telefoon. Een agenda zegt veel over iemand: de artsen, de advocaten, de sollicitatiegesprekken, wie iemand ontmoet en wanneer.
+
+<b>Functies</b>
+
+<ul>
+<li>Vier weergaven — Maand (veeg tussen maanden; stippen, titels in het raster of één regel per dag, wisselen door te knijpen), Week, Dag en Agendalijst</li>
+<li>Afspraken — hele dag, beschrijving, eigen kleur per afspraak, postadres en GPS-coördinaten die in je kaartenapp openen (zonder locatietoestemming); per ongeluk verwijderd? ‘Ongedaan maken’ zet de afspraak terug</li>
+<li>Delen — stuur een afspraak als tekst of als .ics-bestand naar de app van je keuze</li>
+<li>Feestdagen — die van negen Europese landen, de Verenigde Staten en Brazilië, berekend op de telefoon, standaard uitgeschakeld, met de brugdagen voor een lang weekend</li>
+<li>Terugkerende afspraken (RFC 5545) — dagelijks, wekelijks op gekozen dagen, maandelijks (op een datum, op de tweede dinsdag, de laatste vrijdag of de laatste dag), jaarlijks; eindigend na N keer of op een datum; één afspraak uit de reeks bewerken of verwijderen</li>
+<li>Herinneringen — exacte alarmen, opnieuw ingesteld na een herstart, vrij te kiezen tijd vooraf, je eigen geluid, en een uitstelknop in de melding, van 5 minuten tot 1 uur naar keuze</li>
+<li>Versleutelde back-up — exporteer je hele agenda naar een met een wachtwoord beveiligd .atbak-bestand (PBKDF2-HMAC-SHA256 met 600.000 iteraties + AES-256-GCM). Bewaar het waar je wilt, ook in de cloud: zonder je wachtwoord blijft het onleesbaar</li>
+<li>Zoeken — op titel, beschrijving, locatie, adres of plaats; accenten en hoofdletters maken niet uit</li>
+<li>Importeren uit de apparaatkalender — kopieert wat de eigen agenda-apps van de telefoon er al op hebben gesynchroniseerd, alleen lezen, zonder enig netwerk</li>
+<li>.ics importeren / exporteren (RFC 5545) via de bestandskiezer van het systeem</li>
+<li>Optionele vergrendeling met pincode en biometrie</li>
+<li>Widgets voor het startscherm, donker thema, in het Nederlands, Engels, Frans, Duits, Italiaans, Spaans en Braziliaans Portugees</li>
+</ul>
+
+<b>Privacy</b>
+
+<ul>
+<li>Geen INTERNET-toestemming. Niet ‘we beloven het niet te doen’ — de app kan het niet</li>
+<li>Versleuteld opgeslagen: SQLCipher (AES-256), hoofdsleutel verzegeld door de Android KeyStore</li>
+<li>Screenshots geblokkeerd (FLAG_SECURE), uitgesloten van de cloudback-ups van Android</li>
+<li>Apache 2.0 — elke belofte op deze pagina is regel voor regel te controleren</li>
+</ul>
+
+<b>Grenzen, eerlijk gezegd</b>
+
+<ul>
+<li>Geen synchronisatie. Importeren kopieert wat er op de telefoon staat; een afspraak die je hier maakt, gaat niet terug naar de oorspronkelijke kalender. Dat is de prijs van nul netwerk, en het is een bewuste keuze</li>
+<li>Geen CalDAV, geen gedeelde kalenders, geen uitnodigingen — dat vraagt allemaal een netwerk. Je kunt een afspraak versturen, maar geen kalender delen</li>
+<li>De versleutelde back-up is de brug tussen je apparaten, en die is handmatig</li>
+</ul>
+
+<i>Deze vertaling is door de ontwikkelaar gemaakt met hulp van automatische vertaalhulpmiddelen en is nog niet nagelezen door een moedertaalspreker. Klinkt iets niet goed? Meld het dan: https://github.com/gitubpatrice/AGENDA-TECH/issues</i>
