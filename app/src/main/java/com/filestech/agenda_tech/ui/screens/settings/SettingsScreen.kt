@@ -69,11 +69,11 @@ import com.filestech.agenda_tech.domain.settings.ThemeMode
 import com.filestech.agenda_tech.domain.settings.WeekStart
 import com.filestech.agenda_tech.ui.util.SwitchLine
 import com.filestech.agenda_tech.ui.util.ColorSwatches
+import com.filestech.agenda_tech.ui.util.displayName
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import com.filestech.agenda_tech.ui.util.rememberReminderNotifications
 import com.filestech.agenda_tech.ui.util.reminderLabel
 import java.text.Collator
-import java.util.Locale
 
 private val DURATION_OPTIONS = listOf(15, 30, 45, 60, 90, 120, 240)
 private val REMINDER_OPTIONS = listOf(AppSettings.NO_DEFAULT_REMINDER, 0, 5, 10, 15, 30, 60, 24 * 60)
@@ -85,6 +85,7 @@ fun SettingsScreen(
     onOpenCalendars: () -> Unit,
     onOpenDeviceImport: () -> Unit,
     onOpenBackup: () -> Unit,
+    onOpenBridges: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
@@ -156,6 +157,14 @@ fun SettingsScreen(
                 onCheckedChange = viewModel::setShowWeekNumbers,
             )
             HolidayCountryRow(settings.holidayCountry, viewModel::setHolidayCountry)
+            // Worked out from the holidays: with no country chosen there is nothing to show.
+            if (settings.holidayCountry != null) {
+                ClickRow(
+                    title = stringResource(R.string.settings_bridges),
+                    subtitle = stringResource(R.string.settings_bridges_sub),
+                    onClick = onOpenBridges,
+                )
+            }
             // The per-app language picker (res/xml/locales_config.xml) lives in Android's settings,
             // where nobody looks for it: declaring the languages without leading there offers them by
             // half. Android 13+ only - below, the page does not exist and the row would open nothing,
@@ -516,20 +525,17 @@ private fun HolidayCountryRow(current: HolidayCountry?, onSelect: (HolidayCountr
     val collator = remember(locale) { Collator.getInstance(locale) }
     val countries = remember(locale) {
         HolidayCountry.entries
-            .map { it to countryName(it, locale) }
+            .map { it to it.displayName(locale) }
             .sortedWith(compareBy(collator) { it.second })
     }
     ChoiceRow(
         title = stringResource(R.string.settings_holidays),
         subtitle = stringResource(R.string.settings_holidays_sub),
-        currentLabel = current?.let { countryName(it, locale) } ?: none,
+        currentLabel = current?.displayName(locale) ?: none,
         options = listOf<Pair<HolidayCountry?, String>>(null to none) + countries,
         onSelect = onSelect,
     )
 }
-
-private fun countryName(country: HolidayCountry, locale: Locale): String =
-    Locale.Builder().setRegion(country.name).build().getDisplayCountry(locale)
 
 @Composable
 private fun <T> ChoiceRow(

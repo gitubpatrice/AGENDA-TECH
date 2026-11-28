@@ -8,7 +8,7 @@ It exists so that your calendar never has to live anywhere but on your phone. A 
 <li>Four views — Month (swipe between months; dots, titles in the grid or one row per day, pinch to switch), Week, Day and Agenda list</li>
 <li>Events — all-day, description, per-event colour, postal address and GPS coordinates that open in your maps app (with no location permission); deleted by mistake? "Undo" brings it back</li>
 <li>Share — send an event as text or as an .ics file to the app of your choice</li>
-<li>Public holidays — those of nine European countries and the United States, worked out on the phone, off by default</li>
+<li>Public holidays — those of nine European countries, the United States and Brazil, worked out on the phone, off by default, with the bridge days for a long weekend</li>
 <li>Recurring events (RFC 5545) — daily, weekly on chosen days, monthly (on a date, on the second Tuesday, the last Friday or the last day), yearly; ending after N occurrences or on a date; edit or delete a single occurrence</li>
 <li>Reminders — exact alarms, re-armed after a reboot, free delay, your own sound, and a snooze button on the notification, from 5 minutes to 1 hour as you choose</li>
 <li>Encrypted backup — export your whole calendar to a password-protected .atbak file (PBKDF2-HMAC-SHA256 at 600,000 iterations + AES-256-GCM). Keep it anywhere, cloud included: it stays unreadable without your password</li>

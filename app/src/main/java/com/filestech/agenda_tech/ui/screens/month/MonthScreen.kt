@@ -103,6 +103,7 @@ import com.filestech.agenda_tech.ui.theme.BrandDanger
 import com.filestech.agenda_tech.ui.util.DatePickerModal
 import com.filestech.agenda_tech.ui.util.HolidayLine
 import com.filestech.agenda_tech.ui.util.LocalDeviceZone
+import com.filestech.agenda_tech.ui.util.lightLineColor
 import com.filestech.agenda_tech.ui.util.openMapLink
 import com.filestech.agenda_tech.ui.util.rememberAppLocale
 import com.filestech.agenda_tech.ui.util.withFirstDateOnly
@@ -812,12 +813,6 @@ private fun PlaceLine(place: String, mapUri: String?) {
 private fun DetailDivider() {
     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 0.5.dp, color = lightLineColor())
 }
-
-/** Light grey, as asked on the S9: the theme's divider grey read as too dark between the lines of a day. */
-@Composable
-private fun lightLineColor(): Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = LIGHT_LINE_ALPHA)
-
-private const val LIGHT_LINE_ALPHA = 0.6f
 
 private const val PLACE_MAX_LINES = 2
 private const val DESCRIPTION_MAX_LINES = 3

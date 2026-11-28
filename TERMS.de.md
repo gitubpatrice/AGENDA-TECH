@@ -1,6 +1,6 @@
 # Nutzungsbedingungen — Agenda Tech
 
-_Übersetzung der Fassung vom 26. Oktober 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
+_Übersetzung der Fassung vom 28. November 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
 
 > Diese Übersetzung wurde vom Entwickler maschinengestützt erstellt und noch nicht von einer
 > Muttersprachlerin oder einem Muttersprachler geprüft. **Bei Abweichungen gilt die
@@ -40,9 +40,12 @@ darauf stützen.
 - **Die angezeigten Feiertage sind unverbindlich.** Sie werden nach den nationalen Regeln
   berechnet, die bei der Veröffentlichung der installierten Version bekannt waren: Weder regionale
   oder örtliche Feiertage (Elsass-Mosel, Bundesländer, Schweizer Kantone, spanische autonome
-  Gemeinschaften, die Landesteile des Vereinigten Königreichs…) noch ein nach dieser
-  Veröffentlichung beschlossener Feiertag noch Brückentage sind darin enthalten. Wo es darauf
-  ankommt — ein Arbeitstag, eine Frist —, prüfen Sie die amtlichen Quellen.
+  Gemeinschaften, die Landesteile des Vereinigten Königreichs, brasilianische Bundesstaaten und
+  Gemeinden…) noch freiwillige freie Tage (der Karneval in Brasilien) noch ein nach dieser
+  Veröffentlichung beschlossener Feiertag sind darin enthalten. Die Brückentage, die die App
+  auflistet, werden aus denselben Feiertagen berechnet, Samstag und Sonntag frei: Ihre Arbeitstage
+  und die Regeln Ihres Arbeitgebers kennt sie nicht. Wo es darauf ankommt — ein Arbeitstag, eine
+  Frist, ein Urlaubsantrag —, prüfen Sie die amtlichen Quellen oder fragen Sie Ihren Arbeitgeber.
 
 ## Datenverlust
 

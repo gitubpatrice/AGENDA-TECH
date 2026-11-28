@@ -12,9 +12,10 @@ import java.time.temporal.TemporalAdjusters
  * Spain's yearly lists before 2008 — so nothing is shown rather than something unchecked.
  *
  * National only: a region's own holidays (a German Land, a Swiss canton, Alsace-Moselle, Scotland, a
- * Spanish community) are not shown. For the United Kingdom that leaves the holidays all four nations
- * share; for Spain, a national holiday falling on a Sunday is not one that year — each community decides
- * whether to move it.
+ * Spanish community, a Brazilian state or city) are not shown. For the United Kingdom that leaves the
+ * holidays all four nations share; for Spain, a national holiday falling on a Sunday is not one that
+ * year — each community decides whether to move it; for Brazil, Carnival and Corpus Christi are left out,
+ * being optional days off (pontos facultativos), not holidays.
  *
  * The enum's name is the ISO 3166 code: `Locale("", code)` gives the country's name in any language.
  */
@@ -29,6 +30,7 @@ enum class HolidayCountry(val firstYear: Int) {
     ES(2008),
     GB(1990),
     US(1990),
+    BR(1990),
 }
 
 /** What a holiday is called — named in the app's language by the screen (see HolidayNames). */
@@ -75,6 +77,11 @@ enum class HolidayName {
     COLUMBUS_DAY,
     VETERANS_DAY,
     THANKSGIVING,
+    TIRADENTES,
+    OUR_LADY_OF_APARECIDA,
+    ALL_SOULS,
+    REPUBLIC_PROCLAMATION,
+    BLACK_CONSCIOUSNESS_DAY,
 }
 
 /**
@@ -116,6 +123,7 @@ object Holidays {
             HolidayCountry.ES -> days.spain()
             HolidayCountry.GB -> days.unitedKingdom()
             HolidayCountry.US -> days.unitedStates()
+            HolidayCountry.BR -> days.brazil()
         }
         return days.holidays
     }
@@ -317,6 +325,24 @@ object Holidays {
         observedUs(LocalDate.of(year, 11, 11), HolidayName.VETERANS_DAY)
         add(nthOf(Month.NOVEMBER, DayOfWeek.THURSDAY, 4), HolidayName.THANKSGIVING)
         observedUs(LocalDate.of(year, 12, 25), HolidayName.CHRISTMAS)
+    }
+
+    /**
+     * The holidays of federal law (Law 662 of 1949 as amended, Law 6802 of 1980) and Good Friday, a
+     * religious holiday under Law 9093 of 1995. None is moved off a weekend.
+     */
+    private fun Year.brazil() {
+        on(1, 1, HolidayName.NEW_YEAR)
+        fromEaster(-2, HolidayName.GOOD_FRIDAY)
+        on(4, 21, HolidayName.TIRADENTES)
+        on(5, 1, HolidayName.LABOUR_DAY)
+        on(9, 7, HolidayName.INDEPENDENCE_DAY)
+        on(10, 12, HolidayName.OUR_LADY_OF_APARECIDA)
+        on(11, 2, HolidayName.ALL_SOULS)
+        on(11, 15, HolidayName.REPUBLIC_PROCLAMATION)
+        // Law 14 759 of 21 December 2023.
+        if (year >= 2024) on(11, 20, HolidayName.BLACK_CONSCIOUSNESS_DAY)
+        on(12, 25, HolidayName.CHRISTMAS)
     }
 
     private fun Year.observedUs(date: LocalDate, name: HolidayName) {

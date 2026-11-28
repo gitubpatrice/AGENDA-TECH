@@ -1,6 +1,6 @@
 # Condiciones de uso — Agenda Tech
 
-_Traducción de la versión del 26 de octubre de 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md)
+_Traducción de la versión del 28 de noviembre de 2026._ · 🇬🇧 [English](TERMS.md) · 🇫🇷 [Français](TERMS.fr.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md)
 
 > Esta traducción la ha realizado el desarrollador con ayuda de herramientas automáticas y todavía
 > no la ha revisado un hablante nativo. **En caso de discrepancia, prevalece la
@@ -38,8 +38,11 @@ el único responsable de los eventos que introduce y de las decisiones que tome 
 - **Los días festivos mostrados son orientativos.** Se calculan según las normas nacionales
   conocidas en el momento de publicarse la versión instalada: no incluyen ni los festivos
   regionales o locales (Alsacia-Mosela, Länder alemanes, cantones suizos, comunidades autónomas,
-  naciones del Reino Unido…), ni un festivo decidido después de esa publicación, ni los puentes.
-  Para lo que tenga consecuencias — un día laborable, un plazo —, consulte las fuentes oficiales.
+  naciones del Reino Unido, estados y municipios de Brasil…), ni los días libres facultativos (el
+  Carnaval en Brasil), ni un festivo decidido después de esa publicación. Los puentes que muestra la
+  app se calculan a partir de esos mismos festivos, con sábado y domingo libres: no conoce ni sus
+  días de trabajo ni las normas de su empleador. Para lo que tenga consecuencias — un día laborable,
+  un plazo, una solicitud de vacaciones —, consulte las fuentes oficiales o a su empleador.
 
 ## Pérdida de datos
 

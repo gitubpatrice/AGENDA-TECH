@@ -242,6 +242,8 @@
     <string name="settings_holidays">Feiertage</string>
     <string name="settings_holidays_none">Keine</string>
     <string name="settings_holidays_sub">Gesetzliche Feiertage, auf dem Telefon berechnet.</string>
+    <string name="settings_bridges">Brückentage</string>
+    <string name="settings_bridges_sub">Die Arbeitstage, die Sie freinehmen, um aus einem Feiertag ein langes Wochenende zu machen.</string>
     <string name="holiday_observed">%1$s (Ersatzfeiertag)</string>
     <string name="holiday_new_year">Neujahr</string>
     <string name="holiday_epiphany">Heilige Drei Könige</string>
@@ -285,6 +287,20 @@
     <string name="holiday_columbus_day">Columbus Day</string>
     <string name="holiday_veterans_day">Veterans Day</string>
     <string name="holiday_thanksgiving">Thanksgiving</string>
+    <string name="holiday_tiradentes">Tiradentes-Tag</string>
+    <string name="holiday_our_lady_of_aparecida">Unsere Liebe Frau von Aparecida</string>
+    <string name="holiday_all_souls">Allerseelen</string>
+    <string name="holiday_republic_proclamation">Ausrufung der Republik</string>
+    <string name="holiday_black_consciousness_day">Tag des schwarzen Bewusstseins</string>
+    <string name="bridges_title">Brückentage</string>
+    <string name="bridges_take">Freinehmen: %1$s</string>
+    <plurals name="bridges_rest">
+        <item quantity="one">%1$d freier Tag am Stück: %2$s – %3$s</item>
+        <item quantity="other">%1$d freie Tage am Stück: %2$s – %3$s</item>
+    </plurals>
+    <string name="bridges_none">Im Jahr %1$d kommen keine Brückentage mehr.</string>
+    <string name="bridges_note">Berechnet aus den gesetzlichen Feiertagen des gewählten Landes, Samstag und Sonntag frei. Regionale Feiertage und Ihre eigenen Arbeitstage sind nicht berücksichtigt: Prüfen Sie das, bevor Sie Urlaub beantragen.</string>
+    <string name="bridges_no_country">Wählen Sie in den Einstellungen unter „Feiertage“ ein Land, um seine Brückentage zu sehen.</string>
     <string name="settings_language">App-Sprache</string>
     <string name="settings_language_sub">Öffnet den Android-Bildschirm für die Sprache dieser App. Agenda Tech folgt der Sprache Ihres Telefons, solange Sie dort keine wählen.</string>
     <string name="settings_section_events">Termine</string>
@@ -344,7 +360,7 @@
     <string name="about_feat_views_label">Monats-, Wochen-, Tages- und Agendaansicht</string>
     <string name="about_feat_views_desc">Zwischen Monaten wischen, als Punkte, Titel oder eine Zeile pro Tag anzeigen, zu heute springen, mehrere Kalender.</string>
     <string name="about_feat_holidays_label">Feiertage</string>
-    <string name="about_feat_holidays_desc">Die von zehn Ländern, auf dem Telefon berechnet: Belgien, Deutschland, Frankreich, Italien, Luxemburg, Österreich, die Schweiz, Spanien, das Vereinigte Königreich und die USA.</string>
+    <string name="about_feat_holidays_desc">Die von elf Ländern, auf dem Telefon berechnet: Belgien, Brasilien, Deutschland, Frankreich, Italien, Luxemburg, Österreich, die Schweiz, Spanien, das Vereinigte Königreich und die USA. Dazu die Brückentage: die Arbeitstage, die man freinimmt, um daraus ein langes Wochenende zu machen.</string>
     <string name="about_feat_share_label">Teilen und Karten</string>
     <string name="about_feat_share_desc">Einen Termin als Text oder als .ics-Datei teilen, seine Adresse in der Karten-App öffnen — Sie wählen die App, Agenda Tech sendet selbst nichts. Versehentlich gelöscht? „Rückgängig“ holt ihn zurück.</string>
     <string name="about_feat_recurrence_label">Wiederkehrende Termine</string>

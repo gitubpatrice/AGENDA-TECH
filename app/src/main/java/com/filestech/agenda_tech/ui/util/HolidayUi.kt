@@ -26,9 +26,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.filestech.agenda_tech.R
 import com.filestech.agenda_tech.domain.holiday.Holiday
+import com.filestech.agenda_tech.domain.holiday.HolidayCountry
 import com.filestech.agenda_tech.domain.holiday.HolidayName
 import com.filestech.agenda_tech.ui.theme.HolidayRedLight
 import com.filestech.agenda_tech.ui.theme.OnHolidayRedLight
+import java.util.Locale
 
 /*
  * How a public holiday looks, in every view that shows one — the month's three displays, the day's list,
@@ -59,6 +61,10 @@ private const val LIGHT_SURFACE_LUMINANCE = 0.5f
  * number alone was hard to make out among the titles and the dots (asked on the S9).
  */
 val HolidayDayShape = RoundedCornerShape(4.dp)
+
+/** The country's name in [locale], from the system: its enum name is the ISO 3166 code. */
+fun HolidayCountry.displayName(locale: Locale): String =
+    Locale.Builder().setRegion(name).build().getDisplayCountry(locale)
 
 /** The holiday's name in the app's language; a day standing in for one says so. */
 fun holidayName(resources: Resources, holiday: Holiday): String {
@@ -161,4 +167,9 @@ private val HolidayName.label: Int
         HolidayName.COLUMBUS_DAY -> R.string.holiday_columbus_day
         HolidayName.VETERANS_DAY -> R.string.holiday_veterans_day
         HolidayName.THANKSGIVING -> R.string.holiday_thanksgiving
+        HolidayName.TIRADENTES -> R.string.holiday_tiradentes
+        HolidayName.OUR_LADY_OF_APARECIDA -> R.string.holiday_our_lady_of_aparecida
+        HolidayName.ALL_SOULS -> R.string.holiday_all_souls
+        HolidayName.REPUBLIC_PROCLAMATION -> R.string.holiday_republic_proclamation
+        HolidayName.BLACK_CONSCIOUSNESS_DAY -> R.string.holiday_black_consciousness_day
     }

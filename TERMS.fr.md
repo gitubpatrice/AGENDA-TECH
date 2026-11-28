@@ -1,6 +1,6 @@
 # Conditions d'utilisation — Agenda Tech
 
-_Dernière mise à jour : 26 octobre 2026_ · 🇬🇧 [English](TERMS.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
+_Dernière mise à jour : 28 novembre 2026_ · 🇬🇧 [English](TERMS.md) · 🇩🇪 [Deutsch](TERMS.de.md) · 🇮🇹 [Italiano](TERMS.it.md) · 🇪🇸 [Español](TERMS.es.md)
 
 > **Version de référence.** En cas de divergence entre ces conditions et l'une de leurs traductions,
 > c'est cette version française qui fait foi.
@@ -37,9 +37,12 @@ leur base.
   unique.
 - **Les jours fériés affichés sont indicatifs.** Ils sont calculés d'après les règles nationales
   connues à la publication de la version installée : ils ne comprennent ni les fériés régionaux ou
-  locaux (Alsace-Moselle, Länder, cantons, communautés autonomes, nations du Royaume-Uni…), ni un
-  jour férié décidé après cette publication, ni les ponts. Pour ce qui engage — un jour travaillé,
-  une échéance —, vérifiez auprès des sources officielles.
+  locaux (Alsace-Moselle, Länder, cantons, communautés autonomes, nations du Royaume-Uni, États et
+  communes du Brésil…), ni les jours chômés facultatifs (le carnaval au Brésil), ni un jour férié
+  décidé après cette publication. Les ponts que liste l'application sont calculés d'après ces mêmes
+  fériés, samedi et dimanche chômés : elle ne connaît ni vos jours travaillés ni les règles de votre
+  employeur. Pour ce qui engage — un jour travaillé, une échéance, une demande de congé —, vérifiez
+  auprès des sources officielles ou de votre employeur.
 
 ## Perte de données
 

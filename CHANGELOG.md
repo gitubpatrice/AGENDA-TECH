@@ -5,6 +5,26 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+### Added
+
+- **Brazilian public holidays**, suggested by TraduxBR (#70): New Year's Day, Good Friday, Tiradentes,
+  Labour Day, Independence Day, Our Lady of Aparecida, All Souls' Day, Proclamation of the Republic,
+  Black Awareness Day (from 2024) and Christmas, checked day by day from 1990 to 2060 against the same
+  independent reference as the other ten countries. National ones only: Carnival and Corpus Christi
+  are optional days off (pontos facultativos), not holidays, and a state's or a city's own are not
+  shown. None is moved off a weekend.
+- **Bridge days** (Settings → Bridge days, once a country's holidays are shown): the one or two working
+  days caught between a holiday and a weekend, which taken off give four or five days in a row — the
+  Friday after an Ascension Thursday. This year's still ahead, or next year's; for each, the days to
+  take and the rest they give. Worked out on the phone from the national holidays alone, with Saturday
+  and Sunday off: neither regional holidays nor anyone's own working days are known, as the screen and
+  the terms of use say.
+
+### Changed
+
+- **Terms of use**: the paragraph on holidays no longer says bridge days are left out; it says how the
+  ones now listed are worked out, and names Brazil's states and Carnival among what is not shown.
+
 ## [1.4.0] — 2026-11-22
 
 Monthly repeats by position, and imported series on their real dates.

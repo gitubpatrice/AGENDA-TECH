@@ -11,6 +11,7 @@ import com.filestech.agenda_tech.ui.navigation.Routes
 import com.filestech.agenda_tech.ui.screens.about.AboutScreen
 import com.filestech.agenda_tech.ui.screens.agenda.AgendaScreen
 import com.filestech.agenda_tech.ui.screens.backup.BackupScreen
+import com.filestech.agenda_tech.ui.screens.bridges.BridgesScreen
 import com.filestech.agenda_tech.ui.deviceimport.DeviceImportScreen
 import com.filestech.agenda_tech.ui.screens.calendars.CalendarsScreen
 import com.filestech.agenda_tech.ui.screens.editor.EventEditorScreen
@@ -85,7 +86,11 @@ fun AppRoot(navController: NavHostController) {
                 onOpenCalendars = { navController.navigate(Routes.CALENDARS) },
                 onOpenDeviceImport = { navController.navigate(Routes.DEVICE_IMPORT) },
                 onOpenBackup = { navController.navigate(Routes.BACKUP) },
+                onOpenBridges = { navController.navigate(Routes.BRIDGES) },
             )
+        }
+        composable(Routes.BRIDGES) {
+            BridgesScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.ABOUT) {
             AboutScreen(onBack = { navController.popBackStack() })

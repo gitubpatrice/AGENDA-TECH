@@ -256,6 +256,8 @@
     <string name="settings_holidays">Jours fériés</string>
     <string name="settings_holidays_none">Aucun</string>
     <string name="settings_holidays_sub">Fériés nationaux, calculés sur le téléphone.</string>
+    <string name="settings_bridges">Ponts</string>
+    <string name="settings_bridges_sub">Les jours à poser pour faire d\'un férié un long week-end.</string>
     <string name="holiday_observed">%1$s (jour de report)</string>
     <string name="holiday_new_year">Jour de l\'an</string>
     <string name="holiday_epiphany">Épiphanie</string>
@@ -299,6 +301,21 @@
     <string name="holiday_columbus_day">Columbus Day</string>
     <string name="holiday_veterans_day">Veterans Day</string>
     <string name="holiday_thanksgiving">Thanksgiving</string>
+    <string name="holiday_tiradentes">Jour de Tiradentes</string>
+    <string name="holiday_our_lady_of_aparecida">Notre-Dame d\'Aparecida</string>
+    <string name="holiday_all_souls">Jour des morts</string>
+    <string name="holiday_republic_proclamation">Proclamation de la République</string>
+    <string name="holiday_black_consciousness_day">Jour de la conscience noire</string>
+    <string name="bridges_title">Ponts</string>
+    <string name="bridges_take">À poser : %1$s</string>
+    <plurals name="bridges_rest">
+        <item quantity="one">%1$d jour de repos d\'affilée : %2$s – %3$s</item>
+        <item quantity="many">%1$d jours de repos d\'affilée : %2$s – %3$s</item>
+        <item quantity="other">%1$d jours de repos d\'affilée : %2$s – %3$s</item>
+    </plurals>
+    <string name="bridges_none">Plus aucun pont à venir en %1$d.</string>
+    <string name="bridges_note">Calculés d\'après les fériés nationaux du pays choisi, samedi et dimanche chômés. Ni les fériés régionaux ni vos propres jours travaillés ne sont pris en compte : vérifiez avant de poser un congé.</string>
+    <string name="bridges_no_country">Choisissez un pays sous « Jours fériés », dans les réglages, pour voir ses ponts.</string>
     <string name="settings_language">Langue de l\'application</string>
     <string name="settings_language_sub">Ouvre l\'écran Android de langue de cette application. Agenda Tech suit la langue de votre téléphone tant que vous n\'en choisissez pas une.</string>
     <string name="settings_section_events">Événements</string>
@@ -358,7 +375,7 @@
     <string name="about_feat_views_label">Vues Mois, Semaine, Jour et Agenda</string>
     <string name="about_feat_views_desc">Balayez d\'un mois à l\'autre, affichez-le en points, en titres ou en une ligne par jour, revenez à aujourd\'hui, gérez plusieurs calendriers.</string>
     <string name="about_feat_holidays_label">Jours fériés</string>
-    <string name="about_feat_holidays_desc">Ceux de dix pays, calculés sur le téléphone : Allemagne, Autriche, Belgique, Espagne, États-Unis, France, Italie, Luxembourg, Royaume-Uni et Suisse.</string>
+    <string name="about_feat_holidays_desc">Ceux de onze pays, calculés sur le téléphone : Allemagne, Autriche, Belgique, Brésil, Espagne, États-Unis, France, Italie, Luxembourg, Royaume-Uni et Suisse. Et les ponts : les jours à poser pour en faire un long week-end.</string>
     <string name="about_feat_share_label">Partage et cartes</string>
     <string name="about_feat_share_desc">Partagez un événement en texte ou en fichier .ics, ouvrez son adresse dans votre appli de cartes — c\'est vous qui choisissez l\'appli, Agenda Tech n\'envoie rien lui-même. Supprimé par erreur ? « Annuler » le rétablit.</string>
     <string name="about_feat_recurrence_label">Événements récurrents</string>

@@ -9,7 +9,8 @@ import java.time.LocalDate
 
 /**
  * The holidays computed here against an independent reference: python-holidays 0.106, every national
- * holiday of the ten countries from 1990 to 2060, generated once into `holidays/reference-1990-2060.txt`.
+ * holiday of the eleven countries from 1990 to 2060, generated into `holidays/reference-1990-2060.txt`
+ * (Brazil added later, from the same version: two holidays on one day are two lines, by name).
  * Every date, every name, every substitute day must match — a holiday missing, one too many, one on the
  * wrong day or under the wrong name fails.
  */
@@ -106,6 +107,13 @@ class HolidaysTest {
             "Columbus Day" to HolidayName.COLUMBUS_DAY,
             "Veterans Day" to HolidayName.VETERANS_DAY,
             "Thanksgiving Day" to HolidayName.THANKSGIVING,
+            "Universal Fraternization Day" to HolidayName.NEW_YEAR,
+            "Tiradentes' Day" to HolidayName.TIRADENTES,
+            "Worker's Day" to HolidayName.LABOUR_DAY,
+            "Our Lady of Aparecida" to HolidayName.OUR_LADY_OF_APARECIDA,
+            "All Souls' Day" to HolidayName.ALL_SOULS,
+            "Republic Proclamation Day" to HolidayName.REPUBLIC_PROCLAMATION,
+            "National Day of Zumbi and Black Awareness" to HolidayName.BLACK_CONSCIOUSNESS_DAY,
         )
 
         /** `FR 2026-07-14 - National Day`: the country, then the holiday it names. */

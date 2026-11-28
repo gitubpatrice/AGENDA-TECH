@@ -253,6 +253,8 @@
     <string name="settings_holidays">Días festivos</string>
     <string name="settings_holidays_none">Ninguno</string>
     <string name="settings_holidays_sub">Festivos nacionales, calculados en el teléfono.</string>
+    <string name="settings_bridges">Puentes</string>
+    <string name="settings_bridges_sub">Los días laborables que pedir para hacer de un festivo un fin de semana largo.</string>
     <string name="holiday_observed">%1$s (día trasladado)</string>
     <string name="holiday_new_year">Año Nuevo</string>
     <string name="holiday_epiphany">Epifanía</string>
@@ -296,6 +298,21 @@
     <string name="holiday_columbus_day">Día de Colón</string>
     <string name="holiday_veterans_day">Día de los Veteranos</string>
     <string name="holiday_thanksgiving">Día de Acción de Gracias</string>
+    <string name="holiday_tiradentes">Día de Tiradentes</string>
+    <string name="holiday_our_lady_of_aparecida">Nuestra Señora Aparecida</string>
+    <string name="holiday_all_souls">Día de los Fieles Difuntos</string>
+    <string name="holiday_republic_proclamation">Proclamación de la República</string>
+    <string name="holiday_black_consciousness_day">Día de la Conciencia Negra</string>
+    <string name="bridges_title">Puentes</string>
+    <string name="bridges_take">A pedir: %1$s</string>
+    <plurals name="bridges_rest">
+        <item quantity="one">%1$d día libre seguido: %2$s – %3$s</item>
+        <item quantity="many">%1$d días libres seguidos: %2$s – %3$s</item>
+        <item quantity="other">%1$d días libres seguidos: %2$s – %3$s</item>
+    </plurals>
+    <string name="bridges_none">No quedan puentes en %1$d.</string>
+    <string name="bridges_note">Calculados a partir de los festivos nacionales del país elegido, con sábado y domingo libres. No tienen en cuenta los festivos autonómicos o locales ni sus propios días de trabajo: compruébelo antes de pedir vacaciones.</string>
+    <string name="bridges_no_country">Elija un país en «Días festivos», en los ajustes, para ver sus puentes.</string>
     <string name="settings_language">Idioma de la app</string>
     <string name="settings_language_sub">Abre la pantalla de Android del idioma de esta app. Agenda Tech sigue el idioma de su teléfono mientras no elija otro allí.</string>
     <string name="settings_section_events">Eventos</string>
@@ -355,7 +372,7 @@
     <string name="about_feat_views_label">Vistas Mes, Semana, Día y Agenda</string>
     <string name="about_feat_views_desc">Deslice entre meses, véalos como puntos, títulos o una fila por día, vuelva a hoy, varios calendarios.</string>
     <string name="about_feat_holidays_label">Días festivos</string>
-    <string name="about_feat_holidays_desc">Los de diez países, calculados en el teléfono: Alemania, Austria, Bélgica, España, Estados Unidos, Francia, Italia, Luxemburgo, Reino Unido y Suiza.</string>
+    <string name="about_feat_holidays_desc">Los de once países, calculados en el teléfono: Alemania, Austria, Bélgica, Brasil, España, Estados Unidos, Francia, Italia, Luxemburgo, Reino Unido y Suiza. Y los puentes: los días laborables que pedir para convertirlos en un fin de semana largo.</string>
     <string name="about_feat_share_label">Compartir y mapas</string>
     <string name="about_feat_share_desc">Comparta un evento como texto o como archivo .ics, abra su dirección en su aplicación de mapas — usted elige la aplicación, Agenda Tech no envía nada por sí misma. ¿Eliminado por error? «Deshacer» lo recupera.</string>
     <string name="about_feat_recurrence_label">Eventos periódicos</string>
