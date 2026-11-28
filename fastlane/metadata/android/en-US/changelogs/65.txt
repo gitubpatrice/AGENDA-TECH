@@ -2,7 +2,7 @@ v1.5.0 — Bridge days, Brazil, Dutch
 
 • Bridge days: the working days to take
   off between a holiday and a weekend,
-  for four or five days in a row
+  to make a long weekend of it
   (Settings → Bridge days).
 • Brazil's public holidays, suggested
   by TraduxBR.

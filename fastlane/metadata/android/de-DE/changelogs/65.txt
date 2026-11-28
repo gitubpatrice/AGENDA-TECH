@@ -2,7 +2,7 @@ v1.5.0 — Brückentage, Brasilien, Niederländisch
 
 • Brückentage: die Arbeitstage zwischen
   einem Feiertag und dem Wochenende, für
-  vier oder fünf freie Tage am Stück
+  ein langes Wochenende
   (Einstellungen → Brückentage).
 • Die Feiertage Brasiliens, vorgeschlagen
   von TraduxBR.

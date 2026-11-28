@@ -1,8 +1,8 @@
 v1.5.0 — Emendas de feriado, Brasil, holandês
 
 • Emendas de feriado: os dias úteis entre
-  um feriado e o fim de semana, para
-  quatro ou cinco dias de folga seguidos
+  um feriado e o fim de semana, para um
+  fim de semana prolongado
   (Configurações → Emendas de feriado).
 • Os feriados nacionais do Brasil,
   sugeridos por TraduxBR.

@@ -18,8 +18,8 @@ Bridge days, Brazil's public holidays, and Dutch.
   are optional days off (pontos facultativos), not holidays, and a state's or a city's own are not
   shown. None is moved off a weekend.
 - **Bridge days** (Settings → Bridge days, once a country's holidays are shown): the one or two working
-  days caught between a holiday and a weekend, which taken off give four or five days in a row — the
-  Friday after an Ascension Thursday. This year's still ahead, or next year's; for each, the days to
+  days caught between a holiday and a weekend, which taken off make a long weekend of it — the Friday
+  after an Ascension Thursday gives four days in a row. This year's still ahead, or next year's; for each, the days to
   take and the rest they give. Worked out on the phone from the national holidays alone, with Saturday
   and Sunday off: neither regional holidays nor anyone's own working days are known, as the screen and
   the terms of use say.
